@@ -22,8 +22,8 @@ ColumnLayout {
     required property string screenName
     required property bool   thumbCacheReady
 
-    readonly property string currentWallpaper: pluginApi?.pluginSettings?.[screenName]?.currentWallpaper || ""
-    readonly property bool   monitorSpecific:  pluginApi?.pluginSettings?.monitorSpecific                || false
+    readonly property string currentWallpaper: pluginApi?.pluginSettings?.[screenName]?.currentWallpaper ?? ""
+    readonly property bool   monitorSpecific:  pluginApi?.pluginSettings?.monitorSpecific                ?? false
 
 
     /***************************

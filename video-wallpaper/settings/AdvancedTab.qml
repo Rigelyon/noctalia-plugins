@@ -21,12 +21,12 @@ ColumnLayout {
     required property var pluginApi
 
     required property string activeBackend
-    required property bool enabled
+    required property bool   enabled
     required property string selectedMonitor
 
     // Monitor specific properties
-    property string fillMode: pluginApi?.pluginSettings?.[selectedMonitor]?.fillMode    || pluginApi?.manifest?.metadata?.defaultSettings?.fill_mode || ""
-    property int orientation: pluginApi?.pluginSettings?.[selectedMonitor]?.orientation || 0
+    property string fillMode: pluginApi?.pluginSettings?.[selectedMonitor]?.fillMode    ?? pluginApi?.manifest?.metadata?.defaultSettings?.fill_mode ?? ""
+    property int orientation: pluginApi?.pluginSettings?.[selectedMonitor]?.orientation ?? 0
 
     // Constants
     readonly property list<string> backends: ["qt6-multimedia", "mpvpaper"]
@@ -42,7 +42,7 @@ ColumnLayout {
     NComboBox {
         enabled: root.enabled
         Layout.fillWidth: true
-        label: root.pluginApi?.tr("settings.advanced.fill_mode.label") || "Fill Mode"
+        label:       root.pluginApi?.tr("settings.advanced.fill_mode.label")       || "Fill Mode"
         description: root.pluginApi?.tr("settings.advanced.fill_mode.description") || "The mode that the wallpaper is fitted into the background."
         defaultValue: "fit"
         model: [
@@ -74,7 +74,7 @@ ColumnLayout {
         defaultValue: 0
         stepSize: 90
         text: _value
-        label: root.pluginApi?.tr("settings.advanced.orientation.label") || "Orientation"
+        label:       root.pluginApi?.tr("settings.advanced.orientation.label")       || "Orientation"
         description: root.pluginApi?.tr("settings.advanced.orientation.description") || "The orientation of the video playing, can be any multiple of 90 degrees."
         onMoved: value => _value = value
         onPressedChanged: (pressed, value) => {
@@ -118,8 +118,8 @@ ColumnLayout {
         target: root.pluginApi
         function onPluginSettingsChanged() {
             // Update the local properties on change
-            root.fillMode =    root.pluginApi?.pluginSettings?.[root.selectedMonitor]?.fillMode    || root.pluginApi?.manifest?.metadata?.defaultSettings?.fillMode || ""
-            root.orientation = root.pluginApi?.pluginSettings?.[root.selectedMonitor]?.orientation || 0
+            root.fillMode =    root.pluginApi?.pluginSettings?.[root.selectedMonitor]?.fillMode    ?? root.pluginApi?.manifest?.metadata?.defaultSettings?.fillMode ?? ""
+            root.orientation = root.pluginApi?.pluginSettings?.[root.selectedMonitor]?.orientation ?? 0
         }
     }
 

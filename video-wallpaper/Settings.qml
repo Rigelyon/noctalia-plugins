@@ -19,10 +19,10 @@ ColumnLayout {
     /***************************
     * PROPERTIES
     ***************************/
-    property string activeBackend:    pluginApi?.pluginSettings?.activeBackend    || pluginApi?.manifest?.metadata?.defaultSettings?.activeBackend || ""
-    property bool   enabled:          pluginApi?.pluginSettings?.enabled          || false
-    property bool   monitorSpecific:  pluginApi?.pluginSettings?.monitorSpecific  || false
-    property string wallpapersFolder: pluginApi?.pluginSettings?.wallpapersFolder || pluginApi?.manifest?.metadata?.defaultSettings?.wallpapersFolder || ""
+    property string activeBackend:    pluginApi?.pluginSettings?.activeBackend    ?? pluginApi?.manifest?.metadata?.defaultSettings?.activeBackend ?? ""
+    property bool   enabled:          pluginApi?.pluginSettings?.enabled          ?? false
+    property bool   monitorSpecific:  pluginApi?.pluginSettings?.monitorSpecific  ?? false
+    property string wallpapersFolder: pluginApi?.pluginSettings?.wallpapersFolder ?? pluginApi?.manifest?.metadata?.defaultSettings?.wallpapersFolder ?? ""
 
 
     /***************************
@@ -58,18 +58,16 @@ ColumnLayout {
     ***************************/
     // Active toggle
     NToggle {
-        Layout.fillWidth: true
-        label:       pluginApi?.tr("settings.toggle.label")       || "Enable video wallpapers"
-        description: pluginApi?.tr("settings.toggle.description") || "Choose your preferred backend to render the videos with, in the box below."
+        label:       root.pluginApi?.tr("settings.toggle.label")       || "Enable video wallpapers"
+        description: root.pluginApi?.tr("settings.toggle.description") || "Choose your preferred backend to render the videos with, in the box below."
         checked: root.enabled
         onToggled: checked => root.enabled = checked
     }
 
     NToggle {
-        Layout.fillWidth: true
         visible: Quickshell.screens.length > 1
-        label:       pluginApi?.tr("settings.monitor_specific.label")       || "Monitor specific settings"
-        description: pluginApi?.tr("settings.monitor_specific.description") || "Choose if you want some of the settings to apply to specific monitors. (Only available for multi-monitor setup)"
+        label:       root.pluginApi?.tr("settings.monitor_specific.label")       || "Monitor specific settings"
+        description: root.pluginApi?.tr("settings.monitor_specific.description") || "Choose if you want some of the settings to apply to specific monitors. (Only available for multi-monitor setup)"
         checked: root.monitorSpecific
         onToggled: checked => root.monitorSpecific = checked
     }
@@ -77,7 +75,7 @@ ColumnLayout {
     NComboBox {
         enabled: root.enabled
         Layout.fillWidth: true
-        label: root.pluginApi?.tr("settings.backend.label") || "Active backend"
+        label:       root.pluginApi?.tr("settings.backend.label")       || "Active backend"
         description: root.pluginApi?.tr("settings.backend.description") || "What to use to render the video wallpapers."
         defaultValue: "qt6-multimedia"
         model: [
@@ -100,7 +98,7 @@ ColumnLayout {
 
         NLabel {
             enabled: root.enabled
-            label: root.pluginApi?.tr("settings.general.wallpapers_folder.title.label") || "Wallpapers Folder"
+            label:       root.pluginApi?.tr("settings.general.wallpapers_folder.title.label")       || "Wallpapers Folder"
             description: root.pluginApi?.tr("settings.general.wallpapers_folder.title.description") || "The folder that contains all the wallpapers, useful when using random wallpaper"
         }
 
@@ -109,7 +107,6 @@ ColumnLayout {
 
             NTextInput {
                 enabled: root.enabled
-                Layout.fillWidth: true
                 placeholderText: root.pluginApi?.tr("settings.general.wallpapers_folder.text_input.placeholder") || "/path/to/folder/with/wallpapers"
                 text: root.wallpapersFolder
                 onTextChanged: root.wallpapersFolder = text
@@ -219,10 +216,10 @@ ColumnLayout {
         target: root.pluginApi
         function onPluginSettingsChanged() {
             // Update the local properties on change
-            root.activeBackend =    root.pluginApi?.pluginSettings?.activeBackend    || root.pluginApi?.manifest?.metadata?.defaultSettings?.activeBackend || ""
-            root.enabled =          root.pluginApi?.pluginSettings?.enabled          || false
-            root.monitorSpecific =  root.pluginApi?.pluginSettings?.monitorSpecific  || false
-            root.wallpapersFolder = root.pluginApi?.pluginSettings?.wallpapersFolder || root.pluginApi?.manifest?.metadata?.defaultSettings?.wallpapersFolder || ""
+            root.activeBackend =    root.pluginApi?.pluginSettings?.activeBackend    ?? root.pluginApi?.manifest?.metadata?.defaultSettings?.activeBackend ?? ""
+            root.enabled =          root.pluginApi?.pluginSettings?.enabled          ?? false
+            root.monitorSpecific =  root.pluginApi?.pluginSettings?.monitorSpecific  ?? false
+            root.wallpapersFolder = root.pluginApi?.pluginSettings?.wallpapersFolder ?? root.pluginApi?.manifest?.metadata?.defaultSettings?.wallpapersFolder ?? ""
         }
     }
 

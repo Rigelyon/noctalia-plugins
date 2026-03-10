@@ -24,15 +24,15 @@ ColumnLayout {
     required property string selectedMonitor
 
     // Monitor specific properties
-    readonly property bool isMuted:   pluginApi?.pluginSettings?.[selectedMonitor]?.isMuted   || false
-    readonly property bool isPlaying: pluginApi?.pluginSettings?.[selectedMonitor]?.isPlaying || false
+    readonly property bool isMuted:   pluginApi?.pluginSettings?.[selectedMonitor]?.isMuted   ?? false
+    readonly property bool isPlaying: pluginApi?.pluginSettings?.[selectedMonitor]?.isPlaying ?? false
 
-    property string currentWallpaper: pluginApi?.pluginSettings?.[selectedMonitor]?.currentWallpaper || ""
-    property bool   monitorSpecific:  pluginApi?.pluginSettings?.monitorSpecific  || false
-    property double volume:           pluginApi?.pluginSettings?.[selectedMonitor]?.volume           || pluginApi?.manifest?.metadata?.defaultSettings?.volume || 0
+    property string currentWallpaper: pluginApi?.pluginSettings?.[selectedMonitor]?.currentWallpaper ?? ""
+    property bool   monitorSpecific:  pluginApi?.pluginSettings?.monitorSpecific                     ?? false
+    property double volume:           pluginApi?.pluginSettings?.[selectedMonitor]?.volume           ?? pluginApi?.manifest?.metadata?.defaultSettings?.volume ?? 0
 
     // Global properties
-    property string wallpapersFolder: pluginApi?.pluginSettings?.wallpapersFolder || pluginApi?.manifest?.metadata?.defaultSettings?.wallpapersFolder || ""
+    property string wallpapersFolder: pluginApi?.pluginSettings?.wallpapersFolder ?? pluginApi?.manifest?.metadata?.defaultSettings?.wallpapersFolder ?? ""
 
     // Signals
     signal saveMonitorProperty(key: string, value: var);
@@ -43,8 +43,8 @@ ColumnLayout {
     ***************************/
     onSelectedMonitorChanged: {
         // Update the local variables
-        currentWallpaper = pluginApi?.pluginSettings?.[selectedMonitor]?.currentWallpaper || ""
-        volume =           pluginApi?.pluginSettings?.[selectedMonitor]?.volume           || pluginApi?.manifest?.metadata?.defaultSettings?.volume || 0
+        currentWallpaper = pluginApi?.pluginSettings?.[selectedMonitor]?.currentWallpaper ?? ""
+        volume =           pluginApi?.pluginSettings?.[selectedMonitor]?.volume           ?? pluginApi?.manifest?.metadata?.defaultSettings?.volume ?? 0
     }
 
 
@@ -57,7 +57,7 @@ ColumnLayout {
 
         NLabel {
             enabled: root.enabled
-            label: root.pluginApi?.tr("settings.general.select_wallpaper.title.label") || "Select Wallpaper"
+            label:       root.pluginApi?.tr("settings.general.select_wallpaper.title.label")       || "Select Wallpaper"
             description: root.pluginApi?.tr("settings.general.select_wallpaper.title.description") || "Choose the current video wallpaper playing."
         }
 
@@ -94,7 +94,7 @@ ColumnLayout {
         value: _value
         stepSize: (Settings.data.audio.volumeStep / 100.0)
         text: `${_value * 100.0}%`
-        label: root.pluginApi?.tr("settings.general.volume.label") || "Volume"
+        label:       root.pluginApi?.tr("settings.general.volume.label")       || "Volume"
         description: root.pluginApi?.tr("settings.general.volume.description") || "The current volume of the video playing."
         onMoved: value => _value = value
         onPressedChanged: (pressed, value) => {
@@ -126,10 +126,10 @@ ColumnLayout {
         target: pluginApi
         function onPluginSettingsChanged() {
             // Update the local properties on change
-            root.currentWallpaper = root.pluginApi?.pluginSettings?.[root.selectedMonitor]?.currentWallpaper || ""
-            root.volume =           root.pluginApi?.pluginSettings?.[root.selectedMonitor]?.volume || root.pluginApi?.manifest?.metadata?.defaultSettings?.volume || 0
+            root.currentWallpaper = root.pluginApi?.pluginSettings?.[root.selectedMonitor]?.currentWallpaper ?? ""
+            root.volume =           root.pluginApi?.pluginSettings?.[root.selectedMonitor]?.volume           ?? root.pluginApi?.manifest?.metadata?.defaultSettings?.volume ?? 0
 
-            root.wallpapersFolder = root.pluginApi?.pluginSettings?.wallpapersFolde || root.pluginApi?.manifest?.metadata?.defaultSettings?.wallpapersFolder || ""
+            root.wallpapersFolder = root.pluginApi?.pluginSettings?.wallpapersFolde ?? root.pluginApi?.manifest?.metadata?.defaultSettings?.wallpapersFolder ?? ""
         }
     }
 

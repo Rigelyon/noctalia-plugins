@@ -25,11 +25,11 @@ Item {
     /***************************
     * PROPERTIES
     ***************************/
-    readonly property string activeBackend:    pluginApi?.pluginSettings?.activeBackend    || pluginApi?.manifest?.metadata?.defaultSettings?.activeBackend || ""
-    readonly property bool   enabled:          pluginApi?.pluginSettings?.enabled          || false
-    readonly property bool   monitorSpecific:  pluginApi?.pluginSettings?.monitorSpecific  || false
-    readonly property bool   thumbCacheReady:  pluginApi?.pluginSettings?.thumbCacheReady  || false
-    readonly property string wallpapersFolder: pluginApi?.pluginSettings?.wallpapersFolder || pluginApi?.manifest?.metadata?.defaultSettings?.wallpapersFolder || ""
+    readonly property string activeBackend:    pluginApi?.pluginSettings?.activeBackend    ?? pluginApi?.manifest?.metadata?.defaultSettings?.activeBackend ?? ""
+    readonly property bool   enabled:          pluginApi?.pluginSettings?.enabled          ?? false
+    readonly property bool   monitorSpecific:  pluginApi?.pluginSettings?.monitorSpecific  ?? false
+    readonly property bool   thumbCacheReady:  pluginApi?.pluginSettings?.thumbCacheReady  ?? false
+    readonly property string wallpapersFolder: pluginApi?.pluginSettings?.wallpapersFolder ?? pluginApi?.manifest?.metadata?.defaultSettings?.wallpapersFolder ?? ""
 
 
     /***************************
@@ -83,7 +83,7 @@ Item {
 
                 NButton {
                     icon: "wallpaper-selector"
-                    text: root.pluginApi?.tr("panel.tool_row.folder.text") || "Folder"
+                    text:        root.pluginApi?.tr("panel.tool_row.folder.text")    || "Folder"
                     tooltipText: root.pluginApi?.tr("panel.tool_row.folder.tooltip") || "Choose another folder that contains your wallpapers."
 
                     onClicked: wallpapersFolderPicker.openFilePicker();
@@ -91,7 +91,7 @@ Item {
 
                 NButton {
                     icon: "refresh"
-                    text: root.pluginApi?.tr("panel.tool_row.refresh.text") || "Refresh"
+                    text:        root.pluginApi?.tr("panel.tool_row.refresh.text")    || "Refresh"
                     tooltipText: root.pluginApi?.tr("panel.tool_row.refresh.tooltip") || "Refresh thumbnails, remove old ones and create new ones."
 
                     onClicked: { 
