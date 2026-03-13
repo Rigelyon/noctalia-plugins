@@ -9,8 +9,7 @@
   "license": "MIT",
   "entryPoints": {
     "barWidget": "BarWidget.qml",
-    "panel": "Panel.qml",
-    "settings": "Settings.qml"
+    "panel": "Panel.qml"
   },
   "dependencies": {
     "plugins": []
