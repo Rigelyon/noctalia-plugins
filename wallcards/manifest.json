@@ -1,0 +1,21 @@
+{
+  "id": "wallcards",
+  "name": "Wallcards",
+  "version": "0.0.1",
+  "minNoctaliaVersion": "4.4.3",
+  "author": "tonigineer",
+  "official": false,
+  "license": "MIT",
+  "repository": "https://github.com/noctalia-dev/noctalia-plugins",
+  "description": "A `lively` wallpaper selector.",
+  "tags": ["Desktop", "Theming"],
+  "entryPoints": {
+    "main": "Main.qml"
+  },
+  "dependencies": {
+    "plugins": []
+  },
+  "metadata": {
+    "defaultSettings": {}
+  }
+}
