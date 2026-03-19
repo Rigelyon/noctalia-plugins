@@ -1,16 +1,14 @@
 import QtQuick
 import Quickshell
-import Quickshell.Io
 
 Item {
     id: root
+    
+    // Noctalia injects this automatically based on your manifest.json
     property var pluginApi: null
 
-
-    JsonSettings {
-        id: calendarSettings
-        source: Qt.resolvedUrl("settings.json")
-        defaults: { "startOnMonday": true }
+    Component.onCompleted: {
+        // Calling the Logger as a singleton (No object needed)
+        Logger.i("CalendarPlugin", "Plugin initialized successfully via auto-registration.");
     }
-
 }
