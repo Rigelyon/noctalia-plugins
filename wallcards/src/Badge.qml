@@ -15,7 +15,7 @@ Rectangle {
   width: badgeRow.implicitWidth + Style.margin2S
   height: badgeRow.implicitHeight + Style.margin2XS
   color: root.backgroundColor
-  radius: Style.radiusXS
+  radius: Style.radiusM
   z: 10
 
   Row {

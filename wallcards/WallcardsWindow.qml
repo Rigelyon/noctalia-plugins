@@ -52,10 +52,6 @@ PanelWindow {
   property var topBarRadius: cfg.top_bar_radius || defaults.top_bar_radius
   property string wallpaperDir: Settings.data.wallpaper.directory
 
-  property real opactiyTuning:
-  property real roundingTuning:
-  property real fontSizeTuning:
-
   property bool loading: true
   property string loadingMessage
   property int pendingProcesses: 0
@@ -74,6 +70,7 @@ PanelWindow {
 
   function rebuildFilteredItems() {
     var items = [];
+
     for (var i = 0; i < folderModel.count; i++) {
       var fn = folderModel.get(i, "fileName");
       var fp = folderModel.get(i, "filePath");
@@ -83,6 +80,7 @@ PanelWindow {
           "filePath": fp
         });
     }
+
     filteredItems = items;
     if (cardStack.currentIndex >= filteredCount)
       cardStack.currentIndex = 0;
@@ -685,8 +683,8 @@ PanelWindow {
           Badge {
             anchors.top: parent.top
             anchors.right: parent.right
-            anchors.topMargin: Style.marginXS
-            anchors.rightMargin: Style.marginXS
+            anchors.topMargin: Style.marginM
+            anchors.rightMargin: Style.marginM
             visible: cardDelegate.currentFileName !== ""
             icon: cardDelegate.isVideoFile ? "videocam" : "insert_drive_file"
             text: cardDelegate.currentFileName.split('.').pop().toUpperCase()
@@ -695,8 +693,8 @@ PanelWindow {
           Badge {
             anchors.top: parent.top
             anchors.left: parent.left
-            anchors.topMargin: Style.marginXS
-            anchors.leftMargin: Style.marginXS
+            anchors.topMargin: Style.marginM
+            anchors.leftMargin: Style.marginM
             visible: isCenter
             text: cardDelegate.currentFileName.substring(0, cardDelegate.currentFileName.lastIndexOf('.'))
           }

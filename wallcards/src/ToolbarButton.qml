@@ -17,7 +17,7 @@ Rectangle {
 
   width: contentRow.width + Style.margin2M
   height: Style.margin2L
-  radius: Style.radiusXXS
+  radius: Style.radiusM
   color: active ? Qt.alpha(accentColor, 0.15) : Qt.alpha(Color.mOnSurface, 0.06)
   border.width: Style.borderS
   border.color: active ? Qt.alpha(accentColor, Style.opacityMedium) : Qt.alpha(Color.mOutline, 0.3)
@@ -57,7 +57,7 @@ Rectangle {
       visible: root.hotkey !== ""
       width: Style.marginL
       height: Style.marginL
-      radius: Style.radiusXXXS
+      radius: Style.radiusM
       anchors.verticalCenter: parent.verticalCenter
       color: Qt.alpha(root.accentColor, root.active ? 0.2 : 0.06)
 

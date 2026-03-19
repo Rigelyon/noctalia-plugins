@@ -108,10 +108,12 @@ Item {
       filterChanged("images");
     else if (event.key === Qt.Key_V)
       filterChanged("videos");
-    else if (event.key === Qt.Key_R)
+    else if (event.key === Qt.Key_R || event.key === Qt.Key_Up)
       randomJump();
-    else if (event.key === Qt.Key_Return || event.key === Qt.Key_Space)
+    else if (event.key === Qt.Key_Return || event.key === Qt.Key_Space || event.key === Qt.Key_Down) {
       applyRequested(root.getFilePath(currentIndex), true);
+      quitRequested();
+    }
     else if (event.key === Qt.Key_Escape || event.key === Qt.Key_Q)
       quitRequested();
 
