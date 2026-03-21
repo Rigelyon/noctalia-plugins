@@ -27,7 +27,8 @@ ColumnLayout {
   property bool valueShowBarWhenRecording: root.settings.showBarWhenRecording ?? root.defaults.showBarWhenRecording ?? true
   property bool valueShowBarWhenReplay: root.settings.showBarWhenReplay ?? root.defaults.showBarWhenReplay ?? false
   property bool valueShowBarWhenStreaming: root.settings.showBarWhenStreaming ?? root.defaults.showBarWhenStreaming ?? true
-  property bool valueShowBarWhenReady: root.settings.showBarWhenReady ?? root.defaults.showBarWhenReady ?? true
+  // Stored under the legacy showBarWhenReady key for settings compatibility.
+  property bool valueAlwaysShowInBar: root.settings.showBarWhenReady ?? root.defaults.showBarWhenReady ?? true
   property bool valueShowControlCenterWhenRecording: root.settings.showControlCenterWhenRecording ?? root.defaults.showControlCenterWhenRecording ?? true
   property bool valueShowControlCenterWhenReplay: root.settings.showControlCenterWhenReplay ?? root.defaults.showControlCenterWhenReplay ?? true
   property bool valueShowControlCenterWhenStreaming: root.settings.showControlCenterWhenStreaming ?? root.defaults.showControlCenterWhenStreaming ?? true
@@ -48,7 +49,7 @@ ColumnLayout {
     settings.showBarWhenRecording = root.valueShowBarWhenRecording
     settings.showBarWhenReplay = root.valueShowBarWhenReplay
     settings.showBarWhenStreaming = root.valueShowBarWhenStreaming
-    settings.showBarWhenReady = root.valueShowBarWhenReady
+    settings.showBarWhenReady = root.valueAlwaysShowInBar
     settings.showControlCenterWhenRecording = root.valueShowControlCenterWhenRecording
     settings.showControlCenterWhenReplay = root.valueShowControlCenterWhenReplay
     settings.showControlCenterWhenStreaming = root.valueShowControlCenterWhenStreaming
@@ -214,10 +215,10 @@ ColumnLayout {
 
       NToggle {
         Layout.fillWidth: true
-        label: root.pluginApi.tr("settings.show_bar_ready.label")
-        description: root.pluginApi.tr("settings.show_bar_ready.description")
-        checked: root.valueShowBarWhenReady
-        onToggled: checked => root.valueShowBarWhenReady = checked
+        label: root.pluginApi.tr("settings.always_show_in_bar.label")
+        description: root.pluginApi.tr("settings.always_show_in_bar.description")
+        checked: root.valueAlwaysShowInBar
+        onToggled: checked => root.valueAlwaysShowInBar = checked
       }
 
       NToggle {

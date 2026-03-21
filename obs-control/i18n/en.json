@@ -153,7 +153,7 @@
       "label": "While Streaming",
       "description": "Keep the bar button visible during streaming."
     },
-    "show_bar_ready": {
+    "always_show_in_bar": {
       "label": "Always Show In Bar",
       "description": "Keep the bar button visible even when OBS is idle or offline so its position stays stable."
     },

@@ -44,7 +44,8 @@ Item {
   readonly property bool showBarWhenRecording: settings.showBarWhenRecording ?? defaults.showBarWhenRecording ?? true
   readonly property bool showBarWhenReplay: settings.showBarWhenReplay ?? defaults.showBarWhenReplay ?? false
   readonly property bool showBarWhenStreaming: settings.showBarWhenStreaming ?? defaults.showBarWhenStreaming ?? true
-  readonly property bool showBarWhenReady: settings.showBarWhenReady ?? defaults.showBarWhenReady ?? true
+  // Stored under the legacy showBarWhenReady key for settings compatibility.
+  readonly property bool alwaysShowInBar: settings.showBarWhenReady ?? defaults.showBarWhenReady ?? true
   readonly property bool showControlCenterWhenRecording: settings.showControlCenterWhenRecording ?? defaults.showControlCenterWhenRecording ?? true
   readonly property bool showControlCenterWhenReplay: settings.showControlCenterWhenReplay ?? defaults.showControlCenterWhenReplay ?? true
   readonly property bool showControlCenterWhenStreaming: settings.showControlCenterWhenStreaming ?? defaults.showControlCenterWhenStreaming ?? true
@@ -92,7 +93,7 @@ Item {
     showBarWhenRecording: showBarWhenRecording,
     showBarWhenReplay: showBarWhenReplay,
     showBarWhenStreaming: showBarWhenStreaming,
-    showBarWhenReady: showBarWhenReady,
+    alwaysShowInBar: alwaysShowInBar,
     showControlCenterWhenRecording: showControlCenterWhenRecording,
     showControlCenterWhenReplay: showControlCenterWhenReplay,
     showControlCenterWhenStreaming: showControlCenterWhenStreaming,

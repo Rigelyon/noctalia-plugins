@@ -127,7 +127,7 @@ function shouldShowInBar(state, settings) {
   }
 
   return Boolean(
-    settings.showBarWhenReady
+    settings.alwaysShowInBar
     || (state.recording && settings.showBarWhenRecording)
     || (state.replayBuffer && settings.showBarWhenReplay)
     || (state.streaming && settings.showBarWhenStreaming)

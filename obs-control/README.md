@@ -20,7 +20,7 @@ sudo pacman -S obs-studio qt6-websockets
 
 ## Highlights
 
-- stable bar presence while OBS is ready, so the button stays in the same place before recording starts
+- optional always-visible bar button, so the OBS slot stays in the same place
 - quick panel actions for record, replay, stream, refresh, videos, and settings
 - optional Control Center shortcut
 - OBS launch support with minimize-to-tray behavior for automatic starts
