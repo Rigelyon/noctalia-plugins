@@ -145,9 +145,12 @@ Item {
     tabs.push({ "key": "common", "name": pluginApi?.tr("panel.tab.common"), "count": commonCount })
     for (var j = 0; j < order.length; j++) {
       var key = order[j]
+      var trName = pluginApi?.tr("panel.tab." + key)
+      // If translation is missing, fallback to capitalized key
+      var name = (trName && !/^!!/.test(trName)) ? trName : key.charAt(0).toUpperCase() + key.slice(1)
       tabs.push({
         "key": key,
-        "name": pluginApi?.tr("panel.tab." + key) || key,
+        "name": name,
         "count": counts[key]
       })
     }
@@ -591,7 +594,7 @@ Item {
 
                     NText {
                       Layout.fillWidth: true
-                      text: pluginApi?.tr("panel.current") + (currentDefaultName || currentDefault || pluginApi?.tr("panel.none"))
+                      text: `${pluginApi?.tr("panel.current")}${currentDefaultName || currentDefault || pluginApi?.tr("panel.none")}`
                       pointSize: Style.fontSizeS
                       color: Color.mOnSurfaceVariant
                       wrapMode: Text.WordWrap
@@ -599,7 +602,7 @@ Item {
 
                     NText {
                       Layout.fillWidth: true
-                      text: pluginApi?.tr("panel.source") + (defaultSource || pluginApi?.tr("panel.notConfigured"))
+                      text: `${pluginApi?.tr("panel.source")}${defaultSource || pluginApi?.tr("panel.notConfigured")}`
                       pointSize: Style.fontSizeS
                       color: Color.mOnSurfaceVariant
                       wrapMode: Text.WordWrap

@@ -23,7 +23,14 @@
         "notConfigured": "(not configured)",
       "tab": {
         "all": "All",
-        "common": "Common"
+        "common": "Common",
+        "audio": "Audio",
+        "video": "Video",
+        "application": "Application",
+        "image": "Image",
+        "text": "Text",
+        "inode": "Filesystem",
+        "other": "Other"
       },
     "title": "MimeApp GUI",
     "refresh": "Refresh",
