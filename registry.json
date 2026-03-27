@@ -1186,7 +1186,7 @@
     {
       "id": "translator",
       "name": "Translator",
-      "version": "1.2.4",
+      "version": "1.2.5",
       "official": false,
       "author": "Cleboost",
       "description": "Quick translate in launcher",
@@ -1196,7 +1196,7 @@
       "tags": [
         "Launcher"
       ],
-      "lastUpdated": "2026-03-08T21:08:15+07:00"
+      "lastUpdated": "2026-03-26T03:22:07+01:00"
     },
     {
       "id": "unicode-picker",
