@@ -32,7 +32,7 @@ Item {
     var value = (pluginApi?.pluginSettings?.defaultPanelTab
                  ?? defaults.defaultPanelTab
                  ?? "search");
-    value = String(value || "").trim().toLowerCase();
+    value = value.trim().toLowerCase();
     if (value === "library" || value === "queue") {
       return value;
     }
@@ -42,7 +42,7 @@ Item {
     var value = (pluginApi?.pluginSettings?.defaultPanelLibrarySection
                  ?? defaults.defaultPanelLibrarySection
                  ?? "tracks");
-    value = String(value || "").trim().toLowerCase();
+    value = value.trim().toLowerCase();
     if (value === "playlists" || value === "artists" || value === "tags") {
       return value;
     }
@@ -52,7 +52,7 @@ Item {
     var value = (pluginApi?.pluginSettings?.panelDensity
                  ?? defaults.panelDensity
                  ?? "balanced");
-    value = String(value || "").trim().toLowerCase();
+    value = value.trim().toLowerCase();
     if (value === "compact" || value === "roomy") {
       return value;
     }
@@ -1121,7 +1121,7 @@ Item {
     Layout.fillWidth: true
     radius: root.panelCardRadius
     color: current ? (Color.mSurface || Color.mSurfaceVariant) : Color.mSurfaceVariant
-    border.width: (current || previewSelected) ? 1 : 0
+    border.width: (current || previewSelected) ? Style.borderS : 0
     border.color: current
         ? (Color.mPrimary || Color.mOnSurface)
         : (previewSelected ? Qt.alpha((Color.mPrimary || Color.mOnSurface), 0.5) : "transparent")
@@ -1144,7 +1144,7 @@ Item {
 
           ColumnLayout {
             Layout.fillWidth: true
-            spacing: Math.max(2, Math.round(root.panelCardSpacing * 0.5))
+            spacing: Math.max(Style.marginXXS, Math.round(root.panelCardSpacing * 0.5))
 
             NText {
               Layout.fillWidth: true
@@ -1304,7 +1304,7 @@ Item {
 
         ColumnLayout {
           Layout.fillWidth: true
-          spacing: Math.max(2, Math.round(root.panelCardSpacing * 0.5))
+          spacing: Math.max(Style.marginXXS, Math.round(root.panelCardSpacing * 0.5))
 
           NText {
             Layout.fillWidth: true
@@ -2512,7 +2512,7 @@ Item {
               Layout.fillHeight: true
               radius: root.panelCardRadius
               color: Qt.alpha(Color.mSurface, 0.55)
-              border.width: 1
+              border.width: Style.borderS
               border.color: Qt.alpha((Color.mOutline || Color.mOnSurfaceVariant || "#888888"), 0.24)
               clip: true
               readonly property bool showPreviewPlaybackActions: !root.showPanelNowPlaying
