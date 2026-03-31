@@ -144,12 +144,12 @@ jobs:
               line_index=$(echo "$line" | grep -oE "\+[0-9]+" | grep -oE "[0-9]+")
               echo "Current line index reset: $line_index"
             else
-              if echo "$line" | grep -E '"official":' >/dev/null; then
-                print_line "$l_priority" "$line_index" "Do not add the 'official' property. It's automatically false and is NOT needed!" "$line"
+              if echo "$line" | grep '"official":' >/dev/null; then
+                print_line "$h_priority" "$line_index" "Do not add the 'official' property. It's automatically false and is NOT needed!" "$line"
                 issues=$((issues + 1))
               fi
               if echo "$line" | grep -oE '"repository": ".*"' | grep -v '"repository": "https://github.com/noctalia-dev/noctalia-plugins"' >/dev/null; then
-                print_line "$l_priority" "$line_index" 'The repository field needs to point to the "https://github.com/noctalia-dev/noctalia-plugins" github repository!' "$line"
+                print_line "$h_priority" "$line_index" 'The repository field needs to point to the "https://github.com/noctalia-dev/noctalia-plugins" github repository!' "$line"
                 issues=$((issues + 1))
               fi
 
