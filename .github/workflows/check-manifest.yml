@@ -55,7 +55,7 @@ jobs:
             local index=$2
             local comment=$3
             local code_line=$4
-            comment_body+=$(printf -- '\n- %s Line %d: %s\n```json\n{\n  %s\n}\n```' "$priority" "$index" "$comment" "$code_line")
+            comment_body+=$(printf -- '\n- %s Line %d: %s\n```json\n%s\n```' "$priority" "$index" "$comment" "$code_line")
           }
 
           function print_missing_property() {
@@ -64,7 +64,7 @@ jobs:
             local priority=$1
             local property=$2
             local code_line=$3
-            comment_body+=$(printf -- '\n- %s Missing required property `%s`. For example:\n```json\n{\n  %s\n}\n```' "$priority" "$property" "$code_line")
+            comment_body+=$(printf -- '\n- %s Missing required property `%s`. For example:\n```json\n%s\n```' "$priority" "$property" "$code_line")
           }
 
           title_added=false
