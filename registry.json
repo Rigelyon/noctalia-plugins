@@ -486,7 +486,7 @@
     {
       "id": "mawaqit",
       "name": "Mawaqit",
-      "version": "1.3.3",
+      "version": "1.3.4",
       "official": false,
       "author": "User",
       "description": "Shows prayer times with a live countdown and a Hijri calendar with Islamic events.",
@@ -496,7 +496,7 @@
         "Bar",
         "Panel"
       ],
-      "lastUpdated": "2026-03-30T08:46:30-04:00"
+      "lastUpdated": "2026-03-31T06:55:05+01:00"
     },
     {
       "id": "mimeapp-gui",
@@ -1069,6 +1069,23 @@
       "lastUpdated": "2026-03-29T19:05:12-04:00"
     },
     {
+      "id": "squeekboard-toggle",
+      "name": "Squeekboard Toggle",
+      "version": "1.0.0",
+      "official": false,
+      "author": "blackteaextract",
+      "description": "Toggle squeekboard on-screen keyboard with visual state indicator.",
+      "repository": "https://github.com/noctalia-dev/noctalia-plugins",
+      "minNoctaliaVersion": "4.4.3",
+      "license": "MIT",
+      "tags": [
+        "System",
+        "Bar",
+        "Utility"
+      ],
+      "lastUpdated": "2026-03-29T22:27:19Z"
+    },
+    {
       "id": "steam-price-watcher",
       "name": "Steam Price Watcher",
       "version": "1.0.6",
@@ -1168,7 +1185,7 @@
     {
       "id": "todo",
       "name": "Todo List",
-      "version": "1.9.8",
+      "version": "1.9.9",
       "official": false,
       "author": "lonerOrz <lonerOrz@qq.com>",
       "description": "A simple todo list manager plugin for Noctalia Shell.",
@@ -1181,7 +1198,7 @@
         "Panel",
         "Productivity"
       ],
-      "lastUpdated": "2026-03-29T19:05:12-04:00"
+      "lastUpdated": "2026-03-30T18:13:11+02:00"
     },
     {
       "id": "translator",
@@ -1229,6 +1246,23 @@
         "System"
       ],
       "lastUpdated": "2026-03-29T19:05:12-04:00"
+    },
+    {
+      "id": "usb-drive-manager",
+      "name": "USB Drive Manager",
+      "version": "1.0.0",
+      "official": false,
+      "author": "hennifant",
+      "description": "Manage USB drives: detect, mount, unmount, safely eject, and browse files",
+      "repository": "https://github.com/noctalia-dev/noctalia-plugins",
+      "minNoctaliaVersion": "3.6.0",
+      "license": "MIT",
+      "tags": [
+        "Bar",
+        "Panel",
+        "Utility"
+      ],
+      "lastUpdated": "2026-03-31T11:11:13+02:00"
     },
     {
       "id": "valent-connect",
@@ -1301,17 +1335,17 @@
     {
       "id": "weather-indicator",
       "name": "Weather Indicator",
-      "version": "1.1.3",
+      "version": "1.1.4",
       "official": false,
       "author": "Sovereign",
-      "description": "Shows the current weather condition and tempurature.",
+      "description": "Shows the current weather condition and temperature.",
       "repository": "https://github.com/noctalia-dev/noctalia-plugins",
       "minNoctaliaVersion": "4.6.8",
       "license": "MIT",
       "tags": [
         "Bar"
       ],
-      "lastUpdated": "2026-03-29T19:05:12-04:00"
+      "lastUpdated": "2026-03-31T09:11:06+02:00"
     },
     {
       "id": "web-search",

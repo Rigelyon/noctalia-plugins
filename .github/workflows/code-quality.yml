@@ -29,7 +29,7 @@ jobs:
         run: |
           git fetch origin "$BASE_REF"
 
-          diff_changes=$(git diff origin/$BASE_REF...HEAD |
+          diff_changes=$(git diff -U10000 origin/$BASE_REF...HEAD |
             awk '/^diff --git.*\.qml /{found=1} /^diff --git/{if(!/\.qml /) found=0} found{print}' |
             grep -vE "^(index|\+\+\+|-)") || echo "No qml file changed"
 
@@ -40,7 +40,7 @@ jobs:
             exit 0
           fi
 
-          comment_body=$(printf -- '## Automatic Code Quality Review')
+          comment_body=$(printf -- '### Automatic Code Quality Review')
 
           issues=0
           line_index=0
@@ -125,81 +125,100 @@ jobs:
             if [ "$inBarWidget" = true ]; then
               if [ "$hasPluginApi" = false ]; then
                 print_missing_property "$h_priority" 'pluginApi' 'property var pluginApi: null'
+                issues=$((issues + 1))
               fi
               if [ "$hasScreen" = false ]; then
                 print_missing_property "$h_priority" 'screen' 'property ShellScreen screen'
+                issues=$((issues + 1))
               fi
               if [ "$hasWidgetId" = false ]; then
                 print_missing_property "$h_priority" 'widgetId' 'property string widgetId: ""'
+                issues=$((issues + 1))
               fi
               if [ "$hasSection" = false ]; then
                 print_missing_property "$h_priority" 'section' 'property string section: ""'
+                issues=$((issues + 1))
               fi
               if [ "$hasSectionWidgetIndex" = false ]; then
                 print_missing_property "$h_priority" 'sectionWidgetIndex' 'property int sectionWidgetIndex: -1'
+                issues=$((issues + 1))
               fi
               if [ "$hasSectionWidgetsCount" = false ]; then
                 print_missing_property "$h_priority" 'sectionWidgetsCount' 'property int sectionWidgetsCount: 0'
+                issues=$((issues + 1))
               fi
             fi
 
             if [ "$inDesktopWidget" = true ]; then
               if [ "$hasPluginApi" = false ]; then
                 print_missing_property "$h_priority" 'pluginApi' 'property var pluginApi: null'
+                issues=$((issues + 1))
               fi
             fi
 
             if [ "$inDesktopWidgetSettings" = true ]; then
               if [ "$hasPluginApi" = false ]; then
                 print_missing_property "$h_priority" 'pluginApi' 'property var pluginApi: null'
+                issues=$((issues + 1))
               fi
               if [ "$hasWidgetSettings" = false ]; then
                 print_missing_property "$h_priority" 'widgetSettings' 'property var widgetSettings: null'
+                issues=$((issues + 1))
               fi
             fi
 
             if [ "$inControlCenterWidget" = true ]; then
               if [ "$hasPluginApi" = false ]; then
                 print_missing_property "$h_priority" 'pluginApi' 'property var pluginApi: null'
+                issues=$((issues + 1))
               fi
               if [ "$hasScreen" = false ]; then
                 print_missing_property "$h_priority" 'screen' 'property ShellScreen screen'
+                issues=$((issues + 1))
               fi
             fi
 
             if [ "$inLauncherProvider" = true ]; then
               if [ "$hasPluginApi" = false ]; then
                 print_missing_property "$h_priority" 'pluginApi' 'property var pluginApi: null'
+                issues=$((issues + 1))
               fi
               if [ "$hasLauncher" = false ]; then
                 print_missing_property "$h_priority" 'launcher' 'property var launcher: ""'
+                issues=$((issues + 1))
               fi
               if [ "$hasName" = false ]; then
                 print_missing_property "$h_priority" 'name' 'property string name: "Example"'
+                issues=$((issues + 1))
               fi
             fi
 
             if [ "$inMain" = true ]; then
               if [ "$hasPluginApi" = false ]; then
                 print_missing_property "$h_priority" 'pluginApi' 'property var pluginApi: null'
+                issues=$((issues + 1))
               fi
             fi
 
             if [ "$inPanel" = true ]; then
               if [ "$hasPluginApi" = false ]; then
                 print_missing_property "$h_priority" 'pluginApi' 'property var pluginApi: null'
+                issues=$((issues + 1))
               fi
               if [ "$hasGeometryPlaceholder" = false ]; then
                 print_missing_property "$h_priority" 'geometryPlaceholder' 'readonly property var geometryPlaceholder: panelContainer'
+                issues=$((issues + 1))
               fi
               if [ "$hasAllowAttach" = false ]; then
                 print_missing_property "$h_priority" 'allowAttach' 'readonly property bool allowAttach: true'
+                issues=$((issues + 1))
               fi
             fi
 
             if [ "$inSettings" = true ]; then
               if [ "$hasPluginApi" = false ]; then
                 print_missing_property "$h_priority" 'pluginApi' 'property var pluginApi: null'
+                issues=$((issues + 1))
               fi
             fi
           }
@@ -212,111 +231,107 @@ jobs:
               reset_required_properties
 
               title_added=false
-              file_title=$(printf -- '\n### File: %s' "$(echo "$line" | sed 's/diff --git a\/\(.*\.qml\) .*/\1/g')")
+              file_title=$(printf -- '\n---\n### File: %s' "$(echo "$line" | sed 's/diff --git a\/\(.*\.qml\) .*/\1/g')")
               echo "Checking file: $file_title"
 
               if [[ "$file_title" == *BarWidget.qml ]]; then
                 inBarWidget=true
-              fi
-              if [[ "$file_title" == *DesktopWidget.qml ]]; then
+              elif [[ "$file_title" == *DesktopWidget.qml ]]; then
                 inDesktopWidget=true
-              fi
-              if [[ "$file_title" == *DesktopWidgetSettings.qml ]]; then
+              elif [[ "$file_title" == *DesktopWidgetSettings.qml ]]; then
                 inDesktopWidgetSettings=true
-              fi
-              if [[ "$file_title" == *ControlCenterWidget.qml ]]; then
+              elif [[ "$file_title" == *ControlCenterWidget.qml ]]; then
                 inControlCenterWidget=true
-              fi
-              if [[ "$file_title" == *LauncherProvider.qml ]]; then
+              elif [[ "$file_title" == *LauncherProvider.qml ]]; then
                 inLauncherProvider=true
-              fi
-              if [[ "$file_title" == *Main.qml ]]; then
+              elif [[ "$file_title" == *Main.qml ]]; then
                 inMain=true
-              fi
-              if [[ "$file_title" == *Panel.qml ]]; then
+              elif [[ "$file_title" == *Panel.qml ]]; then
                 inPanel=true
-              fi
-              if [[ "$file_title" == *Settings.qml ]]; then
+              elif [[ "$file_title" == *Settings.qml ]]; then
                 inSettings=true
               fi
             elif echo "$line" | grep -E "^@@" >/dev/null; then
               line_index=$(echo "$line" | grep -oE "\+[0-9]+" | grep -oE "[0-9]+")
               echo "Current line index reset: $line_index"
             else
-              if echo "$line" | grep -E "(border(\.width)?|spacing|pointSize|radius|margin(s)?): [0-9]+" >/dev/null; then
-                print_line "$h_priority" "$line_index" 'Do not use hardcoded values, always prefer to use the `Style` singleton instead' "$line"
-                issues=$((issues + 1))
-              fi
-              if echo "$line" | grep -E "console\.log" >/dev/null; then
-                print_line "$h_priority" "$line_index" 'Do not use `console.log`, always prefer to use the `Logger` singleton instead' "$line"
-                issues=$((issues + 1))
-              fi
-              if echo "$line" | grep -E "^(Text|Button|Checkbox|Switch) *\{" >/dev/null; then
-                print_line "$h_priority" "$line_index" 'Always prefer to use noctalia-widgets instead of qml widgets to keep it consistent with the shell. For example instead of `Text`, use `NText`' "$line"
-                issues=$((issues + 1))
-              fi
-              if echo "$line" | grep -E "applyUiScale: *false" >/dev/null; then
-                if [[ "$file_title" != *BarWidget.qml ]]; then
-                  print_line "$l_priority" "$line_index" 'The `applyUiScale: false` would make it so that the component does not support ui scaling. Always check if this is the correct behaviour you want when changing the ui scale!' "$line"
+              if echo "$line" | grep -E "^\+" >/dev/null; then
+                # Only new lines should be auto checked for this type of code quality
+                if echo "$line" | grep -E "(border(\.width)?|spacing|pointSize|radius|margin(s)?): [0-9]+" >/dev/null; then
+                  print_line "$h_priority" "$line_index" 'Do not use hardcoded values, always prefer to use the `Style` singleton instead' "$line"
                   issues=$((issues + 1))
                 fi
-              fi
-              if echo "$line" | grep -E "pluginApi\??\.tr\((.)*\) *(\?\?|\|\|)" >/dev/null; then
-                print_line "$l_priority" "$line_index" 'When it comes to translations there is no need for fallback values. From: `pluginApi?.tr("example") || "value"`. To: `pluginApi?.tr("example")`' "$line"
-                issues=$((issues + 1))
+                if echo "$line" | grep -E "console\.log" >/dev/null; then
+                  print_line "$h_priority" "$line_index" 'Do not use `console.log`, always prefer to use the `Logger` singleton instead' "$line"
+                  issues=$((issues + 1))
+                fi
+                if echo "$line" | grep -E "^(Text|Button|Checkbox|Switch) *\{" >/dev/null; then
+                  print_line "$h_priority" "$line_index" 'Always prefer to use noctalia-widgets instead of qml widgets to keep it consistent with the shell. For example instead of `Text`, use `NText`' "$line"
+                  issues=$((issues + 1))
+                fi
+                if echo "$line" | grep -E "applyUiScale: *false" >/dev/null; then
+                  if [[ "$file_title" != *BarWidget.qml ]]; then
+                    print_line "$l_priority" "$line_index" 'The `applyUiScale: false` would make it so that the component does not support ui scaling. Always check if this is the correct behaviour you want when changing the ui scale!' "$line"
+                    issues=$((issues + 1))
+                  fi
+                fi
+                if echo "$line" | grep -E "pluginApi\??\.tr\((.)*\) *(\?\?|\|\|)" >/dev/null; then
+                  print_line "$l_priority" "$line_index" 'When it comes to translations there is no need for fallback values. From: `pluginApi?.tr("example") || "value"`. To: `pluginApi?.tr("example")`' "$line"
+                  issues=$((issues + 1))
+                fi
               fi
 
               # Check for required properties
               if [ "$inBarWidget" = true ]; then
-                if echo "$line" | grep -E 'property var pluginApi: null' >/dev/null; then
+                if echo "$line" | grep 'property var pluginApi: null' >/dev/null; then
                   hasPluginApi=true
                 fi
-                if echo "$line" | grep -E 'property ShellScreen screen' >/dev/null; then
+                if echo "$line" | grep 'property ShellScreen screen' >/dev/null; then
                   hasScreen=true
                 fi
-                if echo "$line" | grep -E 'property string widgetId: ""' >/dev/null; then
+                if echo "$line" | grep 'property string widgetId: ""' >/dev/null; then
                   hasWidgetId=true
                 fi
-                if echo "$line" | grep -E 'property string section: ""' >/dev/null; then
+                if echo "$line" | grep 'property string section: ""' >/dev/null; then
                   hasSection=true
                 fi
-                if echo "$line" | grep -E 'property int sectionWidgetIndex: -1' >/dev/null; then
+                if echo "$line" | grep 'property int sectionWidgetIndex: -1' >/dev/null; then
                   hasSectionWidgetIndex=true
                 fi
-                if echo "$line" | grep -E 'property int sectionWidgetsCount: 0' >/dev/null; then
+                if echo "$line" | grep 'property int sectionWidgetsCount: 0' >/dev/null; then
                   hasSectionWidgetsCount=true
                 fi
               fi
 
               if [ "$inDesktopWidget" = true ]; then
-                if echo "$line" | grep -E 'property var pluginApi: null' >/dev/null; then
+                if echo "$line" | grep 'property var pluginApi: null' >/dev/null; then
                   hasPluginApi=true
                 fi
               fi
 
               if [ "$inDesktopWidgetSettings" = true ]; then
-                if echo "$line" | grep -E 'property var pluginApi: null' >/dev/null; then
+                if echo "$line" | grep 'property var pluginApi: null' >/dev/null; then
                   hasPluginApi=true
                 fi
-                if echo "$line" | grep -E 'property var widgetSettings: null' >/dev/null; then
+                if echo "$line" | grep 'property var widgetSettings: null' >/dev/null; then
                   hasWidgetSettings=true
                 fi
               fi
 
               if [ "$inControlCenterWidget" = true ]; then
-                if echo "$line" | grep -E 'property var pluginApi: null' >/dev/null; then
+                if echo "$line" | grep 'property var pluginApi: null' >/dev/null; then
                   hasPluginApi=true
                 fi
-                if echo "$line" | grep -E 'property ShellScreen screen' >/dev/null; then
+                if echo "$line" | grep 'property ShellScreen screen' >/dev/null; then
                   hasScreen=true
                 fi
               fi
 
               if [ "$inLauncherProvider" = true ]; then
-                if echo "$line" | grep -E 'property var pluginApi: null' >/dev/null; then
+                if echo "$line" | grep 'property var pluginApi: null' >/dev/null; then
                   hasPluginApi=true
                 fi
-                if echo "$line" | grep -E 'property var launcher: null' >/dev/null; then
+                if echo "$line" | grep 'property var launcher: null' >/dev/null; then
                   hasLauncher=true
                 fi
                 if echo "$line" | grep -E 'property string name: ".*"' >/dev/null; then
@@ -325,25 +340,25 @@ jobs:
               fi
 
               if [ "$inMain" = true ]; then
-                if echo "$line" | grep -E 'property var pluginApi: null' >/dev/null; then
+                if echo "$line" | grep 'property var pluginApi: null' >/dev/null; then
                   hasPluginApi=true
                 fi
               fi
 
               if [ "$inPanel" = true ]; then
-                if echo "$line" | grep -E 'property var pluginApi: null' >/dev/null; then
+                if echo "$line" | grep 'property var pluginApi: null' >/dev/null; then
                   hasPluginApi=true
                 fi
-                if echo "$line" | grep -E 'readonly property var geometryPlaceholder:' >/dev/null; then
+                if echo "$line" | grep 'readonly property var geometryPlaceholder:' >/dev/null; then
                   hasGeometryPlaceholder=true
                 fi
-                if echo "$line" | grep -E 'readonly property bool allowAttach:' >/dev/null; then
+                if echo "$line" | grep 'readonly property bool allowAttach:' >/dev/null; then
                   hasAllowAttach=true
                 fi
               fi
 
               if [ "$inSettings" = true ]; then
-                if echo "$line" | grep -E 'property var pluginApi: null' >/dev/null; then
+                if echo "$line" | grep 'property var pluginApi: null' >/dev/null; then
                   hasPluginApi=true
                 fi
               fi

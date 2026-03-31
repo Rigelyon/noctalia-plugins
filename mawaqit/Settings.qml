@@ -36,6 +36,7 @@ ColumnLayout {
     return !match || match.key === "99"
   }
   property string valueMethodCustomInput: valueMethodCustom     ? String(root.valueMethod)         : ""
+  property bool   valueTune:              cfg.tune              ?? defaults.tune              ?? false
   property int    valueTuneFajr:          cfg.tuneFajr          ?? defaults.tuneFajr          ?? 0
   property int    valueTuneDhuhr:         cfg.tuneDhuhr         ?? defaults.tuneDhuhr         ?? 0
   property int    valueTuneAsr:           cfg.tuneAsr           ?? defaults.tuneAsr           ?? 0
@@ -43,11 +44,18 @@ ColumnLayout {
   property int    valueTuneIsha:          cfg.tuneIsha          ?? defaults.tuneIsha          ?? 0
   property int    valueSchool:            cfg.school            ?? defaults.school            ?? 0
   property bool   valueShowCountdown:     cfg.showCountdown     ?? defaults.showCountdown     ?? true
+  property bool   valueShowElapsed:       cfg.showElapsed       ?? defaults.showElapsed       ?? false
+  property bool   valueHidePrayerName:    cfg.hidePrayerName    ?? defaults.hidePrayerName    ?? false
   property bool   valueShowNotifications: cfg.showNotifications ?? defaults.showNotifications ?? true
   property bool   valuePlayAzan:          cfg.playAzan          ?? defaults.playAzan          ?? false
   property string valueAzanFile:          cfg.azanFile          ?? defaults.azanFile          ?? "azan1.mp3"
   property int    valueHijriDayOffset:    cfg.hijriDayOffset    ?? defaults.hijriDayOffset    ?? 0
   property int    valueWeekStartDay:      cfg.weekStartDay      ?? defaults.weekStartDay      ?? 1
+  property string valueWidgetIcon:        cfg.widgetIcon        ?? defaults.widgetIcon        ?? "building-mosque"
+  property bool   valueDynamicIcon:       cfg.dynamicIcon       ?? defaults.dynamicIcon       ?? false
+  property string valueTextColor:         cfg.textColor         ?? defaults.textColor         ?? "none"
+  property string valueIconColor:         cfg.iconColor         ?? defaults.iconColor         ?? "none"
+  property string valueActiveColor:       cfg.activeColor       ?? defaults.activeColor       ?? "primary"
 
   property bool previewing: false
 
@@ -144,6 +152,13 @@ ColumnLayout {
     Layout.bottomMargin: -Style.marginM
   }
 
+  NToggle {
+    Layout.fillWidth: true
+    label: pluginApi?.tr("settings.tune.enable")
+    checked: root.valueTune
+    onToggled: checked => root.valueTune = checked
+  }
+
   Repeater {
     model: [
       { key: "Fajr",    labelKey: "settings.tune.fajr"    },
@@ -153,6 +168,7 @@ ColumnLayout {
       { key: "Isha",    labelKey: "settings.tune.isha"     }
     ]
     delegate: NTextInput {
+      visible: root.valueTune
       required property var modelData
       Layout.fillWidth: true
       label: pluginApi?.tr(modelData.labelKey)
@@ -214,6 +230,97 @@ ColumnLayout {
     description: pluginApi?.tr("settings.showCountdown.desc")
     checked: root.valueShowCountdown
     onToggled: checked => root.valueShowCountdown = checked
+  }
+
+  NToggle {
+    Layout.fillWidth: true
+    label: pluginApi?.tr("settings.showElapsed.label")
+    description: pluginApi?.tr("settings.showElapsed.desc")
+    checked: root.valueShowElapsed
+    onToggled: checked => root.valueShowElapsed = checked
+  }
+
+  NToggle {
+    Layout.fillWidth: true
+    label: pluginApi?.tr("settings.hidePrayerName.label")
+    description: pluginApi?.tr("settings.hidePrayerName.desc")
+    checked: root.valueHidePrayerName
+    onToggled: checked => root.valueHidePrayerName = checked
+  }
+
+  NDivider { Layout.fillWidth: true }
+
+  NHeader {
+    label: pluginApi?.tr("settings.styling.header")
+    Layout.bottomMargin: -Style.marginM
+  }
+
+  RowLayout {
+    Layout.fillWidth: true
+    spacing: Style.marginM
+
+    NTextInput {
+      id: widgetIconInput
+      Layout.fillWidth: true
+      label: pluginApi?.tr("settings.widgetIcon.label")
+      placeholderText: "building-mosque"
+      text: root.valueWidgetIcon
+      onTextChanged: root.valueWidgetIcon = text.trim()
+    }
+
+    NIcon {
+      icon: root.valueWidgetIcon || "building-mosque"
+      pointSize: Style.fontSizeXL
+      color: Color.mPrimary
+      Layout.alignment: Qt.AlignBottom
+      Layout.bottomMargin: Style.marginM
+    }
+
+    NIconButton {
+      icon: "search"
+      tooltipText: "Browse icons"
+      Layout.alignment: Qt.AlignBottom
+      Layout.bottomMargin: Style.marginXS
+      onClicked: {
+        mainIconPicker.open();
+      }
+    }
+
+    NIconPicker {
+      id: mainIconPicker
+      initialIcon: root.valueWidgetIcon
+      onIconSelected: function (iconName) {
+        root.valueWidgetIcon = iconName;
+        wigetIconInput.text = iconName;
+      }
+    }
+  }
+
+  NToggle {
+    Layout.fillWidth: true
+    label: pluginApi?.tr("settings.dynamicIcon.label")
+    description: pluginApi?.tr("settings.dynamicIcon.desc")
+    checked: root.valueDynamicIcon
+    onToggled: checked => root.valueDynamicIcon = checked
+  }
+
+  NColorChoice {
+    label: pluginApi?.tr("settings.textColor.label")
+    currentKey: root.valueTextColor
+    onSelected: key => { root.valueTextColor = key; }
+  }
+
+  NColorChoice {
+    label: pluginApi?.tr("settings.iconColor.label")
+    currentKey: root.valueIconColor
+    onSelected: key => { root.valueIconColor = key; }
+  }
+
+  NColorChoice {
+    label: pluginApi?.tr("settings.activeColor.label")
+    description: pluginApi?.tr("settings.activeColor.desc")
+    currentKey: root.valueActiveColor
+    onSelected: key => { root.valueActiveColor = key; }
   }
 
   NDivider { Layout.fillWidth: true }
@@ -322,17 +429,25 @@ ColumnLayout {
     pluginApi.pluginSettings.country           = root.valueCountry.trim()
     pluginApi.pluginSettings.method            = root.valueMethod
     pluginApi.pluginSettings.showCountdown     = root.valueShowCountdown
+    pluginApi.pluginSettings.showElapsed       = root.valueShowElapsed
+    pluginApi.pluginSettings.hidePrayerName    = root.valueHidePrayerName
     pluginApi.pluginSettings.showNotifications = root.valueShowNotifications
     pluginApi.pluginSettings.playAzan          = root.valuePlayAzan
     pluginApi.pluginSettings.azanFile          = root.valueAzanFile
     pluginApi.pluginSettings.school            = root.valueSchool
     pluginApi.pluginSettings.hijriDayOffset    = root.valueHijriDayOffset
     pluginApi.pluginSettings.weekStartDay      = root.valueWeekStartDay
+    pluginApi.pluginSettings.tune              = root.valueTune
     pluginApi.pluginSettings.tuneFajr          = root.valueTuneFajr
     pluginApi.pluginSettings.tuneDhuhr         = root.valueTuneDhuhr
     pluginApi.pluginSettings.tuneAsr           = root.valueTuneAsr
     pluginApi.pluginSettings.tuneMaghrib       = root.valueTuneMaghrib
     pluginApi.pluginSettings.tuneIsha          = root.valueTuneIsha
+    pluginApi.pluginSettings.widgetIcon        = root.valueWidgetIcon
+    pluginApi.pluginSettings.dynamicIcon       = root.valueDynamicIcon
+    pluginApi.pluginSettings.textColor         = root.valueTextColor
+    pluginApi.pluginSettings.iconColor         = root.valueIconColor
+    pluginApi.pluginSettings.activeColor       = root.valueActiveColor
     pluginApi.saveSettings()
     Logger.d("Mawaqit", "Settings saved")
   }
