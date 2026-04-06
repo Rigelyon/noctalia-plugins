@@ -124,7 +124,7 @@
     {
       "id": "calendar-widget",
       "name": "Desktop Calendar",
-      "version": "1.0.4",
+      "version": "1.0.5",
       "official": false,
       "author": "Simon",
       "description": "Monthly calendar with today highlighted.",
@@ -135,7 +135,7 @@
         "Desktop",
         "Utility"
       ],
-      "lastUpdated": "2026-04-01T06:30:52+02:00"
+      "lastUpdated": "2026-04-06T17:15:27+02:00"
     },
     {
       "id": "calibre-provider",
