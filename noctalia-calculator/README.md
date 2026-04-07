@@ -30,36 +30,6 @@ A theme-aware calculator plugin for Noctalia on Niri, with a bar widget, floatin
   - `F9` for sign toggle
   - `%` for percent
 
-## Tests
-
-93 integration tests covering all calculator functions with bundled `AdvancedMath.js`.
-
-| Category | Tests | Description |
-|----------|------:|-------------|
-| Basic Arithmetic | 6 | `+`, `-`, `*`, `/`, chained operations |
-| Decimal Arithmetic | 3 | Floating point handling, precision |
-| Sign Toggle | 3 | Positive/negative switching |
-| Percent | 2 | Percent conversion |
-| Clear & Delete | 6 | Backspace, full clear, state reset |
-| Operator Chaining | 2 | Precedence, operator replacement |
-| Chained Evaluation | 2 | Reuse result in next calculation |
-| Edge Cases | 8 | Division by zero, max input length, error recovery |
-| _sanitizeCurrentInput | 4 | Empty, dash, trailing dot, normal |
-| _numberToString | 6 | Zero, negative zero, Infinity, NaN, precision |
-| compactDisplay | 3 | Short text, exponential, empty |
-| _formatExpression | 2 | Token formatting, `*` to `x` |
-| expressionPreview | 2 | During input, after evaluation |
-| AdvancedMath.evaluate | 22 | sin, cos, tan, sqrt, cbrt, abs, floor, ceil, round, trunc, exp, ln, log, pow, min, max, invalid input |
-| displayText & badgeText | 3 | Normal, after eval, error state |
-| Full Workflow | 5 | Multi-step chained calculations |
-| pressButton Routing | 4 | Action dispatch for all button types |
-
-Run tests:
-
-```bash
-node tests/calculator_test.mjs
-```
-
 ## Files
 
 - `AdvancedMath.js`: math evaluation library (from noctalia-shell Helpers)
