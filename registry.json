@@ -805,7 +805,7 @@
     {
       "id": "network-manager-vpn",
       "name": "Network Manager VPN",
-      "version": "1.1.2",
+      "version": "1.2.0",
       "official": false,
       "author": "nZO",
       "description": "Connect to VPN via NetworkManager",
@@ -817,7 +817,7 @@
         "Panel",
         "Network"
       ],
-      "lastUpdated": "2026-03-29T19:05:12-04:00"
+      "lastUpdated": "2026-04-06T22:26:45+02:00"
     },
     {
       "id": "news",
