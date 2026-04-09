@@ -135,7 +135,7 @@ Item {
                     if (status === "Playing") {
                         songPositionProc.running = true
                     } else if (status === "Paused") {
-                        Logger.d("songDetailsProc", "song paused")
+                        // Logger.d("songDetailsProc", "song paused")
                         root.songIndex--
                         lyricsTimer.stop()
                     } else if (status === "Stopped") {
@@ -144,8 +144,8 @@ Item {
                     return
                 }
 
-                Logger.d("songDetailsProc", "status", status)
-                Logger.d("songDetailsProc", "current status", root.currentStatus)
+                // Logger.d("songDetailsProc", "status", status)
+                // Logger.d("songDetailsProc", "current status", root.currentStatus)
                 if (status === "Playing") {// && root.currentStatus !== "Playing") {
                     root.isLoading = true
                     root.tempArtist = artist
@@ -174,10 +174,10 @@ Item {
             onRead: data => {
                 const pos = root.currentPosition
                 root.currentPosition = parseFloat(data)
-                Logger.d("songPositionProc", "raw:", data)
-                Logger.d("songPositionProc", "old:", pos)
-                Logger.d("songPositionProc", "new:", root.currentPosition)
-                Logger.d("songPositionProc", "loading:", root.isLoading)
+                // Logger.d("songPositionProc", "raw:", data)
+                // Logger.d("songPositionProc", "old:", pos)
+                // Logger.d("songPositionProc", "new:", root.currentPosition)
+                // Logger.d("songPositionProc", "loading:", root.isLoading)
 
                 if (root.isLoading) {
                     root.isLoading = false
