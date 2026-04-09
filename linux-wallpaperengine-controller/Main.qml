@@ -3,7 +3,6 @@ import Quickshell
 import Quickshell.Io
 
 import qs.Commons
-import qs.Services.System
 import qs.Services.UI
 
 Item {
