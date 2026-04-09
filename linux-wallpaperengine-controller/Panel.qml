@@ -527,9 +527,9 @@ Item {
         Layout.preferredHeight: 56 * Style.uiScaleRatio + 48 * Style.uiScaleRatio + Style.marginS * 4
         Layout.minimumHeight: Layout.preferredHeight
         radius: Style.radiusL
-        color: Color.mSurface
+        color: Qt.alpha(Color.mSurfaceVariant, 0.35)
         border.width: Style.borderS
-        border.color: Qt.alpha(Color.mOutline, 0.22)
+        border.color: Qt.alpha(Color.mOutline, 0.35)
 
         ColumnLayout {
           anchors.fill: parent
@@ -557,6 +557,7 @@ Item {
             NIconButton {
               enabled: mainInstance?.engineAvailable ?? false
               icon: "refresh"
+              colorFg: Color.mOnSurface
               tooltipText: pluginApi?.tr("panel.reload")
               onClicked: {
                 root.scanWallpapers();
@@ -571,12 +572,14 @@ Item {
             NIconButton {
               enabled: mainInstance?.engineAvailable ?? false
               icon: "player-stop"
+              colorFg: Color.mOnSurface
               tooltipText: pluginApi?.tr("panel.stop")
               onClicked: mainInstance?.stopAll(true)
             }
 
             NIconButton {
               icon: "settings"
+              colorFg: Color.mOnSurface
               tooltipText: pluginApi?.tr("menu.settings")
               onClicked: {
                 const screen = pluginApi?.panelOpenScreen;
@@ -589,6 +592,7 @@ Item {
 
             NIconButton {
               icon: "x"
+              colorFg: Color.mOnSurface
               tooltipText: pluginApi?.tr("panel.closePanel")
               onClicked: {
                 const screen = pluginApi?.panelOpenScreen;
@@ -868,9 +872,9 @@ Item {
           Layout.fillWidth: true
           Layout.fillHeight: true
           radius: Style.radiusL
-          color: Color.mSurface
+          color: Qt.alpha(Color.mSurfaceVariant, 0.35)
           border.width: Style.borderS
-          border.color: Qt.alpha(Color.mOutline, 0.2)
+          border.color: Qt.alpha(Color.mOutline, 0.35)
 
           ColumnLayout {
             anchors.fill: parent

@@ -107,6 +107,10 @@
       "audioTitle": "音訊",
       "displayTitle": "顯示"
     },
+    "iconColor": {
+      "label": "圖示顏色",
+      "description": "用於欄元件圖示的顏色"
+    },
     "units": {
       "fps": " FPS",
       "percent": " %"

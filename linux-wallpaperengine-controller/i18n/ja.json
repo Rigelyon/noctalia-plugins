@@ -107,6 +107,10 @@
       "audioTitle": "音声",
       "displayTitle": "表示"
     },
+    "iconColor": {
+      "label": "アイコンの色",
+      "description": "バーウィジェットのアイコンに使う色"
+    },
     "units": {
       "fps": " FPS",
       "percent": " %"

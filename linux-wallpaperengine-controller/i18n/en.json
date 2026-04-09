@@ -107,6 +107,10 @@
       "audioTitle": "Audio",
       "displayTitle": "Display"
     },
+    "iconColor": {
+      "label": "Icon color",
+      "description": "Color used for the bar widget icon"
+    },
     "units": {
       "fps": " FPS",
       "percent": " %"

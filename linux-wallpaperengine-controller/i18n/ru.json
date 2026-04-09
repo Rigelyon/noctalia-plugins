@@ -107,6 +107,10 @@
       "audioTitle": "Аудио",
       "displayTitle": "Отображение"
     },
+    "iconColor": {
+      "label": "Цвет значка",
+      "description": "Цвет значка виджета на панели"
+    },
     "units": {
       "fps": " FPS",
       "percent": " %"

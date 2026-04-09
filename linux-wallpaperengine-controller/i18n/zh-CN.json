@@ -107,6 +107,10 @@
       "audioTitle": "音频",
       "displayTitle": "显示"
     },
+    "iconColor": {
+      "label": "图标颜色",
+      "description": "用于栏组件图标的颜色"
+    },
     "units": {
       "fps": " FPS",
       "percent": " %"

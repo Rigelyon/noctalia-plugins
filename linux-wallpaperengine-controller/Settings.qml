@@ -15,6 +15,7 @@ ColumnLayout {
 
   property string editWallpapersFolder: cfg.wallpapersFolder ?? defaults.wallpapersFolder ?? ""
   property string editAssetsDir: cfg.assetsDir ?? defaults.assetsDir ?? ""
+  property string editIconColor: cfg.iconColor ?? defaults.iconColor ?? "none"
   property string editDefaultScaling: cfg.defaultScaling ?? defaults.defaultScaling ?? "fill"
   property int editDefaultFps: cfg.defaultFps ?? defaults.defaultFps ?? 30
   property int editDefaultVolume: cfg.defaultVolume ?? defaults.defaultVolume ?? 100
@@ -34,6 +35,14 @@ ColumnLayout {
     text: pluginApi?.tr("settings.category.performanceTitle")
     color: Color.mOnSurface
     font.weight: Font.Bold
+  }
+
+  NColorChoice {
+    Layout.fillWidth: true
+    label: pluginApi?.tr("settings.iconColor.label")
+    description: pluginApi?.tr("settings.iconColor.description")
+    currentKey: root.editIconColor
+    onSelected: key => root.editIconColor = key
   }
 
   NSpinBox {
@@ -195,6 +204,7 @@ ColumnLayout {
 
     pluginApi.pluginSettings.wallpapersFolder = root.editWallpapersFolder;
     pluginApi.pluginSettings.assetsDir = root.editAssetsDir;
+    pluginApi.pluginSettings.iconColor = root.editIconColor;
     pluginApi.pluginSettings.defaultScaling = root.editDefaultScaling;
     pluginApi.pluginSettings.defaultFps = defaultFpsSpinBox.value;
     pluginApi.pluginSettings.defaultVolume = defaultVolumeSpinBox.value;

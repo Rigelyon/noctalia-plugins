@@ -1,7 +1,7 @@
 {
   "id": "linux-wallpaperengine-controller",
   "name": "Linux WallpaperEngine Controller",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "minNoctaliaVersion": "4.6.6",
   "author": "PaloMiku",
   "license": "MIT",
@@ -25,6 +25,7 @@
     "defaultSettings": {
       "wallpapersFolder": "~/.local/share/Steam/steamapps/workshop/content/431960",
       "assetsDir": "",
+      "iconColor": "none",
       "defaultScaling": "fill",
       "defaultFps": 30,
       "defaultVolume": 100,
