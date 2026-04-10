@@ -243,7 +243,7 @@ Item {
         onEntered: {
             // Tooltip shows available updates for both system and flatpak
             if (pluginApi.pluginSettings.tooltip ?? pluginApi.manifest.metadata.defaultSettings.tooltip) {
-                TooltipService.show(root, (root.pluginApi.mainInstance.noctaliaUpdate ? pluginApi.tr("tooltip.noctaliaUpdates") : pluginApi.tr("tooltip.availableUpdates")) + "\n---------------\n" + (root.tooltipTextTrimmed !== root.tooltipText ? root.tooltipTextTrimmed + "\n..." : root.tooltipTextTrimmed), BarService.getTooltipDirection())
+                TooltipService.show(root, (root.pluginApi.mainInstance.noctaliaUpdate ? pluginApi.tr("tooltip.noctaliaUpdates") : pluginApi.tr("tooltip.availableUpdates")) + "\n---------------\n" + (root.tooltipTextTrimmed !== root.tooltipText ? root.tooltipTextTrimmed + "\n..." : root.tooltipTextTrimmed), BarService.getTooltipDirection(root.screen?.name))
             }
         }
 
