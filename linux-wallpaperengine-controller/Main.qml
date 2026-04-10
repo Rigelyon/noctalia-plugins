@@ -298,24 +298,28 @@ Item {
     if (options?.volume !== undefined) {
       const rawVolume = Number(options.volume);
       if (!isNaN(rawVolume)) {
-        pluginApi.pluginSettings.screens[screenName].volume = Math.max(0, Math.min(100, Math.floor(rawVolume)));
+        pluginApi.pluginSettings.defaultVolume = Math.max(0, Math.min(100, Math.floor(rawVolume)));
       }
     }
 
     if (options?.muted !== undefined) {
-      pluginApi.pluginSettings.screens[screenName].muted = !!options.muted;
+      pluginApi.pluginSettings.defaultMuted = !!options.muted;
     }
 
     if (options?.audioReactiveEffects !== undefined) {
-      pluginApi.pluginSettings.screens[screenName].audioReactiveEffects = !!options.audioReactiveEffects;
+      pluginApi.pluginSettings.defaultAudioReactiveEffects = !!options.audioReactiveEffects;
+    }
+
+    if (options?.noAutomute !== undefined) {
+      pluginApi.pluginSettings.defaultNoAutomute = !!options.noAutomute;
     }
 
     if (options?.disableMouse !== undefined) {
-      pluginApi.pluginSettings.screens[screenName].disableMouse = !!options.disableMouse;
+      pluginApi.pluginSettings.defaultDisableMouse = !!options.disableMouse;
     }
 
     if (options?.disableParallax !== undefined) {
-      pluginApi.pluginSettings.screens[screenName].disableParallax = !!options.disableParallax;
+      pluginApi.pluginSettings.defaultDisableParallax = !!options.disableParallax;
     }
 
     if (options?.customProperties !== undefined) {
@@ -366,6 +370,7 @@ Item {
     const resolvedVolume = hasResolvedVolume ? Math.max(0, Math.min(100, Math.floor(resolvedVolumeRaw))) : 0;
     const hasMuted = options?.muted !== undefined;
     const hasAudioReactive = options?.audioReactiveEffects !== undefined;
+    const hasNoAutomute = options?.noAutomute !== undefined;
     const hasDisableMouse = options?.disableMouse !== undefined;
     const hasDisableParallax = options?.disableParallax !== undefined;
 
@@ -381,25 +386,28 @@ Item {
       if (resolvedClamp.length > 0) {
         pluginApi.pluginSettings.screens[screen.name].clamp = resolvedClamp;
       }
-      if (hasResolvedVolume) {
-        pluginApi.pluginSettings.screens[screen.name].volume = resolvedVolume;
-      }
-      if (hasMuted) {
-        pluginApi.pluginSettings.screens[screen.name].muted = !!options.muted;
-      }
-      if (hasAudioReactive) {
-        pluginApi.pluginSettings.screens[screen.name].audioReactiveEffects = !!options.audioReactiveEffects;
-      }
-      if (hasDisableMouse) {
-        pluginApi.pluginSettings.screens[screen.name].disableMouse = !!options.disableMouse;
-      }
-      if (hasDisableParallax) {
-        pluginApi.pluginSettings.screens[screen.name].disableParallax = !!options.disableParallax;
-      }
-
       if (options?.customProperties !== undefined) {
         setWallpaperProperties(path, options.customProperties);
       }
+    }
+
+    if (hasResolvedVolume) {
+      pluginApi.pluginSettings.defaultVolume = resolvedVolume;
+    }
+    if (hasMuted) {
+      pluginApi.pluginSettings.defaultMuted = !!options.muted;
+    }
+    if (hasAudioReactive) {
+      pluginApi.pluginSettings.defaultAudioReactiveEffects = !!options.audioReactiveEffects;
+    }
+    if (hasNoAutomute) {
+      pluginApi.pluginSettings.defaultNoAutomute = !!options.noAutomute;
+    }
+    if (hasDisableMouse) {
+      pluginApi.pluginSettings.defaultDisableMouse = !!options.disableMouse;
+    }
+    if (hasDisableParallax) {
+      pluginApi.pluginSettings.defaultDisableParallax = !!options.disableParallax;
     }
 
     pluginApi.saveSettings();
@@ -512,7 +520,7 @@ Item {
           disableMouse: candidateCfg.disableMouse,
           disableParallax: candidateCfg.disableParallax
         };
-        runtimeClamp = String(candidateCfg.clamp || defaultClamp || "clamp");
+        runtimeClamp = String(cfg.defaultClamp ?? defaults.defaultClamp ?? "clamp").trim();
         break;
       }
     }
@@ -573,12 +581,13 @@ Item {
         firstPath = path;
       }
 
-      command.push("--scaling");
-      command.push(String(screenCfg.scaling));
       command.push("--screen-root");
       command.push(screen.name);
       command.push("--bg");
       command.push(path);
+
+      command.push("--scaling");
+      command.push(String(screenCfg.scaling));
 
       const wallpaperId = wallpaperIdFromPath(path);
       if (wallpaperId.length > 0 && !appendedWallpaperIds[wallpaperId]) {

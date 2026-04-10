@@ -104,6 +104,14 @@ Item {
     return parts.length > 0 ? parts[parts.length - 1] : "";
   }
 
+  function workshopUrlForWallpaper(item) {
+    const wallpaperId = String(item?.id || "").trim();
+    if (!/^\d+$/.test(wallpaperId)) {
+      return "";
+    }
+    return "https://steamcommunity.com/sharedfiles/filedetails/?id=" + wallpaperId;
+  }
+
   function fileExt(path) {
     const raw = basename(path);
     const idx = raw.lastIndexOf(".");
@@ -279,8 +287,12 @@ Item {
       .replace(/^ui_/i, "")
       .replace(/^properties_/i, "");
 
-    if (normalizedKey.toLowerCase() === "scheme_color") {
-      return pluginApi?.tr("panel.propertyLabelThemeColor");
+    const propertyLabelKey = {
+      "scheme_color": "panel.propertyLabelThemeColor"
+    }[normalizedKey.toLowerCase()];
+
+    if (propertyLabelKey) {
+      return pluginApi?.tr(propertyLabelKey);
     }
 
     return normalizedKey
@@ -616,6 +628,7 @@ Item {
   function applyCompatibilityScanOutput(rawText) {
     const nextState = {};
     const lines = String(rawText || "").split(/\r?\n/);
+    let totalCount = 0;
 
     for (const rawLine of lines) {
       const line = String(rawLine || "").trim();
@@ -630,12 +643,18 @@ Item {
         continue;
       }
 
+      totalCount += 1;
+
       if (failed) {
         nextState[path] = true;
       }
     }
 
     wallpaperPropertyLoadFailedByPath = nextState;
+    return {
+      totalCount: totalCount,
+      failedCount: Object.keys(nextState).length
+    };
   }
 
   function closeDropdowns() {
@@ -727,33 +746,33 @@ Item {
 
   function resetPendingToGlobalDefaults() {
     selectedScaling = String(defaults.defaultScaling || "fill");
-    selectedClamp = String(defaults.defaultClamp || "clamp");
-    selectedVolume = Math.max(0, Math.min(100, Number(defaults.defaultVolume ?? 100)));
-    selectedMuted = !!(defaults.defaultMuted ?? true);
-    selectedAudioReactiveEffects = !!(defaults.defaultAudioReactiveEffects ?? true);
-    selectedDisableMouse = !!(defaults.defaultDisableMouse ?? false);
-    selectedDisableParallax = !!(defaults.defaultDisableParallax ?? false);
+    syncGlobalRuntimeOptions();
+  }
+
+  function syncGlobalRuntimeOptions() {
+    selectedClamp = String(cfg.defaultClamp ?? defaults.defaultClamp ?? "clamp");
+    selectedVolume = Math.max(0, Math.min(100, Number(cfg.defaultVolume ?? defaults.defaultVolume ?? 100)));
+    selectedMuted = !!(cfg.defaultMuted ?? defaults.defaultMuted ?? true);
+    selectedAudioReactiveEffects = !!(cfg.defaultAudioReactiveEffects ?? defaults.defaultAudioReactiveEffects ?? true);
+    selectedDisableMouse = !!(cfg.defaultDisableMouse ?? defaults.defaultDisableMouse ?? false);
+    selectedDisableParallax = !!(cfg.defaultDisableParallax ?? defaults.defaultDisableParallax ?? false);
   }
 
   function syncSelectionOptionsFromScreen() {
-    if (root.singleScreenMode) {
-      resetPendingToGlobalDefaults();
-      return;
+    syncGlobalRuntimeOptions();
+
+    const fallbackScreenName = root.singleScreenMode ? (Quickshell.screens[0]?.name || selectedScreenName) : selectedScreenName;
+    if (root.singleScreenMode && selectedScreenName.length === 0 && fallbackScreenName.length > 0) {
+      selectedScreenName = fallbackScreenName;
     }
 
-    const screenCfg = mainInstance?.getScreenConfig(selectedScreenName);
+    const screenCfg = mainInstance?.getScreenConfig(fallbackScreenName);
     if (!screenCfg) {
-      resetPendingToGlobalDefaults();
+      selectedScaling = String(defaults.defaultScaling || "fill");
       return;
     }
 
     selectedScaling = String(screenCfg.scaling || defaults.defaultScaling || "fill");
-    selectedClamp = String(screenCfg.clamp || defaults.defaultClamp || "clamp");
-    selectedVolume = Math.max(0, Math.min(100, Number(screenCfg.volume ?? defaults.defaultVolume ?? 100)));
-    selectedMuted = !!(screenCfg.muted ?? defaults.defaultMuted ?? true);
-    selectedAudioReactiveEffects = !!(screenCfg.audioReactiveEffects ?? defaults.defaultAudioReactiveEffects ?? true);
-    selectedDisableMouse = !!(screenCfg.disableMouse ?? defaults.defaultDisableMouse ?? false);
-    selectedDisableParallax = !!(screenCfg.disableParallax ?? defaults.defaultDisableParallax ?? false);
   }
 
   function applyPendingSelection() {
@@ -766,6 +785,7 @@ Item {
     options.volume = selectedVolume;
     options.muted = selectedMuted;
     options.audioReactiveEffects = selectedAudioReactiveEffects;
+    options.noAutomute = !!(cfg.defaultNoAutomute ?? defaults.defaultNoAutomute ?? false);
     options.disableMouse = selectedDisableMouse;
     options.disableParallax = selectedDisableParallax;
     const customProperties = {};
@@ -1547,34 +1567,6 @@ Item {
                     spacing: Style.marginXS
 
                     Rectangle {
-                      visible: root.resolutionBadgeIcon(modelData.resolution).length > 0
-                      color: Qt.alpha(Color.mSurfaceVariant, 0.24)
-                      radius: Style.radiusXS
-                      implicitWidth: resolutionBadgeRow.implicitWidth + Style.marginS * 2
-                      implicitHeight: resolutionBadgeRow.implicitHeight + Style.marginXS * 2
-
-                      RowLayout {
-                        id: resolutionBadgeRow
-                        anchors.centerIn: parent
-                        spacing: Style.marginXS
-
-                        NIcon {
-                          id: resolutionBadgeIconItem
-                          icon: root.resolutionBadgeIcon(modelData.resolution)
-                          pointSize: Style.fontSizeM
-                          color: Color.mOnSurfaceVariant
-                        }
-
-                        NText {
-                          text: root.resolutionBadgeLabel(modelData.resolution)
-                          color: Color.mOnSurfaceVariant
-                          font.pointSize: Style.fontSizeXS
-                          font.weight: Font.Medium
-                        }
-                      }
-                    }
-
-                    Rectangle {
                       color: Qt.alpha(Color.mSecondary, 0.18)
                       radius: Style.radiusXS
                       implicitWidth: typeBadgeText.implicitWidth + Style.marginS * 2
@@ -1605,6 +1597,36 @@ Item {
                         color: modelData.dynamic ? Color.mTertiary : Color.mOnSurfaceVariant
                         font.pointSize: Style.fontSizeXS
                         font.weight: Font.Medium
+                      }
+                    }
+
+                    Item { Layout.fillWidth: true }
+
+                    Rectangle {
+                      visible: root.resolutionBadgeIcon(modelData.resolution).length > 0
+                      color: Qt.alpha(Color.mSurfaceVariant, 0.24)
+                      radius: Style.radiusXS
+                      implicitWidth: resolutionBadgeRow.implicitWidth + Style.marginS * 2
+                      implicitHeight: resolutionBadgeRow.implicitHeight + Style.marginXS * 2
+
+                      RowLayout {
+                        id: resolutionBadgeRow
+                        anchors.centerIn: parent
+                        spacing: Style.marginXS
+
+                        NIcon {
+                          id: resolutionBadgeIconItem
+                          icon: root.resolutionBadgeIcon(modelData.resolution)
+                          pointSize: Style.fontSizeM
+                          color: Color.mOnSurfaceVariant
+                        }
+
+                        NText {
+                          text: root.resolutionBadgeLabel(modelData.resolution)
+                          color: Color.mOnSurfaceVariant
+                          font.pointSize: Style.fontSizeXS
+                          font.weight: Font.Medium
+                        }
                       }
                     }
 
@@ -1796,24 +1818,6 @@ Item {
                       spacing: Style.marginXS
 
                       Rectangle {
-                        color: Qt.alpha(Color.mPrimary, 0.14)
-                        radius: Style.radiusXS
-                        implicitWidth: sidebarIdBadgeText.implicitWidth + Style.marginS * 2
-                        implicitHeight: sidebarIdBadgeText.implicitHeight + Style.marginXS * 2
-
-                        NText {
-                          id: sidebarIdBadgeText
-                          anchors.centerIn: parent
-                          text: root.selectedWallpaperData ? root.selectedWallpaperData.id : ""
-                          color: Color.mPrimary
-                          font.pointSize: Style.fontSizeXS
-                          font.weight: Font.Medium
-                        }
-                      }
-
-                      Item { Layout.fillWidth: true }
-
-                      Rectangle {
                         visible: root.selectedWallpaperData && root.resolutionBadgeLabel(root.selectedWallpaperData.resolution).length > 0
                         color: Qt.alpha(Color.mSurfaceVariant, 0.24)
                         radius: Style.radiusXS
@@ -1922,6 +1926,50 @@ Item {
                       NText {
                         text: root.selectedWallpaperData ? root.typeLabel(root.selectedWallpaperData.type) : ""
                         color: Color.mOnSurface
+                      }
+                    }
+
+                    RowLayout {
+                      Layout.fillWidth: true
+
+                      NText {
+                        text: pluginApi?.tr("panel.infoId")
+                        color: Color.mOnSurfaceVariant
+                      }
+
+                      Item { Layout.fillWidth: true }
+
+                      Rectangle {
+                        color: "transparent"
+                        implicitWidth: idValueText.implicitWidth
+                        implicitHeight: idValueText.implicitHeight
+
+                        NText {
+                          id: idValueText
+                          text: root.selectedWallpaperData ? root.selectedWallpaperData.id : ""
+                          color: idLinkArea.containsMouse ? Color.mPrimary : Color.mOnSurface
+                          elide: Text.ElideMiddle
+                        }
+
+                        MouseArea {
+                          id: idLinkArea
+                          anchors.fill: parent
+                          hoverEnabled: true
+                          enabled: root.workshopUrlForWallpaper(root.selectedWallpaperData).length > 0
+                          cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                          onClicked: {
+                            const workshopUrl = root.workshopUrlForWallpaper(root.selectedWallpaperData);
+                            if (workshopUrl.length === 0) {
+                              return;
+                            }
+
+                            const screen = pluginApi?.panelOpenScreen;
+                            if (pluginApi) {
+                              pluginApi.togglePanel(screen);
+                            }
+                            Qt.openUrlExternally(workshopUrl);
+                          }
+                        }
                       }
                     }
 
@@ -2619,8 +2667,16 @@ Item {
         return;
       }
 
-      root.applyCompatibilityScanOutput(stdoutText);
-      Logger.i("LWEController", "Compatibility scan completed", "failedCount=", Object.keys(root.wallpaperPropertyLoadFailedByPath || ({})).length);
+      const result = root.applyCompatibilityScanOutput(stdoutText);
+      Logger.i("LWEController", "Compatibility scan completed", "totalCount=", result.totalCount, "failedCount=", result.failedCount);
+      ToastService.showNotice(
+        pluginApi?.tr("panel.title"),
+        pluginApi?.tr("panel.compatibilityQuickCheckFinished", {
+          total: result.totalCount,
+          failed: result.failedCount
+        }),
+        result.failedCount > 0 ? "alert-triangle" : "check"
+      );
     }
   }
 
