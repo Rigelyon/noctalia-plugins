@@ -1387,6 +1387,23 @@
       "lastUpdated": "2026-03-28T17:10:20-04:00"
     },
     {
+      "id": "tamagotchi",
+      "name": "Tamagochi",
+      "version": "1.1.0",
+      "official": false,
+      "author": "Joaquin Righetti, Lucia Bollati",
+      "description": "A lightweight taskbar Tamagotchi that lives and evolves while you use your computer.",
+      "repository": "https://github.com/noctalia-dev/noctalia-plugins",
+      "minNoctaliaVersion": "4.6.6",
+      "license": "MIT",
+      "tags": [
+        "Bar",
+        "Fun",
+        "Gaming"
+      ],
+      "lastUpdated": "2026-04-01T12:59:03-03:00"
+    },
+    {
       "id": "timer",
       "name": "Timer",
       "version": "1.1.4",
