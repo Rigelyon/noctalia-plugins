@@ -32,7 +32,14 @@
     "allFormatsCopied": "All formats copied",
     "copied": "Copied",
     "pinCapture": "Pin Screenshot",
-    "pinFile": "Pin Image"
+    "pinFile": "Pin Image",
+    "formatCopied": "{label} copied",
+    "colorCopied": "{color} copied",
+    "clickToCopy": "Click to copy",
+    "noPassword": "No password",
+    "passwordCopied": "Password copied",
+    "cssVars": "Copy as CSS vars",
+    "hexList": "Copy hex list"
   },
   "tools": {
     "colorpicker": "Color",
@@ -144,7 +151,13 @@
     "sizeS": "S",
     "sizeM": "M",
     "sizeL": "L",
-    "fullscreenTooltip": "Annotate the entire screen"
+    "fullscreenTooltip": "Annotate the entire screen",
+    "save": "Save",
+    "copy": "Copy",
+    "saving": "Saving...",
+    "copying": "Copying...",
+    "saveTip": "Save to disk",
+    "copyTip": "Copy to clipboard"
   },
   "record": {
     "stop": "Stop",
@@ -177,3 +190,4 @@
     "remove": "Remove"
   }
 }
+

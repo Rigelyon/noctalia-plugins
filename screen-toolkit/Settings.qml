@@ -8,13 +8,11 @@ ColumnLayout {
     property var pluginApi: null
     spacing: Style.marginL
 
-    property string screenshotPath: ""
-    property string videoPath:      ""
-    property string filenameFormat: ""
-    property bool _loaded: false
-    property string _previewNow: ""
+    property string screenshotPath: pluginApi?.pluginSettings?.screenshotPath || ""
+    property string videoPath:      pluginApi?.pluginSettings?.videoPath      || ""
+    property string filenameFormat: pluginApi?.pluginSettings?.filenameFormat || ""
 
-    Component.onCompleted: _load()
+    property string _previewNow: ""
 
     Timer {
         id: previewClock
@@ -22,17 +20,8 @@ ColumnLayout {
         onTriggered: root._previewNow = new Date().toString()
     }
 
-    function _load() {
-        if (!pluginApi?.pluginSettings) return
-        _loaded = false
-        screenshotPath = pluginApi.pluginSettings.screenshotPath || ""
-        videoPath      = pluginApi.pluginSettings.videoPath      || ""
-        filenameFormat = pluginApi.pluginSettings.filenameFormat || ""
-        _loaded = true
-    }
-
     function saveSettings() {
-        if (!pluginApi || !_loaded) return
+        if (!pluginApi) return
         pluginApi.pluginSettings.screenshotPath = root.screenshotPath
         pluginApi.pluginSettings.videoPath      = root.videoPath
         pluginApi.pluginSettings.filenameFormat = root.filenameFormat
@@ -60,7 +49,6 @@ ColumnLayout {
         placeholderText: "~/Pictures/Screenshots"
         text:            root.screenshotPath
         onTextChanged: {
-            if (!root._loaded) return
             root.screenshotPath = text
             saveSettings()
         }
@@ -73,7 +61,6 @@ ColumnLayout {
         placeholderText: "~/Videos"
         text:            root.videoPath
         onTextChanged: {
-            if (!root._loaded) return
             root.videoPath = text
             saveSettings()
         }
@@ -166,7 +153,6 @@ ColumnLayout {
             placeholderText: "%Y-%m-%dT%H-%M-%S"
             text: root.filenameFormat
             onTextChanged: {
-                if (!root._loaded) return
                 root.filenameFormat = text
                 saveSettings()
             }
@@ -182,11 +168,11 @@ ColumnLayout {
             Row {
                 id: previewRow
                 anchors {
-                    left:          parent.left
-                    right:         parent.right
+                    left:           parent.left
+                    right:          parent.right
                     verticalCenter: parent.verticalCenter
-                    leftMargin:    Style.marginM
-                    rightMargin:   Style.marginM
+                    leftMargin:     Style.marginM
+                    rightMargin:    Style.marginM
                 }
                 spacing: Style.marginS
 
@@ -203,9 +189,10 @@ ColumnLayout {
                     font.family: "monospace"
                     anchors.verticalCenter: parent.verticalCenter
                     elide: Text.ElideRight
-                    width: parent.width - 32
+                    width: parent.width - (Style.marginM * 2)
                 }
             }
         }
     }
 }
+
