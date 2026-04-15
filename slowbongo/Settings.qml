@@ -209,7 +209,7 @@ ColumnLayout {
 
     // Requirements Section
     Text {
-        text: pluginApi?.tr("settings.requirements") || "Requirements"
+        text: pluginApi?.tr("settings.requirements")
         color: Color.mOnSurface
         font.pointSize: Style.fontSizeM
         font.weight: Font.DemiBold
@@ -236,8 +236,8 @@ ColumnLayout {
                 }
                 Text {
                     text: root.evtestInstalled
-                        ? (pluginApi?.tr("settings.evtest-installed") || "evtest is installed")
-                        : (pluginApi?.tr("settings.evtest-not-installed") || "evtest is not installed")
+                        ? pluginApi?.tr("settings.evtest-installed")
+                        : pluginApi?.tr("settings.evtest-not-installed")
                     color: root.evtestInstalled ? root.statusSuccessColor : root.statusErrorColor
                     font.pointSize: Style.fontSizeM
                 }
@@ -252,8 +252,8 @@ ColumnLayout {
                 }
                 Text {
                     text: root.inInputGroup
-                        ? (pluginApi?.tr("settings.in-input-group") || "User is in the input group")
-                        : (pluginApi?.tr("settings.not-in-input-group") || "User is not in the input group")
+                        ? pluginApi?.tr("settings.in-input-group")
+                        : pluginApi?.tr("settings.not-in-input-group")
                     color: root.inInputGroup ? root.statusSuccessColor : root.statusErrorColor
                     font.pointSize: Style.fontSizeM
                 }
@@ -267,7 +267,7 @@ ColumnLayout {
 
     // Widget Color
     NColorChoice {
-        label: pluginApi?.tr("settings.colours") || "Colours"
+        label: pluginApi?.tr("settings.colours")
         currentKey: root.editCatColor
         onSelected: key => { root.editCatColor = key; }
     }
@@ -275,7 +275,7 @@ ColumnLayout {
     // Cat Size Section
     NValueSlider {
         Layout.fillWidth: true
-        label: pluginApi?.tr("settings.cat-size") || "Cat Size"
+        label: pluginApi?.tr("settings.cat-size")
         value: root.editCatSize
         from: 0.5
         to: 1.5
@@ -289,7 +289,7 @@ ColumnLayout {
     // Vertical Position Section
     NValueSlider {
         Layout.fillWidth: true
-        label: pluginApi?.tr("settings.vertical-position") || "Vertical Position"
+        label: pluginApi?.tr("settings.vertical-position")
         value: root.editCatOffsetY
         from: -0.39
         to: 0.61
@@ -302,8 +302,8 @@ ColumnLayout {
 
     // Rave Mode
     NToggle {
-        label: pluginApi?.tr("settings.rave-mode") || "Rave Mode"
-        description: pluginApi?.tr("settings.rave-mode-desc") || "Change colors to the beat when music is playing"
+        label: pluginApi?.tr("settings.rave-mode")
+        description: pluginApi?.tr("settings.rave-mode-desc")
         checked: root.editRaveMode
         onToggled: checked => root.editRaveMode = checked
         defaultValue: pluginApi?.manifest?.metadata?.defaultSettings?.raveMode ?? false
@@ -311,8 +311,8 @@ ColumnLayout {
 
     // Tappy Mode
     NToggle {
-        label: pluginApi?.tr("settings.tappy-mode") || "Tappy Mode"
-        description: pluginApi?.tr("settings.tappy-mode-desc") || "Make the cat tap along to the beat when music is playing"
+        label: pluginApi?.tr("settings.tappy-mode")
+        description: pluginApi?.tr("settings.tappy-mode-desc")
         checked: root.editTappyMode
         onToggled: checked => root.editTappyMode = checked
         defaultValue: pluginApi?.manifest?.metadata?.defaultSettings?.tappyMode ?? false
@@ -320,8 +320,8 @@ ColumnLayout {
 
     // MPRIS Filtering
     NToggle {
-        label: pluginApi?.tr("settings.mpris-filter") || "MPRIS Filtering"
-        description: pluginApi?.tr("settings.mpris-filter-desc") || "Only react to audio when a non-blacklisted media player is playing (uses NoctalisShell audio blacklist)"
+        label: pluginApi?.tr("settings.mpris-filter")
+        description: pluginApi?.tr("settings.mpris-filter-desc")
         checked: root.editUseMprisFilter
         onToggled: checked => root.editUseMprisFilter = checked
         defaultValue: pluginApi?.manifest?.metadata?.defaultSettings?.useMprisFilter ?? false
