@@ -355,7 +355,7 @@ Item {
             NText {
               text: mainInstance?.tailscaleRunning
                 ? (mainInstance?.peerList?.length || 0) + " " + (pluginApi?.tr("panel.peers"))
-                : pluginApi?.tr("panel.not-connected")
+                : (mainInstance?.needsLogin ? pluginApi?.tr("panel.not-authenticated") : pluginApi?.tr("panel.not-connected"))
               pointSize: Style.fontSizeS
               color: Color.mOnSurfaceVariant
             }
@@ -642,7 +642,23 @@ Item {
 
       NButton {
         Layout.fillWidth: true
-        text: mainInstance?.tailscaleRunning 
+        visible: mainInstance?.needsLogin ?? false
+        text: pluginApi?.tr("context.login")
+        icon: "login"
+        backgroundColor: Color.mPrimary
+        textColor: Color.mOnPrimary
+        enabled: mainInstance?.tailscaleInstalled ?? false
+        onClicked: {
+          if (mainInstance) {
+            mainInstance.loginTailscale()
+          }
+        }
+      }
+
+      NButton {
+        Layout.fillWidth: true
+        visible: !(mainInstance?.needsLogin ?? false)
+        text: mainInstance?.tailscaleRunning
           ? pluginApi?.tr("context.disconnect")
           : pluginApi?.tr("context.connect")
         icon: mainInstance?.tailscaleRunning ? "plug-x" : "plug"
