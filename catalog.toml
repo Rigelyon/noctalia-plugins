@@ -11,11 +11,16 @@
 id = "rigelyon/sleepy-time"
 name = "Sleepy Time"
 version = "1.0.0"
-updated_at = 1785000524
+updated_at = 1785001163
 added_at = 1785000336
 author = "rigelyon"
 license = "MIT"
 icon = "moon-stars"
 description = "Timer & scheduler with system actions — lock, suspend, shutdown, reboot, log out, kill process, or custom commands."
-plugin_api = 3
+plugin_api = 9
 tags = ["bar", "panel", "desktop", "service", "countdown", "time", "productivity", "utility"]
+
+[[plugin.release]]
+plugin_api = 3
+version = "1.0.0"
+rev = "e586a0e57e32d99be138e3874bef6df56d9e4ca5"
