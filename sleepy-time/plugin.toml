@@ -5,8 +5,8 @@ plugin_api   = 3
 author       = "rigelyon"
 license      = "MIT"
 icon         = "moon-stars"
-description  = "Timer & scheduler with system actions — lock, suspend, shutdown, reboot, log out, kill process, or run custom commands."
-tags         = ["bar", "panel", "desktop", "service", "timer", "scheduler", "shutdown", "suspend", "productivity", "utility"]
+description  = "Timer & scheduler with system actions — lock, suspend, shutdown, reboot, log out, kill process, or custom commands."
+tags         = ["bar", "panel", "desktop", "service", "countdown", "time", "productivity", "utility"]
 dependencies = []
 
 # ── Global Settings ──────────────────────────────────────────────────────────
