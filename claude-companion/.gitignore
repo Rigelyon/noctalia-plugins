@@ -1,3 +1,0 @@
-# Python bytecode (the MCP shim and hooks are interpreted; caches are build artifacts)
-__pycache__/
-*.pyc
