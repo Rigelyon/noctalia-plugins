@@ -1,0 +1,257 @@
+id           = "rigelyon/sleepy-time"
+name         = "Sleepy Time"
+version      = "1.0.0"
+plugin_api   = 3
+author       = "rigelyon"
+license      = "MIT"
+icon         = "moon-stars"
+description  = "Timer & scheduler with system actions — lock, suspend, shutdown, reboot, log out, kill process, or run custom commands."
+tags         = ["bar", "panel", "desktop", "service", "timer", "scheduler", "shutdown", "suspend", "productivity", "utility"]
+dependencies = []
+
+# ── Global Settings ──────────────────────────────────────────────────────────
+
+[[setting]]
+key = "default_action"
+type = "select"
+label_key = "settings.default_action.label"
+description_key = "settings.default_action.description"
+default = "lock"
+options = [
+  { value = "lock", label_key = "action.lock" },
+  { value = "suspend", label_key = "action.suspend" },
+  { value = "shutdown", label_key = "action.shutdown" },
+  { value = "reboot", label_key = "action.reboot" },
+  { value = "logout", label_key = "action.logout" },
+  { value = "kill-process", label_key = "action.kill-process" },
+  { value = "custom-command", label_key = "action.custom-command" }
+]
+
+[[setting]]
+key = "default_duration"
+type = "int"
+label_key = "settings.default_duration.label"
+description_key = "settings.default_duration.description"
+default = 30
+min = 1
+max = 480
+
+[[setting]]
+key = "warning_enabled"
+type = "bool"
+label_key = "settings.warning_enabled.label"
+description_key = "settings.warning_enabled.description"
+default = true
+
+[[setting]]
+key = "warning_seconds"
+type = "int"
+label_key = "settings.warning_seconds.label"
+description_key = "settings.warning_seconds.description"
+default = 60
+min = 10
+max = 300
+
+[[setting]]
+key = "warning_sound"
+type = "bool"
+label_key = "settings.warning_sound.label"
+description_key = "settings.warning_sound.description"
+default = false
+
+[[setting]]
+key = "lock_command"
+type = "string"
+label_key = "settings.lock_command.label"
+description_key = "settings.lock_command.description"
+default = ""
+
+[[setting]]
+key = "suspend_command"
+type = "string"
+label_key = "settings.suspend_command.label"
+description_key = "settings.suspend_command.description"
+default = ""
+
+[[setting]]
+key = "shutdown_command"
+type = "string"
+label_key = "settings.shutdown_command.label"
+description_key = "settings.shutdown_command.description"
+default = ""
+
+[[setting]]
+key = "reboot_command"
+type = "string"
+label_key = "settings.reboot_command.label"
+description_key = "settings.reboot_command.description"
+default = ""
+
+[[setting]]
+key = "logout_command"
+type = "string"
+label_key = "settings.logout_command.label"
+description_key = "settings.logout_command.description"
+default = ""
+
+[[setting]]
+key = "custom_command"
+type = "string"
+label_key = "settings.custom_command.label"
+description_key = "settings.custom_command.description"
+default = ""
+
+[[setting]]
+key = "quick_timers"
+type = "string"
+label_key = "settings.quick_timers.label"
+description_key = "settings.quick_timers.description"
+default = "5,10,15,30,60,90,120"
+
+# ── Service Entry ────────────────────────────────────────────────────────────
+
+[[service]]
+id = "service"
+entry = "service.luau"
+
+# ── Bar Widget Entry ─────────────────────────────────────────────────────────
+
+[[widget]]
+id = "widget"
+entry = "widget.luau"
+
+  [[widget.setting]]
+  key = "show_when_idle"
+  type = "bool"
+  label_key = "settings.show_when_idle.label"
+  description_key = "settings.show_when_idle.description"
+  default = true
+
+  [[widget.setting]]
+  key = "idle_text"
+  type = "select"
+  label_key = "settings.idle_text.label"
+  description_key = "settings.idle_text.description"
+  default = "none"
+  options = [
+    { value = "none", label_key = "settings.idle_text.options.none" },
+    { value = "plugin-name", label_key = "settings.idle_text.options.plugin-name" },
+    { value = "next-action", label_key = "settings.idle_text.options.next-action" }
+  ]
+
+  [[widget.setting]]
+  key = "show_countdown_text"
+  type = "bool"
+  label_key = "settings.show_countdown_text.label"
+  description_key = "settings.show_countdown_text.description"
+  default = true
+
+  [[widget.setting]]
+  key = "show_action_icon"
+  type = "bool"
+  label_key = "settings.show_action_icon.label"
+  description_key = "settings.show_action_icon.description"
+  default = false
+
+  [[widget.setting]]
+  key = "active_color"
+  type = "color"
+  label_key = "settings.active_color.label"
+  description_key = "settings.active_color.description"
+  default = "primary"
+
+  [[widget.setting]]
+  key = "paused_color"
+  type = "color"
+  label_key = "settings.paused_color.label"
+  description_key = "settings.paused_color.description"
+  default = "#f59e0b"
+
+  [[widget.setting]]
+  key = "warning_color"
+  type = "color"
+  label_key = "settings.warning_color.label"
+  description_key = "settings.warning_color.description"
+  default = "#ef4444"
+
+# ── Panel Entry ──────────────────────────────────────────────────────────────
+
+[[panel]]
+id = "panel"
+entry = "panel.luau"
+placement = "attached"
+position = "auto"
+open_near_click = true
+width = 420
+height = 520
+
+# ── Desktop Widget Entry ─────────────────────────────────────────────────────
+
+[[desktop_widget]]
+id = "desktop"
+entry = "desktop.luau"
+
+  [[desktop_widget.setting]]
+  key = "color"
+  type = "color"
+  label_key = "settings.color.label"
+  description_key = "settings.color.description"
+  default = "primary"
+
+  [[desktop_widget.setting]]
+  key = "show_when_idle"
+  type = "bool"
+  label_key = "settings.show_when_idle.label"
+  description_key = "settings.show_when_idle.description"
+  default = false
+
+  [[desktop_widget.setting]]
+  key = "show_progress"
+  type = "bool"
+  label_key = "settings.show_progress.label"
+  description_key = "settings.show_progress.description"
+  default = true
+
+  [[desktop_widget.setting]]
+  key = "show_percentage"
+  type = "bool"
+  label_key = "settings.show_percentage.label"
+  description_key = "settings.show_percentage.description"
+  default = true
+
+  [[desktop_widget.setting]]
+  key = "show_action_label"
+  type = "bool"
+  label_key = "settings.show_action_label.label"
+  description_key = "settings.show_action_label.description"
+  default = true
+
+  [[desktop_widget.setting]]
+  key = "font_size"
+  type = "int"
+  label_key = "settings.font_size.label"
+  description_key = "settings.font_size.description"
+  default = 42
+  min = 16
+  max = 96
+
+  [[desktop_widget.setting]]
+  key = "compact_mode"
+  type = "bool"
+  label_key = "settings.compact_mode.label"
+  description_key = "settings.compact_mode.description"
+  default = false
+
+  [[desktop_widget.setting]]
+  key = "paused_color"
+  type = "color"
+  label_key = "settings.paused_color.label"
+  description_key = "settings.paused_color.description"
+  default = "#f59e0b"
+
+  [[desktop_widget.setting]]
+  key = "warning_color"
+  type = "color"
+  label_key = "settings.warning_color.label"
+  description_key = "settings.warning_color.description"
+  default = "#ef4444"

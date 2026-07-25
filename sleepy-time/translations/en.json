@@ -1,0 +1,157 @@
+{
+  "action": {
+    "custom-command": "Custom Command",
+    "kill-process": "Kill Process",
+    "lock": "Lock Screen",
+    "logout": "Log Out",
+    "reboot": "Reboot",
+    "shutdown": "Shutdown",
+    "suspend": "Suspend"
+  },
+  "button": {
+    "add-time": "+5m",
+    "cancel": "Cancel",
+    "pause": "Pause",
+    "resume": "Resume",
+    "start": "Start",
+    "subtract-time": "−5m"
+  },
+  "mode": {
+    "countdown": "Countdown",
+    "scheduled": "At Time"
+  },
+  "notification": {
+    "cancelled": "Timer cancelled",
+    "executed": "Action executed: {action}",
+    "warning-early": "⏳ {action} in {time}",
+    "warning-final": "🔴 {action} in {time}!",
+    "warning-mid": "⚠️ {action} in {time}"
+  },
+  "panel": {
+    "action-label": "Action to perform",
+    "custom-duration": "Custom Duration",
+    "custom-duration-placeholder": "HH:MM:SS",
+    "duration-header": "Timer Setup",
+    "mode-label": "Timer Mode",
+    "process-label": "Target Process",
+    "process-search": "Filter running processes...",
+    "quick-timers": "Quick Presets",
+    "target-time": "Target Time",
+    "target-time-placeholder": "HH:MM",
+    "title": "Sleepy Time",
+    "tomorrow": "(Tomorrow)"
+  },
+  "settings": {
+    "active_color": {
+      "description": "Color of the widget during active countdown",
+      "label": "Active Color"
+    },
+    "color": {
+      "description": "Accent color for the desktop widget",
+      "label": "Accent Color"
+    },
+    "compact_mode": {
+      "description": "Use a single-line compact layout for the desktop widget",
+      "label": "Compact Layout"
+    },
+    "custom_command": {
+      "description": "Shell command to run when 'Custom Command' action is chosen",
+      "label": "Custom Command"
+    },
+    "default_action": {
+      "description": "Default action to preselect when opening the setup panel",
+      "label": "Default Action"
+    },
+    "default_duration": {
+      "description": "Default duration in minutes for new timers",
+      "label": "Default Duration (min)"
+    },
+    "font_size": {
+      "description": "Font size for the countdown timer text on desktop",
+      "label": "Timer Font Size"
+    },
+    "idle_text": {
+      "description": "Text displayed on the bar widget when no timer is active",
+      "label": "Idle Bar Display",
+      "options": {
+        "next-action": "Selected Action",
+        "none": "Icon Only",
+        "plugin-name": "Plugin Name"
+      }
+    },
+    "lock_command": {
+      "description": "Custom command to lock screen (leave empty for auto-detect)",
+      "label": "Lock Command Override"
+    },
+    "logout_command": {
+      "description": "Custom command to log out (leave empty for auto-detect)",
+      "label": "Log Out Command Override"
+    },
+    "paused_color": {
+      "description": "Color of the widget when timer is paused",
+      "label": "Paused Color"
+    },
+    "quick_timers": {
+      "description": "Comma-separated list of quick preset durations in minutes",
+      "label": "Quick Presets"
+    },
+    "reboot_command": {
+      "description": "Custom command to reboot (leave empty for systemctl/loginctl)",
+      "label": "Reboot Command Override"
+    },
+    "show_action_icon": {
+      "description": "Show action-specific icon instead of moon icon during countdown",
+      "label": "Show Action Icon"
+    },
+    "show_action_label": {
+      "description": "Display the action label (e.g., Lock Screen) on the widget",
+      "label": "Show Action Label"
+    },
+    "show_countdown_text": {
+      "description": "Show countdown time text next to the bar icon",
+      "label": "Show Countdown Text"
+    },
+    "show_percentage": {
+      "description": "Show remaining time percentage on the desktop widget",
+      "label": "Show Percentage"
+    },
+    "show_progress": {
+      "description": "Show a progress bar on the desktop widget",
+      "label": "Show Progress Bar"
+    },
+    "show_when_idle": {
+      "description": "Show the widget even when no timer is currently active",
+      "label": "Show When Idle"
+    },
+    "shutdown_command": {
+      "description": "Custom command to shut down (leave empty for systemctl/loginctl)",
+      "label": "Shutdown Command Override"
+    },
+    "suspend_command": {
+      "description": "Custom command to suspend (leave empty for systemctl/loginctl)",
+      "label": "Suspend Command Override"
+    },
+    "warning_color": {
+      "description": "Color used when the timer enters the warning threshold",
+      "label": "Warning Color"
+    },
+    "warning_enabled": {
+      "description": "Show warning notifications before performing the action",
+      "label": "Enable Warning Notifications"
+    },
+    "warning_seconds": {
+      "description": "How many seconds before action execution to start warning notifications",
+      "label": "Warning Threshold (seconds)"
+    },
+    "warning_sound": {
+      "description": "Play sound with warning notifications (if supported)",
+      "label": "Warning Sound"
+    }
+  },
+  "status": {
+    "idle": "Idle",
+    "paused": "Paused",
+    "running": "Running",
+    "warning": "Warning!"
+  }
+}
