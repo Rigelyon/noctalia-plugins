@@ -43,18 +43,15 @@ local function renderDesktop(state)
 
     if not isRunning then
         if not cfg.showWhenIdle then
-            desktopWidget.render(nil)
+            desktopWidget.render(ui.box({ width = 0, height = 0, opacity = 0 }))
             return
         end
 
-        -- Render minimal idle desktop widget
+        -- Render minimal idle chip
         desktopWidget.render(
-            ui.column({ align = "center", justify = "center", padding = 16, gap = 8 }, {
-                ui.row({ align = "center", gap = 8 }, {
-                    ui.glyph({ name = "moon-stars", size = 24, color = "primary" }),
-                    ui.label({ text = "Sleepy Time", fontSize = 16, fontWeight = "bold", color = "on_surface" }),
-                }),
-                ui.label({ text = "No active timer", fontSize = 12, color = "on_surface_variant" }),
+            ui.row({ align = "center", justify = "center", padding = 12, gap = 8, radius = 16, fill = "surface_variant/0.4" }, {
+                ui.glyph({ name = "moon-stars", size = 18, color = "primary" }),
+                ui.label({ text = "Sleepy Time — Idle", fontSize = 12, color = "on_surface_variant" }),
             })
         )
         return
@@ -102,10 +99,10 @@ local function renderDesktop(state)
         end
 
         desktopWidget.render(
-            ui.row({ align = "center", justify = "center", gap = 10, padding = 12 }, rowItems)
+            ui.row({ align = "center", justify = "center", gap = 10, padding = 12, radius = 16, fill = "surface_variant/0.6" }, rowItems)
         )
     else
-        -- Standard stacked card layout
+        -- Standard card layout
         local items = {}
 
         -- Title header
@@ -157,7 +154,7 @@ local function renderDesktop(state)
         end
 
         desktopWidget.render(
-            ui.column({ align = "center", justify = "center", gap = 8, padding = 16 }, items)
+            ui.column({ align = "center", justify = "center", gap = 8, padding = 16, radius = 20, fill = "surface_variant/0.6" }, items)
         )
     end
 end

@@ -1,7 +1,7 @@
 id           = "rigelyon/sleepy-time"
 name         = "Sleepy Time"
 version      = "1.0.0"
-plugin_api   = 3
+plugin_api   = 9
 author       = "rigelyon"
 license      = "MIT"
 icon         = "moon-stars"
@@ -183,7 +183,7 @@ placement = "attached"
 position = "auto"
 open_near_click = true
 width = 420
-height = 520
+height = 540
 
 # ── Desktop Widget Entry ─────────────────────────────────────────────────────
 

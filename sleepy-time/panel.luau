@@ -3,15 +3,15 @@
 
 local timeFontFamily = noctalia.loadFont("JetBrainsMono-Regular.ttf")
 
--- Local transient UI state
+-- Local UI state
 local uiState = {
-    mode             = "countdown", -- "countdown" | "scheduled"
-    selectedAction   = "lock",
-    customDuration   = "30:00",     -- MM:SS or HH:MM:SS
-    targetTime       = "23:00",     -- HH:MM
-    selectedProcess  = "",
-    customCmdText    = "",
-    processFilter    = "",
+    mode            = "countdown", -- "countdown" | "scheduled"
+    selectedAction  = "lock",
+    selectedMins    = 30,          -- Default preset mins
+    customDuration  = "30:00",
+    targetTime      = "23:00",
+    selectedProcess = "",
+    customCmdText   = "",
 }
 
 local function formatTimeDisplay(secs)
@@ -41,14 +41,13 @@ local function parseTimeStringToSeconds(str)
     return nil
 end
 
--- Handlers called by UI callbacks
+-- Global handlers for Noctalia declarative UI
 
 function onOpen(context)
     local state = noctalia.state.get("sleepy.state")
     if state and state.action then
         uiState.selectedAction = state.action
     end
-    -- Trigger process list refresh
     noctalia.state.set("sleepy.command", { action = "fetchProcesses" })
     renderPanel()
 end
@@ -66,20 +65,11 @@ function onActionSelect(newAction)
     renderPanel()
 end
 
-function onPresetClick(mins)
+function onPresetSelect(mins)
     uiState.mode = "countdown"
-    local secs = mins * 60
-    local state = noctalia.state.get("sleepy.state")
-    local act = uiState.selectedAction or "lock"
-    local target = if act == "kill-process" then uiState.selectedProcess else uiState.customCmdText
-
-    noctalia.state.set("sleepy.command", {
-        action       = "start",
-        mode         = "countdown",
-        seconds      = secs,
-        targetAction = act,
-        targetParam  = target,
-    })
+    uiState.selectedMins = mins
+    uiState.customDuration = string.format("%d:00", mins)
+    renderPanel()
 end
 
 function onStartClick()
@@ -95,7 +85,12 @@ function onStartClick()
             targetParam  = target,
         })
     else
-        local secs = parseTimeStringToSeconds(uiState.customDuration) or 1800
+        local secs = (uiState.selectedMins * 60)
+        local parsedSecs = parseTimeStringToSeconds(uiState.customDuration)
+        if parsedSecs and parsedSecs > 0 then
+            secs = parsedSecs
+        end
+
         noctalia.state.set("sleepy.command", {
             action       = "start",
             mode         = "countdown",
@@ -131,7 +126,7 @@ function onProcessSelect(procName)
     renderPanel()
 end
 
--- Panel UI Renderer
+-- Panel Renderer
 
 function renderPanel()
     local state = noctalia.state.get("sleepy.state") or { isRunning = false, secondsLeft = 0, totalSeconds = 0 }
@@ -145,7 +140,7 @@ function renderPanel()
     -- Header row
     local headerRow = ui.row({ align = "center", justify = "space_between" }, {
         ui.row({ align = "center", gap = 8 }, {
-            ui.glyph({ name = "moon-stars", size = 20, color = "primary" }),
+            ui.glyph({ name = "moon-stars", size = 22, color = "primary" }),
             ui.label({ text = noctalia.tr("panel.title"), fontSize = 18, fontWeight = "bold", color = "on_surface" }),
         }),
         ui.label({
@@ -156,7 +151,7 @@ function renderPanel()
         })
     })
 
-    -- Display Section (Live Timer or Duration Preview)
+    -- Live Timer Display or Idle Setup Info
     local displaySection
     if isRunning then
         local progressRatio = if state.totalSeconds > 0 then (1 - (state.secondsLeft / state.totalSeconds)) else 0
@@ -190,27 +185,26 @@ function renderPanel()
             }),
         })
     else
-        -- Idle mode setup
-        displaySection = ui.column({ align = "center", gap = 4, padding = 8 }, {
+        displaySection = ui.column({ align = "center", gap = 4, padding = 4 }, {
             ui.label({
                 text = "Set Sleep Timer",
-                fontSize = 16,
+                fontSize = 15,
                 fontWeight = "medium",
                 color = "on_surface",
             }),
             ui.label({
-                text = "Choose a preset, set custom duration, or schedule a target time",
-                fontSize = 12,
+                text = "Choose a preset, set custom time, or schedule an action",
+                fontSize = 11,
                 color = "on_surface_variant",
             }),
         })
     end
 
-    -- Controls & Presets Section (only when not running or as preset selector)
+    -- Setup Controls (when not running)
     local setupControls = {}
 
     if not isRunning then
-        -- Mode toggle buttons
+        -- Mode Selector (Countdown vs At Time)
         local modeRow = ui.row({ gap = 8, justify = "center" }, {
             ui.button({
                 text = "⏱ Countdown",
@@ -227,75 +221,95 @@ function renderPanel()
         })
         table.insert(setupControls, modeRow)
 
-        -- Quick Presets Grid (in countdown mode)
-        if uiState.mode == "countdown" and #presets > 0 then
+        -- Countdown Mode: Quick Presets Grid
+        if uiState.mode == "countdown" then
             local presetButtons = {}
             for _, item in ipairs(presets) do
+                local mins = item.minutes
                 table.insert(presetButtons, ui.button({
                     text = item.label,
-                    variant = "secondary",
-                    onClick = function() onPresetClick(item.minutes) end,
+                    variant = if uiState.selectedMins == mins then "primary" else "secondary",
+                    onClick = function() onPresetSelect(mins) end,
                 }))
             end
             table.insert(setupControls, ui.column({ gap = 4 }, {
                 ui.label({ text = noctalia.tr("panel.quick-timers"), fontSize = 12, fontWeight = "medium", color = "on_surface_variant" }),
                 ui.row({ gap = 6, flexWrap = true }, presetButtons),
             }))
+        else
+            -- At Time Mode: Target Time Input
+            table.insert(setupControls, ui.column({ gap = 4 }, {
+                ui.label({ text = "Target Time (24h HH:MM)", fontSize = 12, fontWeight = "medium", color = "on_surface_variant" }),
+                ui.input({
+                    value = uiState.targetTime,
+                    placeholder = "23:00",
+                    onChange = function(val) uiState.targetTime = val end,
+                }),
+            }))
         end
 
-        -- Action dropdown selector
-        local actionOptions = {
-          { value = "lock", label = "🔒  " .. noctalia.tr("action.lock") },
-          { value = "suspend", label = "🌙  " .. noctalia.tr("action.suspend") },
-          { value = "shutdown", label = "⏻  " .. noctalia.tr("action.shutdown") },
-          { value = "reboot", label = "🔄  " .. noctalia.tr("action.reboot") },
-          { value = "logout", label = "🚪  " .. noctalia.tr("action.logout") },
-          { value = "kill-process", label = "☠️  " .. noctalia.tr("action.kill-process") },
-          { value = "custom-command", label = "⌨️  " .. noctalia.tr("action.custom-command") },
+        -- Action Selector: Grid of Action Buttons (replaces ui.select which is not supported in panels yet)
+        local actions = {
+            { id = "lock", label = "🔒 Lock", glyph = "lock" },
+            { id = "suspend", label = "🌙 Suspend", glyph = "moon" },
+            { id = "shutdown", label = "⏻ Shutdown", glyph = "power" },
+            { id = "reboot", label = "🔄 Reboot", glyph = "rotate" },
+            { id = "logout", label = "🚪 Log Out", glyph = "logout" },
+            { id = "kill-process", label = "☠️ Kill App", glyph = "skull" },
+            { id = "custom-command", label = "⌨️ Custom", glyph = "terminal" },
         }
 
-        local actionSelect = ui.column({ gap = 4 }, {
-            ui.label({ text = noctalia.tr("panel.action-label"), fontSize = 12, fontWeight = "medium", color = "on_surface_variant" }),
-            ui.select({
-                value = uiState.selectedAction,
-                options = actionOptions,
-                onChange = "onActionSelect",
-            }),
-        })
-        table.insert(setupControls, actionSelect)
+        local actionButtons = {}
+        for _, act in ipairs(actions) do
+            local actId = act.id
+            table.insert(actionButtons, ui.button({
+                text = act.label,
+                variant = if uiState.selectedAction == actId then "primary" else "secondary",
+                onClick = function() onActionSelect(actId) end,
+            }))
+        end
 
-        -- Extra Target Input (Process picker or Custom command string)
+        table.insert(setupControls, ui.column({ gap = 4 }, {
+            ui.label({ text = noctalia.tr("panel.action-label"), fontSize = 12, fontWeight = "medium", color = "on_surface_variant" }),
+            ui.row({ gap = 6, flexWrap = true }, actionButtons),
+        }))
+
+        -- Target Process Picker / Custom Command String
         if uiState.selectedAction == "kill-process" then
             local procRows = {}
-            local limit = 0
+            local count = 0
             for _, proc in ipairs(processList) do
-                if limit < 6 then
-                    limit = limit + 1
+                if count < 5 then
+                    count = count + 1
                     local pName = proc.name
                     table.insert(procRows, ui.button({
-                        text = pName .. " (PID " .. proc.pid .. ")",
+                        text = pName .. " (" .. proc.pid .. ")",
                         variant = if uiState.selectedProcess == pName then "primary" else "secondary",
                         onClick = function() onProcessSelect(pName) end,
                     }))
                 end
             end
+            if #procRows == 0 then
+                table.insert(procRows, ui.label({ text = "Loading running apps...", fontSize = 11, color = "on_surface_variant" }))
+            end
+
             table.insert(setupControls, ui.column({ gap = 4 }, {
                 ui.label({ text = noctalia.tr("panel.process-label"), fontSize = 12, fontWeight = "medium", color = "on_surface_variant" }),
-                ui.column({ gap = 4 }, procRows),
+                ui.row({ gap = 6, flexWrap = true }, procRows),
             }))
         elseif uiState.selectedAction == "custom-command" then
             table.insert(setupControls, ui.column({ gap = 4 }, {
                 ui.label({ text = noctalia.tr("settings.custom_command.label"), fontSize = 12, fontWeight = "medium", color = "on_surface_variant" }),
                 ui.input({
                     value = uiState.customCmdText,
-                    placeholder = "e.g., notify-send 'Timer Done'",
+                    placeholder = "e.g. notify-send 'Timer Done'",
                     onChange = function(val) uiState.customCmdText = val end,
                 }),
             }))
         end
     end
 
-    -- Bottom Action Button Bar
+    -- Bottom Button Bar
     local actionButtons
     if isRunning then
         actionButtons = ui.row({ gap = 8 }, {
@@ -307,12 +321,12 @@ function renderPanel()
                 flexGrow = 1,
             }),
             ui.button({
-                text = noctalia.tr("button.add-time"),
+                text = "+5m",
                 variant = "secondary",
                 onClick = "onAddTimeClick",
             }),
             ui.button({
-                text = noctalia.tr("button.subtract-time"),
+                text = "−5m",
                 variant = "secondary",
                 onClick = "onSubtractTimeClick",
             }),
@@ -329,12 +343,13 @@ function renderPanel()
             variant = "primary",
             onClick = "onStartClick",
             flexGrow = 1,
+            height = 42,
         })
     end
 
-    -- Assemble full panel column
+    -- Render panel
     panel.render(
-        ui.column({ flexGrow = 1, gap = 14, padding = 16 }, {
+        ui.column({ flexGrow = 1, gap = 12, padding = 16 }, {
             headerRow,
             displaySection,
             ui.column({ gap = 10, flexGrow = 1 }, setupControls),
@@ -343,7 +358,7 @@ function renderPanel()
     )
 end
 
--- Render when state updates
+-- Watch state updates
 noctalia.state.watch("sleepy.state", function(state)
     renderPanel()
 end)
