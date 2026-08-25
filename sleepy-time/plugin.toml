@@ -1,7 +1,7 @@
 id           = "rigelyon/sleepy-time"
 name         = "Sleepy Time"
-version      = "1.0.0"
-plugin_api   = 9
+version      = "2.0.0"
+plugin_api   = 28
 author       = "rigelyon"
 license      = "MIT"
 icon         = "moon-stars"
@@ -51,13 +51,6 @@ description_key = "settings.warning_seconds.description"
 default = 60
 min = 10
 max = 300
-
-[[setting]]
-key = "warning_sound"
-type = "bool"
-label_key = "settings.warning_sound.label"
-description_key = "settings.warning_sound.description"
-default = false
 
 [[setting]]
 key = "lock_command"
@@ -182,8 +175,8 @@ entry = "panel.luau"
 placement = "attached"
 position = "auto"
 open_near_click = true
-width = 420
-height = 540
+width = 380
+height = 520
 
 # ── Desktop Widget Entry ─────────────────────────────────────────────────────
 
@@ -231,7 +224,7 @@ entry = "desktop.luau"
   type = "int"
   label_key = "settings.font_size.label"
   description_key = "settings.font_size.description"
-  default = 42
+  default = 38
   min = 16
   max = 96
 

@@ -13,7 +13,7 @@
     "cancel": "Cancel",
     "pause": "Pause",
     "resume": "Resume",
-    "start": "Start",
+    "start": "Start Timer",
     "subtract-time": "−5m"
   },
   "mode": {
@@ -30,16 +30,20 @@
   "panel": {
     "action-label": "Action to perform",
     "custom-duration": "Custom Duration",
-    "custom-duration-placeholder": "HH:MM:SS",
+    "custom-duration-placeholder": "e.g. 45 or 1:30:00",
     "duration-header": "Timer Setup",
     "mode-label": "Timer Mode",
+    "process-empty": "No running user apps found",
     "process-label": "Target Process",
-    "process-search": "Filter running processes...",
+    "process-loading": "Loading running apps...",
     "quick-timers": "Quick Presets",
-    "target-time": "Target Time",
-    "target-time-placeholder": "HH:MM",
-    "title": "Sleepy Time",
-    "tomorrow": "(Tomorrow)"
+    "running-subtitle": "Timer Active",
+    "setup-subtitle": "Set sleep timer or schedule system actions",
+    "target-time": "Target Time (24h)",
+    "target-time-placeholder": "HH:MM (e.g. 23:30)",
+    "time-preview": "Runs in {time}",
+    "time-preview-tomorrow": "Runs tomorrow in {time}",
+    "title": "Sleepy Time"
   },
   "settings": {
     "active_color": {
@@ -142,10 +146,6 @@
     "warning_seconds": {
       "description": "How many seconds before action execution to start warning notifications",
       "label": "Warning Threshold (seconds)"
-    },
-    "warning_sound": {
-      "description": "Play sound with warning notifications (if supported)",
-      "label": "Warning Sound"
     }
   },
   "status": {
