@@ -222,15 +222,26 @@ local function renderSetupView(presets: { any }, processList: { any }, isProcess
     table.insert(items, section(noctalia.tr("panel.action-label"), ui.select({
         options = actionOptions,
         selectedIndex = selectedActionIndex,
-        onChange = function(index)
-            local idx = (tonumber(index) or 0) + 1
-            if ACTIONS[idx] then
-                uiState.selectedAction = ACTIONS[idx].id
-                if ACTIONS[idx].id == "kill-process" then
-                    noctalia.state.set("sleepy.cmd", { action = "fetchProcesses" })
+        onChange = function(index, text)
+            local idx = tonumber(index)
+            if idx ~= nil then
+                idx = idx + 1
+                if ACTIONS[idx] then
+                    uiState.selectedAction = ACTIONS[idx].id
                 end
-                renderPanel()
+            elseif text ~= nil then
+                for _, act in ipairs(ACTIONS) do
+                    if noctalia.tr(act.labelKey) == text or act.id == text then
+                        uiState.selectedAction = act.id
+                        break
+                    end
+                end
             end
+
+            if uiState.selectedAction == "kill-process" then
+                noctalia.state.set("sleepy.cmd", { action = "fetchProcesses" })
+            end
+            renderPanel()
         end,
     })))
 
@@ -241,41 +252,46 @@ local function renderSetupView(presets: { any }, processList: { any }, isProcess
         local filterText = string.lower(noctalia.string.trim(rawProc))
 
         if type(processList) == "table" then
+            local limit = 20
+            local count = 0
             for _, proc in ipairs(processList) do
                 if type(proc) == "table" and proc.name and type(proc.name) == "string" then
                     local procName = proc.name
                     local matches = (filterText == "" or string.find(string.lower(procName), filterText, 1, true) ~= nil or rawProc == procName)
                     if matches then
-                        local isSelected = (rawProc == procName)
+                        count = count + 1
+                        if count <= limit then
+                            local isSelected = (rawProc == procName)
 
-                        local iconNode
-                        if proc.iconPath and type(proc.iconPath) == "string" and proc.iconPath ~= "" then
-                            iconNode = ui.image({ path = proc.iconPath, width = 18, height = 18 })
-                        else
-                            iconNode = ui.glyph({ name = "app-window", size = 18, color = if isSelected then "primary" else "on_surface_variant" })
+                            local iconNode
+                            if proc.iconPath and type(proc.iconPath) == "string" and proc.iconPath ~= "" then
+                                iconNode = ui.image({ path = proc.iconPath, width = 18, height = 18 })
+                            else
+                                iconNode = ui.glyph({ name = "app-window", size = 18, color = if isSelected then "primary" else "on_surface_variant" })
+                            end
+
+                            table.insert(procCards, ui.row({
+                                gap = 8,
+                                align = "center",
+                                padding = 8,
+                                radius = 10,
+                                fill = if isSelected then "primary/0.2" else "surface_variant/0.3",
+                                onClick = function()
+                                    uiState.selectedProcess = procName
+                                    uiState.inputKey = uiState.inputKey + 1
+                                    renderPanel()
+                                end,
+                                flexGrow = 1,
+                            }, {
+                                iconNode,
+                                ui.label({
+                                    text = procName,
+                                    fontSize = 12,
+                                    fontWeight = if isSelected then "bold" else "normal",
+                                    color = if isSelected then "primary" else "on_surface",
+                                }),
+                            }))
                         end
-
-                        table.insert(procCards, ui.row({
-                            gap = 8,
-                            align = "center",
-                            padding = 8,
-                            radius = 10,
-                            fill = if isSelected then "primary/0.2" else "surface_variant/0.3",
-                            onClick = function()
-                                uiState.selectedProcess = procName
-                                uiState.inputKey = uiState.inputKey + 1
-                                renderPanel()
-                            end,
-                            flexGrow = 1,
-                        }, {
-                            iconNode,
-                            ui.label({
-                                text = procName,
-                                fontSize = 12,
-                                fontWeight = if isSelected then "bold" else "normal",
-                                color = if isSelected then "primary" else "on_surface",
-                            }),
-                        }))
                     end
                 end
             end
@@ -294,9 +310,7 @@ local function renderSetupView(presets: { any }, processList: { any }, isProcess
         }
 
         if #procCards > 0 then
-            table.insert(procControls, ui.scroll({ height = 130, gap = 6 }, {
-                chunkIntoGrid(procCards, 2),
-            }))
+            table.insert(procControls, chunkIntoGrid(procCards, 2))
         elseif not isProcessesLoaded then
             table.insert(procControls, ui.label({ text = noctalia.tr("panel.process-loading"), fontSize = 11, color = "on_surface_variant" }))
         else
