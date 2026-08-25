@@ -262,40 +262,42 @@ local function renderSetupView(presets: { any }, processList: { any }, isProcess
     end
 
     -- 5. Bottom Start Button
-    local startButton = ui.button({
-        text = noctalia.tr("button.start"),
-        glyph = "player-play",
-        variant = "primary",
-        onClick = function()
-            local act = uiState.selectedAction
-            local target = if act == "kill-process" then uiState.selectedProcess else uiState.customCmdText
+    local startButton = ui.row({ justify = "end", align = "center" }, {
+        ui.button({
+            text = noctalia.tr("button.start"),
+            glyph = "player-play",
+            variant = "primary",
+            controlSize = "md",
+            onClick = function()
+                local act = uiState.selectedAction
+                local target = if act == "kill-process" then uiState.selectedProcess else uiState.customCmdText
 
-            if uiState.mode == "scheduled" then
-                noctalia.state.set("sleepy.cmd", {
-                    action       = "start",
-                    mode         = "scheduled",
-                    targetTime   = uiState.targetTime,
-                    targetAction = act,
-                    targetParam  = target,
-                })
-            else
-                local secs = uiState.selectedMins * 60
-                local parsed = parseTimeStringToSeconds(uiState.customDuration)
-                if parsed and parsed > 0 then
-                    secs = parsed
+                if uiState.mode == "scheduled" then
+                    noctalia.state.set("sleepy.cmd", {
+                        action       = "start",
+                        mode         = "scheduled",
+                        targetTime   = uiState.targetTime,
+                        targetAction = act,
+                        targetParam  = target,
+                    })
+                else
+                    local secs = uiState.selectedMins * 60
+                    local parsed = parseTimeStringToSeconds(uiState.customDuration)
+                    if parsed and parsed > 0 then
+                        secs = parsed
+                    end
+                    noctalia.state.set("sleepy.cmd", {
+                        action       = "start",
+                        mode         = "countdown",
+                        seconds      = secs,
+                        targetAction = act,
+                        targetParam  = target,
+                    })
                 end
-                noctalia.state.set("sleepy.cmd", {
-                    action       = "start",
-                    mode         = "countdown",
-                    seconds      = secs,
-                    targetAction = act,
-                    targetParam  = target,
-                })
-            end
 
-            panel.close()
-        end,
-        flexGrow = 1,
+                panel.close()
+            end,
+        }),
     })
 
     return ui.column({ flexGrow = 1, gap = 12 }, {

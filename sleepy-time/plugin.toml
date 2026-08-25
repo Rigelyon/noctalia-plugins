@@ -175,8 +175,8 @@ entry = "panel.luau"
 placement = "attached"
 position = "auto"
 open_near_click = true
-width = 380
-height = 520
+width = 400
+height = 580
 
 # ── Desktop Widget Entry ─────────────────────────────────────────────────────
 
