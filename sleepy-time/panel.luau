@@ -22,7 +22,7 @@ local ACTIONS = {
     { id = "shutdown",       labelKey = "action.shutdown",       glyph = "power" },
     { id = "reboot",         labelKey = "action.reboot",         glyph = "rotate" },
     { id = "logout",         labelKey = "action.logout",         glyph = "logout" },
-    { id = "kill-process",   labelKey = "action.kill-process",   glyph = "skull" },
+    { id = "kill-process",   labelKey = "action.kill-process",   glyph = "square-x" },
     { id = "custom-command", labelKey = "action.custom-command", glyph = "terminal" },
 }
 

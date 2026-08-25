@@ -33,7 +33,7 @@ local function getActionGlyph(action: string?): string
     elseif action == "shutdown" then return "power"
     elseif action == "reboot" then return "rotate"
     elseif action == "logout" then return "logout"
-    elseif action == "kill-process" then return "skull"
+    elseif action == "kill-process" then return "square-x"
     elseif action == "custom-command" then return "terminal"
     end
     return "moon-stars"
