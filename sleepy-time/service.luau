@@ -136,7 +136,14 @@ local function fetchRunningProcesses()
         -- Asynchronously resolve uncached icons in background
         if #toResolve > 0 then
             for _, name in ipairs(toResolve) do
-                local icon = noctalia.appIconPath(name, 24) or ""
+                local icon = ""
+                local ok, res = pcall(function()
+                    return noctalia.appIconPath(name, 24)
+                end)
+                if ok and res and type(res) == "string" then
+                    icon = res
+                end
+
                 iconCache[name] = icon
                 for _, proc in ipairs(processes) do
                     if proc.name == name then
@@ -146,17 +153,21 @@ local function fetchRunningProcesses()
                 end
             end
             -- Publish updated process list with resolved icons
-            noctalia.state.set("sleepy.processes", processes)
+            pcall(function()
+                noctalia.state.set("sleepy.processes", processes)
+            end)
         end
     end)
 end
 
 -- Initialize state channels
-noctalia.state.set("sleepy.presets", parseQuickPresets(config.quickTimersStr))
-noctalia.state.set("sleepy.processes", {})
-noctalia.state.set("sleepy.processesLoaded", false)
-publishState()
-fetchRunningProcesses()
+pcall(function()
+    noctalia.state.set("sleepy.presets", parseQuickPresets(config.quickTimersStr))
+    noctalia.state.set("sleepy.processes", {})
+    noctalia.state.set("sleepy.processesLoaded", false)
+    publishState()
+    fetchRunningProcesses()
+end)
 
 -- ── Time & Scheduler Helpers ─────────────────────────────────────────────────
 

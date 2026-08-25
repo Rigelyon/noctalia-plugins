@@ -237,41 +237,47 @@ local function renderSetupView(presets: { any }, processList: { any }, isProcess
     -- 4. Dynamic Target Parameters (Kill Process or Custom Command)
     if uiState.selectedAction == "kill-process" then
         local procCards = {}
-        local filterText = string.lower(noctalia.string.trim(uiState.selectedProcess))
+        local rawProc = uiState.selectedProcess or ""
+        local filterText = string.lower(noctalia.string.trim(rawProc))
 
-        for _, proc in ipairs(processList) do
-            local matches = (filterText == "" or string.find(string.lower(proc.name), filterText, 1, true) ~= nil or uiState.selectedProcess == proc.name)
-            if matches then
-                local isSelected = (uiState.selectedProcess == proc.name)
+        if type(processList) == "table" then
+            for _, proc in ipairs(processList) do
+                if type(proc) == "table" and proc.name and type(proc.name) == "string" then
+                    local procName = proc.name
+                    local matches = (filterText == "" or string.find(string.lower(procName), filterText, 1, true) ~= nil or rawProc == procName)
+                    if matches then
+                        local isSelected = (rawProc == procName)
 
-                local iconNode
-                if proc.iconPath and proc.iconPath ~= "" then
-                    iconNode = ui.image({ path = proc.iconPath, width = 18, height = 18 })
-                else
-                    iconNode = ui.glyph({ name = "app-window", size = 18, color = if isSelected then "primary" else "on_surface_variant" })
+                        local iconNode
+                        if proc.iconPath and type(proc.iconPath) == "string" and proc.iconPath ~= "" then
+                            iconNode = ui.image({ path = proc.iconPath, width = 18, height = 18 })
+                        else
+                            iconNode = ui.glyph({ name = "app-window", size = 18, color = if isSelected then "primary" else "on_surface_variant" })
+                        end
+
+                        table.insert(procCards, ui.row({
+                            gap = 8,
+                            align = "center",
+                            padding = 8,
+                            radius = 10,
+                            fill = if isSelected then "primary/0.2" else "surface_variant/0.3",
+                            onClick = function()
+                                uiState.selectedProcess = procName
+                                uiState.inputKey = uiState.inputKey + 1
+                                renderPanel()
+                            end,
+                            flexGrow = 1,
+                        }, {
+                            iconNode,
+                            ui.label({
+                                text = procName,
+                                fontSize = 12,
+                                fontWeight = if isSelected then "bold" else "normal",
+                                color = if isSelected then "primary" else "on_surface",
+                            }),
+                        }))
+                    end
                 end
-
-                table.insert(procCards, ui.row({
-                    gap = 8,
-                    align = "center",
-                    padding = 8,
-                    radius = 10,
-                    fill = if isSelected then "primary/0.2" else "surface_variant/0.3",
-                    onClick = function()
-                        uiState.selectedProcess = proc.name
-                        uiState.inputKey = uiState.inputKey + 1
-                        renderPanel()
-                    end,
-                    flexGrow = 1,
-                }, {
-                    iconNode,
-                    ui.label({
-                        text = proc.name,
-                        fontSize = 12,
-                        fontWeight = if isSelected then "bold" else "normal",
-                        color = if isSelected then "primary" else "on_surface",
-                    }),
-                }))
             end
         end
 
@@ -281,14 +287,14 @@ local function renderSetupView(presets: { any }, processList: { any }, isProcess
                 value = uiState.selectedProcess,
                 placeholder = "Search app or type process (e.g. spotify, steam)",
                 onChange = function(val)
-                    uiState.selectedProcess = val
+                    uiState.selectedProcess = val or ""
                     renderPanel()
                 end,
             }),
         }
 
         if #procCards > 0 then
-            table.insert(procControls, ui.scroll({ maxHeight = 130, gap = 6 }, {
+            table.insert(procControls, ui.scroll({ height = 130, gap = 6 }, {
                 chunkIntoGrid(procCards, 2),
             }))
         elseif not isProcessesLoaded then
@@ -436,41 +442,47 @@ end
 -- ── Root Panel Renderer ──────────────────────────────────────────────────────
 
 function renderPanel()
-    local state = noctalia.state.get("sleepy.state") or { status = "IDLE", remaining = 0, duration = 0 }
-    local presets = noctalia.state.get("sleepy.presets") or {}
-    local processList = noctalia.state.get("sleepy.processes") or {}
-    local isProcessesLoaded = (noctalia.state.get("sleepy.processesLoaded") == true)
+    local ok, err = pcall(function()
+        local state = noctalia.state.get("sleepy.state") or { status = "IDLE", remaining = 0, duration = 0 }
+        local presets = noctalia.state.get("sleepy.presets") or {}
+        local processList = noctalia.state.get("sleepy.processes") or {}
+        local isProcessesLoaded = (noctalia.state.get("sleepy.processesLoaded") == true)
 
-    local isRunning = (state.status == "RUNNING" or state.status == "PAUSED" or state.status == "WARNING")
+        local isRunning = (state.status == "RUNNING" or state.status == "PAUSED" or state.status == "WARNING")
 
-    -- Panel Header
-    local headerRow = ui.row({ align = "center", justify = "space_between", gap = 8 }, {
-        ui.row({ align = "center", gap = 8 }, {
-            ui.glyph({ name = "moon-stars", size = 20, color = "primary" }),
-            ui.label({ text = noctalia.tr("panel.title"), fontSize = 16, fontWeight = "bold", color = "on_surface" }),
-        }),
-        ui.button({
-            glyph = "close",
-            variant = "ghost",
-            onClick = function()
-                panel.close()
-            end,
-        }),
-    })
-
-    local content
-    if isRunning then
-        content = renderActiveView(state)
-    else
-        content = renderSetupView(presets, processList, isProcessesLoaded)
-    end
-
-    panel.render(
-        ui.column({ flexGrow = 1, gap = 12 }, {
-            headerRow,
-            content,
+        -- Panel Header
+        local headerRow = ui.row({ align = "center", justify = "space_between", gap = 8 }, {
+            ui.row({ align = "center", gap = 8 }, {
+                ui.glyph({ name = "moon-stars", size = 20, color = "primary" }),
+                ui.label({ text = noctalia.tr("panel.title"), fontSize = 16, fontWeight = "bold", color = "on_surface" }),
+            }),
+            ui.button({
+                glyph = "close",
+                variant = "ghost",
+                onClick = function()
+                    panel.close()
+                end,
+            }),
         })
-    )
+
+        local content
+        if isRunning then
+            content = renderActiveView(state)
+        else
+            content = renderSetupView(presets, processList, isProcessesLoaded)
+        end
+
+        panel.render(
+            ui.column({ flexGrow = 1, gap = 12 }, {
+                headerRow,
+                content,
+            })
+        )
+    end)
+
+    if not ok and err then
+        noctalia.log("Sleepy Time panel render error: " .. tostring(err))
+    end
 end
 
 -- ── Lifecycle & Event Listeners ──────────────────────────────────────────────
