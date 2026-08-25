@@ -130,10 +130,30 @@ fetchRunningProcesses()
 -- ── Time & Scheduler Helpers ─────────────────────────────────────────────────
 
 local function calculateSecondsUntil(targetHHMM: string): number
-    local h, m = string.match(targetHHMM, "^(%d+):(%d+)")
+    if not targetHHMM or targetHHMM == "" then return 0 end
+    local clean = string.gsub(targetHHMM, "%s+", "")
+
+    local h, m = string.match(clean, "^(%d+)[%.:](%d+)$")
+    if not h or not m then
+        local d4_h, d4_m = string.match(clean, "^(%d%d)(%d%d)$")
+        if d4_h and d4_m then
+            h, m = d4_h, d4_m
+        else
+            local single = string.match(clean, "^(%d+)$")
+            if single then
+                local sNum = tonumber(single) or 0
+                if sNum <= 24 then
+                    h, m = single, "0"
+                end
+            end
+        end
+    end
+
     if not h or not m then return 0 end
     local targetH = tonumber(h) or 0
     local targetM = tonumber(m) or 0
+    if targetH > 24 or targetM >= 60 then return 0 end
+    if targetH == 24 then targetH = 0 end
 
     local now = os.date("*t")
     local currentSecs = (now.hour * 3600) + (now.min * 60) + now.sec

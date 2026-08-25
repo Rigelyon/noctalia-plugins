@@ -61,11 +61,31 @@ local function formatDurationHuman(mins: number): string
     end
 end
 
-local function calculatePreviewTime(targetHHMM: string): (number, boolean)
-    local h, m = string.match(targetHHMM, "^(%d+):(%d+)")
-    if not h or not m then return 0, false end
+local function calculatePreviewTime(targetHHMM: string): (number?, boolean)
+    if not targetHHMM or targetHHMM == "" then return nil, false end
+    local clean = string.gsub(targetHHMM, "%s+", "")
+    
+    local h, m = string.match(clean, "^(%d+)[%.:](%d+)$")
+    if not h or not m then
+        local d4_h, d4_m = string.match(clean, "^(%d%d)(%d%d)$")
+        if d4_h and d4_m then
+            h, m = d4_h, d4_m
+        else
+            local single = string.match(clean, "^(%d+)$")
+            if single then
+                local sNum = tonumber(single) or 0
+                if sNum <= 24 then
+                    h, m = single, "0"
+                end
+            end
+        end
+    end
+
+    if not h or not m then return nil, false end
     local targetH = tonumber(h) or 0
     local targetM = tonumber(m) or 0
+    if targetH > 24 or targetM >= 60 then return nil, false end
+    if targetH == 24 then targetH = 0 end
 
     local now = os.date("*t")
     local currentSecs = (now.hour * 3600) + (now.min * 60) + now.sec
@@ -80,11 +100,14 @@ local function calculatePreviewTime(targetHHMM: string): (number, boolean)
     return diff, isTomorrow
 end
 
-local function formatPreviewDiff(secs: number): string
+local function formatPreviewDiff(secs: number?): string
+    if not secs then return "" end
     local h = math.floor(secs / 3600)
     local m = math.floor((secs % 3600) / 60)
-    if h > 0 then
+    if h > 0 and m > 0 then
         return string.format("%dh %dm", h, m)
+    elseif h > 0 then
+        return string.format("%dh", h)
     else
         return string.format("%dm", m)
     end
@@ -169,8 +192,11 @@ local function renderSetupView(presets: { any }, processList: { any }, isProcess
     else
         -- Scheduled Time (HH:MM)
         local diffSecs, isTomorrow = calculatePreviewTime(uiState.targetTime)
-        local previewText = if isTomorrow then noctalia.tr("panel.time-preview-tomorrow", { time = formatPreviewDiff(diffSecs) })
-                            else noctalia.tr("panel.time-preview", { time = formatPreviewDiff(diffSecs) })
+        local previewText = ""
+        if diffSecs then
+            previewText = if isTomorrow then noctalia.tr("panel.time-preview-tomorrow", { time = formatPreviewDiff(diffSecs) })
+                          else noctalia.tr("panel.time-preview", { time = formatPreviewDiff(diffSecs) })
+        end
 
         table.insert(items, section(noctalia.tr("panel.target-time"), ui.input({
             key = "target-time-" .. uiState.inputKey,
@@ -178,6 +204,7 @@ local function renderSetupView(presets: { any }, processList: { any }, isProcess
             placeholder = noctalia.tr("panel.target-time-placeholder"),
             onChange = function(val)
                 uiState.targetTime = val
+                renderPanel()
             end,
         }), previewText))
     end
