@@ -142,8 +142,12 @@ local function renderSetupView(presets: { any }, processList: { any }, isProcess
     table.insert(items, section(noctalia.tr("panel.mode-label"), ui.select({
         options = modeOptions,
         selectedIndex = selectedModeIndex,
-        onChange = function(index)
-            uiState.mode = if tonumber(index) == 0 then "countdown" else "scheduled"
+        onChange = function(val, extra)
+            if val == 1 or val == "1" or val == noctalia.tr("mode.scheduled") or extra == noctalia.tr("mode.scheduled") then
+                uiState.mode = "scheduled"
+            else
+                uiState.mode = "countdown"
+            end
             renderPanel()
         end,
     })))
@@ -222,26 +226,46 @@ local function renderSetupView(presets: { any }, processList: { any }, isProcess
     table.insert(items, section(noctalia.tr("panel.action-label"), ui.select({
         options = actionOptions,
         selectedIndex = selectedActionIndex,
-        onChange = function(index, text)
-            local idx = tonumber(index)
-            if idx ~= nil then
-                idx = idx + 1
-                if ACTIONS[idx] then
-                    uiState.selectedAction = ACTIONS[idx].id
+        onChange = function(arg1, arg2)
+            local selectedActId = nil
+
+            -- 1. Try if arg1 is numeric index (0-indexed or 1-indexed)
+            local num = tonumber(arg1)
+            if num ~= nil then
+                if ACTIONS[num + 1] then
+                    selectedActId = ACTIONS[num + 1].id
+                elseif ACTIONS[num] then
+                    selectedActId = ACTIONS[num].id
                 end
-            elseif text ~= nil then
+            end
+
+            -- 2. Try if arg1 is a string matching label or id
+            if not selectedActId and type(arg1) == "string" then
                 for _, act in ipairs(ACTIONS) do
-                    if noctalia.tr(act.labelKey) == text or act.id == text then
-                        uiState.selectedAction = act.id
+                    if act.id == arg1 or noctalia.tr(act.labelKey) == arg1 or string.find(arg1, act.id) then
+                        selectedActId = act.id
                         break
                     end
                 end
             end
 
-            if uiState.selectedAction == "kill-process" then
-                noctalia.state.set("sleepy.cmd", { action = "fetchProcesses" })
+            -- 3. Try if arg2 is a string matching label or id
+            if not selectedActId and type(arg2) == "string" then
+                for _, act in ipairs(ACTIONS) do
+                    if act.id == arg2 or noctalia.tr(act.labelKey) == arg2 or string.find(arg2, act.id) then
+                        selectedActId = act.id
+                        break
+                    end
+                end
             end
-            renderPanel()
+
+            if selectedActId then
+                uiState.selectedAction = selectedActId
+                if selectedActId == "kill-process" then
+                    noctalia.state.set("sleepy.cmd", { action = "fetchProcesses" })
+                end
+                renderPanel()
+            end
         end,
     })))
 
