@@ -75,10 +75,57 @@ local function publishState()
     })
 end
 
+-- ── Running Process Scanner ──────────────────────────────────────────────────
+
+local ignoredProcesses = {
+    ps = true, sh = true, bash = true, zsh = true, fish = true,
+    sed = true, grep = true, systemd = true, awk = true, sleep = true,
+    cat = true, cut = true, tr = true, uniq = true, sort = true,
+    head = true, tail = true, which = true, find = true, dbus = true,
+    ["dbus-broker"] = true, ["dbus-broker-lau"] = true, ["dbus-daemon"] = true,
+    ["pipewire"] = true, ["wireplumber"] = true, ["pipewire-pulse"] = true,
+    ["noctalia"] = true, ["xdg-desktop-por"] = true, ["xdg-document-po"] = true,
+    ["xdg-permission-"] = true, ["at-spi-bus-laun"] = true, ["at-spi2-registr"] = true,
+    ["dconf-service"] = true, ["gnome-keyring-d"] = true, ["goa-daemon"] = true,
+    ["goa-identity-se"] = true, ["p11-kit-server"] = true, ["mpris-proxy"] = true,
+    ["conmon"] = true, ["catatonit"] = true, ["(sd-pam)"] = true, ["sd_dummy"] = true,
+    ["sd_espeak-ng"] = true, ["speech-dispatch"] = true, ["srt-bwrap"] = true,
+    ["srt-logger"] = true, ["socat"] = true, ["wsdd"] = true, ["wl-copy"] = true,
+}
+
+local function fetchRunningProcesses()
+    local cmd = "ps -u $(whoami) -o comm= --sort=comm | uniq"
+    noctalia.runAsync(cmd, function(result)
+        local processes = {}
+        if result and result.stdout and result.stdout ~= "" then
+            local count = 0
+            for comm in string.gmatch(result.stdout, "[^\r\n]+") do
+                comm = noctalia.string.trim(comm)
+                if comm ~= ""
+                   and not ignoredProcesses[comm]
+                   and not string.match(comm, "^%[.*%]$")
+                   and not string.match(comm, "^%(.*%)$")
+                   and not string.match(comm, "^gvfs") then
+                    count = count + 1
+                    if count <= 16 then
+                        table.insert(processes, {
+                            name = comm,
+                        })
+                    end
+                end
+            end
+        end
+        noctalia.state.set("sleepy.processesLoaded", true)
+        noctalia.state.set("sleepy.processes", processes)
+    end)
+end
+
 -- Initialize state channels
 noctalia.state.set("sleepy.presets", parseQuickPresets(config.quickTimersStr))
 noctalia.state.set("sleepy.processes", {})
+noctalia.state.set("sleepy.processesLoaded", false)
 publishState()
+fetchRunningProcesses()
 
 -- ── Time & Scheduler Helpers ─────────────────────────────────────────────────
 
@@ -153,54 +200,6 @@ local function executeAction()
     else
         noctalia.log("Sleepy Time: no valid command found for action '" .. act .. "'")
     end
-end
-
--- ── Fast & Throttled Process Scanner ─────────────────────────────────────────
-
-local lastProcessScanTime = 0
-
-local function fetchRunningProcesses()
-    local now = os.time()
-    if now - lastProcessScanTime < 5 then
-        return -- Avoid frequent process listing spam
-    end
-    lastProcessScanTime = now
-
-    local cmd = "ps -u $(whoami) -o comm= --sort=comm | uniq"
-    noctalia.runAsync(cmd, function(result)
-        if not result or not result.stdout or result.stdout == "" then return end
-        local processes = {}
-        local count = 0
-
-        local ignored = {
-            ps = true, sh = true, bash = true, zsh = true, fish = true,
-            sed = true, grep = true, systemd = true, awk = true, sleep = true,
-            cat = true, cut = true, tr = true, uniq = true, sort = true,
-            head = true, tail = true, which = true, find = true, dbus = true,
-            ["dbus-daemon"] = true, ["pipewire"] = true, ["wireplumber"] = true,
-            ["pipewire-pulse"] = true, ["noctalia"] = true, ["xdg-desktop-portal"] = true,
-            ["xdg-desktop-portal-hyprland"] = true, ["xdg-desktop-portal-gnome"] = true,
-            ["xdg-desktop-portal-wlr"] = true, ["xdg-document-portal"] = true,
-            ["xdg-permission-store"] = true, ["at-spi-bus-launcher"] = true,
-            ["at-spi2-registryd"] = true, ["agent"] = true, ["ssh-agent"] = true,
-            ["gpg-agent"] = true, ["dconf-service"] = true, ["polkit-gnome-authentication-agent-1"] = true,
-        }
-
-        for comm in string.gmatch(result.stdout, "[^\r\n]+") do
-            comm = noctalia.string.trim(comm)
-            if comm ~= "" and not ignored[comm] and not string.match(comm, "^%[.*%]$") then
-                count = count + 1
-                if count <= 12 then -- Limit max lookups to prevent blocking Luau VM
-                    local iconPath = noctalia.appIconPath(comm, 24) or ""
-                    table.insert(processes, {
-                        name = comm,
-                        iconPath = iconPath,
-                    })
-                end
-            end
-        end
-        noctalia.state.set("sleepy.processes", processes)
-    end)
 end
 
 -- ── Command Channel Watcher ──────────────────────────────────────────────────

@@ -93,7 +93,7 @@ local ACTIONS = {
 
 -- ── Panel Render Functions ───────────────────────────────────────────────────
 
-local function renderSetupView(presets: { any }, processList: { any })
+local function renderSetupView(presets: { any }, processList: { any }, isProcessesLoaded: boolean)
     local sections = {}
 
     -- 1. Mode Switcher
@@ -207,36 +207,43 @@ local function renderSetupView(presets: { any }, processList: { any })
 
     -- 4. Target Details (for Kill App or Custom Command)
     if uiState.selectedAction == "kill-process" then
-        local procButtons = {}
-        local maxShow = 6
-        for i, proc in ipairs(processList) do
-            if i <= maxShow then
-                local isProcSelected = (uiState.selectedProcess == proc.name)
-                table.insert(procButtons, ui.button({
-                    text = proc.name,
-                    variant = if isProcSelected then "primary" else "secondary",
-                    onClick = function()
-                        uiState.selectedProcess = proc.name
-                        renderPanel()
-                    end,
-                    flexGrow = 1,
-                }))
-            end
+        local procChips = {}
+        for _, proc in ipairs(processList) do
+            local isProcSelected = (uiState.selectedProcess == proc.name)
+            table.insert(procChips, ui.button({
+                text = proc.name,
+                variant = if isProcSelected then "primary" else "secondary",
+                onClick = function()
+                    uiState.selectedProcess = proc.name
+                    uiState.inputKey = uiState.inputKey + 1
+                    renderPanel()
+                end,
+                flexGrow = 1,
+            }))
         end
 
-        local procBody
-        if #procButtons > 0 then
-            procBody = chunkIntoGrid(procButtons, 2)
-        elseif #processList == 0 then
-            procBody = ui.label({ text = noctalia.tr("panel.process-loading"), fontSize = 11, color = "on_surface_variant" })
-        else
-            procBody = ui.label({ text = noctalia.tr("panel.process-empty"), fontSize = 11, color = "on_surface_variant" })
-        end
-
-        table.insert(sections, ui.column({ gap = 6 }, {
+        local procItems = {
             ui.label({ text = noctalia.tr("panel.process-label"), fontSize = 12, fontWeight = "medium", color = "on_surface_variant" }),
-            procBody,
-        }))
+            ui.input({
+                key = "proc-target-" .. uiState.inputKey,
+                value = uiState.selectedProcess,
+                placeholder = "e.g. spotify, steam, vlc, discord",
+                onChange = function(val)
+                    uiState.selectedProcess = val
+                end,
+            }),
+        }
+
+        if #procChips > 0 then
+            table.insert(procItems, ui.label({ text = "Running user apps:", fontSize = 11, color = "on_surface_variant" }))
+            table.insert(procItems, chunkIntoGrid(procChips, 3))
+        elseif not isProcessesLoaded then
+            table.insert(procItems, ui.label({ text = noctalia.tr("panel.process-loading"), fontSize = 11, color = "on_surface_variant" }))
+        else
+            table.insert(procItems, ui.label({ text = noctalia.tr("panel.process-empty"), fontSize = 11, color = "on_surface_variant" }))
+        end
+
+        table.insert(sections, ui.column({ gap = 6 }, procItems))
 
     elseif uiState.selectedAction == "custom-command" then
         table.insert(sections, ui.column({ gap = 6 }, {
@@ -378,6 +385,7 @@ function renderPanel()
     local state = noctalia.state.get("sleepy.state") or { status = "IDLE", remaining = 0, duration = 0 }
     local presets = noctalia.state.get("sleepy.presets") or {}
     local processList = noctalia.state.get("sleepy.processes") or {}
+    local isProcessesLoaded = (noctalia.state.get("sleepy.processesLoaded") == true)
 
     local isRunning = (state.status == "RUNNING" or state.status == "PAUSED" or state.status == "WARNING")
 
@@ -400,7 +408,7 @@ function renderPanel()
     if isRunning then
         content = renderActiveView(state)
     else
-        content = renderSetupView(presets, processList)
+        content = renderSetupView(presets, processList, isProcessesLoaded)
     end
 
     panel.render(
@@ -427,6 +435,10 @@ noctalia.state.watch("sleepy.state", function(_state)
 end)
 
 noctalia.state.watch("sleepy.processes", function(_processes)
+    renderPanel()
+end)
+
+noctalia.state.watch("sleepy.processesLoaded", function(_loaded)
     renderPanel()
 end)
 
