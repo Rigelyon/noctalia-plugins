@@ -113,6 +113,14 @@ description_key = "settings.show_when_idle.description"
 default = true
 
 [[widget.setting]]
+key = "idle_icon"
+type = "select"
+label_key = "settings.idle_icon.label"
+description_key = "settings.idle_icon.description"
+default = "moon-stars"
+options = [{ value = "moon-stars", label_key = "settings.idle_icon.options.moon-stars" }, { value = "clock", label_key = "settings.idle_icon.options.clock" }, { value = "bed", label_key = "settings.idle_icon.options.bed" }, { value = "hourglass", label_key = "settings.idle_icon.options.hourglass" }, { value = "power", label_key = "settings.idle_icon.options.power" }]
+
+[[widget.setting]]
 key = "idle_text"
 type = "select"
 label_key = "settings.idle_text.label"
@@ -121,11 +129,26 @@ default = "none"
 options = [{ value = "none", label_key = "settings.idle_text.options.none" }, { value = "plugin-name", label_key = "settings.idle_text.options.plugin-name" }, { value = "next-action", label_key = "settings.idle_text.options.next-action" }]
 
 [[widget.setting]]
+key = "display_mode"
+type = "select"
+label_key = "settings.display_mode.label"
+description_key = "settings.display_mode.description"
+default = "icon_and_time"
+options = [{ value = "icon_and_time", label_key = "settings.display_mode.options.icon_and_time" }, { value = "time_only", label_key = "settings.display_mode.options.time_only" }, { value = "detailed", label_key = "settings.display_mode.options.detailed" }]
+
+[[widget.setting]]
 key = "show_countdown_text"
 type = "bool"
 label_key = "settings.show_countdown_text.label"
 description_key = "settings.show_countdown_text.description"
 default = true
+
+[[widget.setting]]
+key = "show_progress_bar"
+type = "bool"
+label_key = "settings.show_progress_bar.label"
+description_key = "settings.show_progress_bar.description"
+default = false
 
 [[widget.setting]]
 key = "show_action_icon"
@@ -164,7 +187,7 @@ placement = "attached"
 position = "auto"
 open_near_click = true
 width = 400
-height = 500
+height = 480
 
 # ── Desktop Widget Entry ─────────────────────────────────────────────────────
 
@@ -205,6 +228,20 @@ key = "show_action_label"
 type = "bool"
 label_key = "settings.show_action_label.label"
 description_key = "settings.show_action_label.description"
+default = true
+
+[[desktop_widget.setting]]
+key = "show_finish_time"
+type = "bool"
+label_key = "settings.show_finish_time.label"
+description_key = "settings.show_finish_time.description"
+default = true
+
+[[desktop_widget.setting]]
+key = "show_controls"
+type = "bool"
+label_key = "settings.show_controls.label"
+description_key = "settings.show_controls.description"
 default = true
 
 [[desktop_widget.setting]]

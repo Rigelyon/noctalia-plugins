@@ -69,6 +69,8 @@ Sleepy Time is a timer, scheduler, and system action plugin for Noctalia v5 to m
 | `show_progress` | `bool` | `true` | Show progress bar. |
 | `show_percentage` | `bool` | `true` | Show remaining time percentage. |
 | `show_action_label` | `bool` | `true` | Show selected action label. |
+| `show_finish_time` | `bool` | `true` | Show calculated finish/target end time. |
+| `show_controls` | `bool` | `true` | Show inline action & time adjustment buttons. |
 | `font_size` | `int` | `38` | Countdown typography size in pixels (16 to 96). |
 | `compact_mode` | `bool` | `false` | Enable single-line horizontal layout. |
 | `paused_color` | `color` | `#f59e0b` | Accent color when paused. |

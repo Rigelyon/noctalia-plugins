@@ -135,6 +135,38 @@
       "description": "Custom command to suspend (leave empty for systemctl/loginctl)",
       "label": "Suspend Command Override"
     },
+    "display_mode": {
+      "description": "Information displayed on the bar widget during countdown",
+      "label": "Bar Display Format",
+      "options": {
+        "detailed": "Detailed (Icon, Time & Action)",
+        "icon_and_time": "Icon and Time",
+        "time_only": "Time Only"
+      }
+    },
+    "idle_icon": {
+      "description": "Icon to display on the bar when no timer is active",
+      "label": "Idle Bar Icon",
+      "options": {
+        "bed": "Bed",
+        "clock": "Clock",
+        "hourglass": "Hourglass",
+        "moon-stars": "Moon Stars",
+        "power": "Power"
+      }
+    },
+    "show_controls": {
+      "description": "Show playback buttons (+5m, pause/resume, cancel) on the desktop widget",
+      "label": "Show Desktop Controls"
+    },
+    "show_finish_time": {
+      "description": "Show estimated completion clock time on the desktop widget",
+      "label": "Show Finish Time (ETA)"
+    },
+    "show_progress_bar": {
+      "description": "Show a mini inline progress bar on the bar widget",
+      "label": "Show Progress Bar on Bar"
+    },
     "warning_color": {
       "description": "Color used when the timer enters the warning threshold",
       "label": "Warning Color"

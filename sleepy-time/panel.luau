@@ -50,14 +50,17 @@ local function parseTimeStringToSeconds(str: string): number?
 end
 
 local function formatDurationHuman(mins: number): string
-    local h = math.floor(mins / 60)
-    local m = mins % 60
+    local mTotal = math.max(0, math.floor(mins))
+    local h = math.floor(mTotal / 60)
+    local m = mTotal % 60
     if h > 0 and m > 0 then
         return string.format("%d hr %d min", h, m)
     elseif h > 0 then
         return string.format("%d hr", h)
-    else
+    elseif m > 0 then
         return string.format("%d min", m)
+    else
+        return "< 1 min"
     end
 end
 
@@ -111,6 +114,24 @@ local function formatPreviewDiff(secs: number?): string
     else
         return string.format("%dm", m)
     end
+end
+
+local function chunkIntoGrid(items: { any }, cols: number)
+    local rows = {}
+    local currentRow = {}
+    for i, item in ipairs(items) do
+        table.insert(currentRow, item)
+        if #currentRow == cols or i == #items then
+            if #currentRow < cols then
+                for _ = 1, cols - #currentRow do
+                    table.insert(currentRow, ui.box({ flexGrow = 1 }))
+                end
+            end
+            table.insert(rows, ui.row({ gap = 8, justify = "space_between", align = "center" }, currentRow))
+            currentRow = {}
+        end
+    end
+    return ui.column({ gap = 6 }, rows)
 end
 
 local function section(title: string, control: any, extraLabel: string?)
@@ -236,43 +257,74 @@ local function renderSetupView(presets: { any }, processList: { any }, isProcess
 
     -- 4. Dynamic Target Parameters (Kill Process or Custom Command)
     if uiState.selectedAction == "kill-process" then
-        local procOptions = { "-- Type custom or select --" }
-        local selectedProcIndex = 0
+        local procCards = {}
+        local rawProc = uiState.selectedProcess or ""
+        local filterText = string.lower(noctalia.string.trim(rawProc))
 
-        for i, proc in ipairs(processList) do
-            table.insert(procOptions, proc.name)
-            if uiState.selectedProcess == proc.name then
-                selectedProcIndex = i
+        if type(processList) == "table" then
+            local limit = 16
+            local count = 0
+            for _, proc in ipairs(processList) do
+                if type(proc) == "table" and proc.name and type(proc.name) == "string" then
+                    local procName = proc.name
+                    local matches = (filterText == "" or string.find(string.lower(procName), filterText, 1, true) ~= nil or rawProc == procName)
+                    if matches then
+                        count = count + 1
+                        if count <= limit then
+                            local isSelected = (rawProc == procName)
+
+                            local iconNode
+                            if proc.iconPath and type(proc.iconPath) == "string" and proc.iconPath ~= "" then
+                                iconNode = ui.image({ path = proc.iconPath, width = 18, height = 18 })
+                            else
+                                iconNode = ui.glyph({ name = "app-window", size = 18, color = if isSelected then "primary" else "on_surface_variant" })
+                            end
+
+                            table.insert(procCards, ui.row({
+                                gap = 8,
+                                align = "center",
+                                padding = 8,
+                                radius = 10,
+                                fill = if isSelected then "primary/0.2" else "surface_variant/0.3",
+                                onClick = function()
+                                    uiState.selectedProcess = procName
+                                    uiState.inputKey = uiState.inputKey + 1
+                                    renderPanel()
+                                end,
+                                flexGrow = 1,
+                            }, {
+                                iconNode,
+                                ui.label({
+                                    text = procName,
+                                    fontSize = 12,
+                                    fontWeight = if isSelected then "bold" else "normal",
+                                    color = if isSelected then "primary" else "on_surface",
+                                }),
+                            }))
+                        end
+                    end
+                end
             end
         end
 
         local procControls = {
-            ui.select({
-                options = procOptions,
-                selectedIndex = selectedProcIndex,
-                onChange = function(index, text)
-                    local idx = tonumber(index) or 0
-                    if idx > 0 and processList[idx] then
-                        uiState.selectedProcess = processList[idx].name
-                    else
-                        uiState.selectedProcess = ""
-                    end
-                    uiState.inputKey = uiState.inputKey + 1
-                    renderPanel()
-                end,
-            }),
             ui.input({
                 key = "proc-input-" .. uiState.inputKey,
                 value = uiState.selectedProcess,
-                placeholder = "Or type custom process name (e.g. spotify)",
+                placeholder = "Search app or type process (e.g. spotify, steam)",
                 onChange = function(val)
-                    uiState.selectedProcess = val
+                    uiState.selectedProcess = val or ""
+                    renderPanel()
                 end,
             }),
         }
 
-        if not isProcessesLoaded then
+        if #procCards > 0 then
+            table.insert(procControls, chunkIntoGrid(procCards, 2))
+        elseif not isProcessesLoaded then
             table.insert(procControls, ui.label({ text = noctalia.tr("panel.process-loading"), fontSize = 11, color = "on_surface_variant" }))
+        else
+            table.insert(procControls, ui.label({ text = noctalia.tr("panel.process-empty"), fontSize = 11, color = "on_surface_variant" }))
         end
 
         table.insert(items, section(noctalia.tr("panel.process-label"), ui.column({ gap = 8 }, procControls)))
@@ -321,8 +373,6 @@ local function renderSetupView(presets: { any }, processList: { any }, isProcess
                         targetParam  = target,
                     })
                 end
-
-                panel.close()
             end,
         }),
     })
@@ -345,110 +395,214 @@ local function renderActiveView(state: any)
 
     local accentColor = if isWarning then "error" elseif isPaused then "warning" else "primary"
     local actName = noctalia.tr("action." .. (state.action or "lock"))
+    local actionTarget = state.actionTarget or ""
 
-    -- Big Digital Readout Card
-    local displayCard = ui.column({ align = "center", gap = 12, padding = 16, fill = "surface_variant/0.4", radius = 16 }, {
-        ui.label({
-            text = state.formattedTime or "00:00",
-            fontSize = 44,
-            fontWeight = "bold",
-            color = accentColor,
+    local actGlyph = "moon"
+    if state.action == "lock" then actGlyph = "lock"
+    elseif state.action == "suspend" then actGlyph = "moon"
+    elseif state.action == "shutdown" then actGlyph = "power"
+    elseif state.action == "reboot" then actGlyph = "rotate"
+    elseif state.action == "logout" then actGlyph = "logout"
+    elseif state.action == "kill-process" then actGlyph = "square-x"
+    elseif state.action == "custom-command" then actGlyph = "terminal"
+    end
+
+    local statusLabel = if isWarning then noctalia.tr("status.warning")
+                        elseif isPaused then noctalia.tr("status.paused")
+                        else noctalia.tr("status.running")
+
+    -- Calculate estimated finish time
+    local finishTimeStr = os.date("%H:%M", os.time() + secsLeft)
+    local subInfoText = "Ends at " .. finishTimeStr
+    if actionTarget ~= "" then
+        local targetShort = actionTarget
+        if string.len(targetShort) > 28 then
+            targetShort = string.sub(targetShort, 1, 26) .. "…"
+        end
+        subInfoText = subInfoText .. "  •  " .. targetShort
+    end
+
+    -- 1. Status & Target Header (Clean typography & subtle indicator)
+    local topHeader = ui.row({
+        justify = "space_between",
+        align = "center",
+        width = 330,
+    }, {
+        ui.row({ gap = 8, align = "center" }, {
+            ui.glyph({ name = actGlyph, size = 18, color = accentColor }),
+            ui.label({ text = actName, fontSize = 13, fontWeight = "bold", color = "on_surface" }),
         }),
-        ui.progress({
-            progress = progressRatio,
-            fill = accentColor,
-            height = 8,
-            radius = 4,
-            width = 300,
-        }),
-        ui.row({ justify = "space_between", align = "center", flexGrow = 1 }, {
-            ui.row({ gap = 6, align = "center" }, {
-                ui.glyph({ name = if isWarning then "alert-triangle" elseif isPaused then "clock-pause" else "moon-stars", size = 16, color = accentColor }),
-                ui.label({ text = actName, fontSize = 13, fontWeight = "medium", color = "on_surface" }),
-            }),
-            ui.label({ text = pctText, fontSize = 13, color = "on_surface_variant" }),
+        ui.row({ gap = 6, align = "center" }, {
+            ui.glyph({ name = if isWarning then "alert-triangle" elseif isPaused then "clock-pause" else "circle-filled", size = 9, color = accentColor }),
+            ui.label({ text = statusLabel, fontSize = 12, fontWeight = "medium", color = accentColor }),
         }),
     })
 
-    -- Playback Controls Row
-    local controlsRow = ui.row({ gap = 8, align = "center" }, {
+    -- 2. Hero Digital Countdown Display Card
+    local displayCard = ui.column({
+        align = "center",
+        justify = "center",
+        gap = 16,
+        padding = 20,
+        fill = "surface_variant/0.3",
+        radius = 20,
+    }, {
+        topHeader,
+
+        -- Big Time Display
+        ui.column({ align = "center", gap = 4 }, {
+            ui.label({
+                text = state.formattedTime or "00:00",
+                fontSize = 50,
+                fontWeight = "bold",
+                color = accentColor,
+            }),
+            ui.label({
+                text = subInfoText,
+                fontSize = 12,
+                color = "on_surface_variant",
+                fontWeight = "medium",
+            }),
+        }),
+
+        -- Progress Bar & Metrics
+        ui.column({ gap = 8 }, {
+            ui.progress({
+                progress = progressRatio,
+                fill = accentColor,
+                height = 8,
+                radius = 4,
+                width = 330,
+            }),
+            ui.row({ justify = "space_between", align = "center", width = 330 }, {
+                ui.label({
+                    text = string.format("%s left (%s)", formatDurationHuman(math.max(1, math.floor(secsLeft / 60))), pctText),
+                    fontSize = 12,
+                    color = "on_surface_variant",
+                }),
+                ui.label({
+                    text = "Total " .. formatDurationHuman(math.floor(totalSecs / 60)),
+                    fontSize = 12,
+                    color = "on_surface_variant",
+                    fontWeight = "medium",
+                }),
+            }),
+        }),
+    })
+
+    -- 3. Quick Adjust Pills (+5m, +1m, -1m, -5m)
+    local adjustRow = ui.row({ gap = 6, justify = "space_between", align = "center" }, {
         ui.button({
-            text = if isPaused then noctalia.tr("button.resume") else noctalia.tr("button.pause"),
-            glyph = if isPaused then "player-play" else "player-pause",
-            variant = "primary",
-            onClick = function()
-                noctalia.state.set("sleepy.cmd", { action = if isPaused then "resume" else "pause" })
-            end,
+            text = "−5m",
+            variant = "secondary",
             flexGrow = 1,
+            onClick = function()
+                noctalia.state.set("sleepy.cmd", { action = "addTime", seconds = -300 })
+            end,
         }),
         ui.button({
-            text = noctalia.tr("button.add-time"),
+            text = "−1m",
             variant = "secondary",
+            flexGrow = 1,
+            onClick = function()
+                noctalia.state.set("sleepy.cmd", { action = "addTime", seconds = -60 })
+            end,
+        }),
+        ui.button({
+            text = "+1m",
+            variant = "secondary",
+            flexGrow = 1,
+            onClick = function()
+                noctalia.state.set("sleepy.cmd", { action = "addTime", seconds = 60 })
+            end,
+        }),
+        ui.button({
+            text = "+5m",
+            variant = "secondary",
+            flexGrow = 1,
             onClick = function()
                 noctalia.state.set("sleepy.cmd", { action = "addTime", seconds = 300 })
             end,
         }),
+    })
+
+    -- 4. Main Control Buttons (Resume/Pause, Cancel)
+    local playbackRow = ui.row({ gap = 10, align = "center" }, {
         ui.button({
-            text = noctalia.tr("button.subtract-time"),
-            variant = "secondary",
+            text = if isPaused then noctalia.tr("button.resume") else noctalia.tr("button.pause"),
+            glyph = if isPaused then "player-play" else "player-pause",
+            variant = "primary",
+            flexGrow = 1,
+            controlSize = "md",
             onClick = function()
-                noctalia.state.set("sleepy.cmd", { action = "addTime", seconds = -300 })
+                noctalia.state.set("sleepy.cmd", { action = if isPaused then "resume" else "pause" })
             end,
         }),
         ui.button({
             text = noctalia.tr("button.cancel"),
             glyph = "x",
             variant = "destructive",
+            flexGrow = 1,
+            controlSize = "md",
             onClick = function()
                 noctalia.state.set("sleepy.cmd", { action = "cancel" })
             end,
         }),
     })
 
-    return ui.column({ flexGrow = 1, justify = "space_between", gap = 16 }, {
+    return ui.column({ flexGrow = 1, justify = "space_between", gap = 14 }, {
         displayCard,
-        controlsRow,
+        ui.column({ gap = 8 }, {
+            adjustRow,
+            playbackRow,
+        }),
     })
 end
 
 -- ── Root Panel Renderer ──────────────────────────────────────────────────────
 
 function renderPanel()
-    local state = noctalia.state.get("sleepy.state") or { status = "IDLE", remaining = 0, duration = 0 }
-    local presets = noctalia.state.get("sleepy.presets") or {}
-    local processList = noctalia.state.get("sleepy.processes") or {}
-    local isProcessesLoaded = (noctalia.state.get("sleepy.processesLoaded") == true)
+    local ok, err = pcall(function()
+        local state = noctalia.state.get("sleepy.state") or { status = "IDLE", remaining = 0, duration = 0 }
+        local presets = noctalia.state.get("sleepy.presets") or {}
+        local processList = noctalia.state.get("sleepy.processes") or {}
+        local isProcessesLoaded = (noctalia.state.get("sleepy.processesLoaded") == true)
 
-    local isRunning = (state.status == "RUNNING" or state.status == "PAUSED" or state.status == "WARNING")
+        local isRunning = (state.status == "RUNNING" or state.status == "PAUSED" or state.status == "WARNING")
 
-    -- Panel Header
-    local headerRow = ui.row({ align = "center", justify = "space_between", gap = 8 }, {
-        ui.row({ align = "center", gap = 8 }, {
-            ui.glyph({ name = "moon-stars", size = 20, color = "primary" }),
-            ui.label({ text = noctalia.tr("panel.title"), fontSize = 16, fontWeight = "bold", color = "on_surface" }),
-        }),
-        ui.button({
-            glyph = "close",
-            variant = "ghost",
-            onClick = function()
-                panel.close()
-            end,
-        }),
-    })
-
-    local content
-    if isRunning then
-        content = renderActiveView(state)
-    else
-        content = renderSetupView(presets, processList, isProcessesLoaded)
-    end
-
-    panel.render(
-        ui.column({ flexGrow = 1, gap = 12 }, {
-            headerRow,
-            content,
+        -- Panel Header
+        local headerRow = ui.row({ align = "center", justify = "space_between", gap = 8 }, {
+            ui.row({ align = "center", gap = 8 }, {
+                ui.glyph({ name = "moon-stars", size = 20, color = "primary" }),
+                ui.label({ text = noctalia.tr("panel.title"), fontSize = 16, fontWeight = "bold", color = "on_surface" }),
+            }),
+            ui.button({
+                glyph = "x",
+                variant = "ghost",
+                onClick = function()
+                    panel.close()
+                end,
+            }),
         })
-    )
+
+        local content
+        if isRunning then
+            content = renderActiveView(state)
+        else
+            content = renderSetupView(presets, processList, isProcessesLoaded)
+        end
+
+        panel.render(
+            ui.column({ flexGrow = 1, gap = 12 }, {
+                headerRow,
+                content,
+            })
+        )
+    end)
+
+    if not ok and err then
+        noctalia.log("Sleepy Time panel render error: " .. tostring(err))
+    end
 end
 
 -- ── Lifecycle & Event Listeners ──────────────────────────────────────────────
@@ -457,6 +611,13 @@ function onOpen(_context)
     local state = noctalia.state.get("sleepy.state")
     if state and state.action then
         uiState.selectedAction = state.action
+        if state.actionTarget and state.actionTarget ~= "" then
+            if state.action == "kill-process" then
+                uiState.selectedProcess = state.actionTarget
+            elseif state.action == "custom-command" then
+                uiState.customCmdText = state.actionTarget
+            end
+        end
     end
     noctalia.state.set("sleepy.cmd", { action = "fetchProcesses" })
     renderPanel()

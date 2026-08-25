@@ -62,17 +62,19 @@ local function parseQuickPresets(presetsStr: string)
 end
 
 local function publishState()
-    noctalia.state.set("sleepy.state", {
-        status        = timerState.status,
-        mode          = timerState.mode,
-        remaining     = timerState.remaining,
-        duration      = timerState.duration,
-        formattedTime = formatTime(timerState.remaining),
-        action        = timerState.action,
-        actionTarget  = timerState.actionTarget,
-        targetTimeStr = timerState.targetTimeStr,
-        warningActive = timerState.warningActive,
-    })
+    pcall(function()
+        noctalia.state.set("sleepy.state", {
+            status        = timerState.status,
+            mode          = timerState.mode,
+            remaining     = timerState.remaining,
+            duration      = timerState.duration,
+            formattedTime = formatTime(timerState.remaining),
+            action        = timerState.action,
+            actionTarget  = timerState.actionTarget,
+            targetTimeStr = timerState.targetTimeStr,
+            warningActive = timerState.warningActive,
+        })
+    end)
 end
 
 -- ── Running Process Scanner ──────────────────────────────────────────────────
@@ -91,41 +93,73 @@ local ignoredProcesses = {
     ["conmon"] = true, ["catatonit"] = true, ["(sd-pam)"] = true, ["sd_dummy"] = true,
     ["sd_espeak-ng"] = true, ["speech-dispatch"] = true, ["srt-bwrap"] = true,
     ["srt-logger"] = true, ["socat"] = true, ["wsdd"] = true, ["wl-copy"] = true,
+    ["gdm-wayland-ses"] = true, ["flatpak-session"] = true, ["pv-adverb"] = true,
+    ["language_server"] = true, ["AppRun"] = true, ["server"] = true, ["python3"] = true,
+    ["tombi"] = true, ["chrome_crashpad"] = true, ["helium_crashpad"] = true,
+    ["steam-runtime-l"] = true, ["steamwebhelper"] = true, ["bazzite-steam"] = true,
+    ["Hyprland"] = true, ["start-hyprland"] = true, ["Xwayland"] = true, ["exe"] = true,
 }
+
+local iconCache: { [string]: string } = {}
+
+local function resolveIcon(comm: string): string
+    if iconCache[comm] ~= nil then
+        return iconCache[comm]
+    end
+    local icon = ""
+    local ok, iconRes = pcall(function()
+        return noctalia.appIconPath(comm, 20)
+    end)
+    if ok and iconRes and type(iconRes) == "string" then
+        icon = iconRes
+    end
+    iconCache[comm] = icon
+    return icon
+end
 
 local function fetchRunningProcesses()
     local cmd = "ps -u $(whoami) -o comm= --sort=comm | uniq"
     noctalia.runAsync(cmd, function(result)
         local processes = {}
+        local seen = {}
         if result and result.stdout and result.stdout ~= "" then
-            local count = 0
             for comm in string.gmatch(result.stdout, "[^\r\n]+") do
                 comm = noctalia.string.trim(comm)
                 if comm ~= ""
+                   and not seen[comm]
                    and not ignoredProcesses[comm]
                    and not string.match(comm, "^%[.*%]$")
                    and not string.match(comm, "^%(.*%)$")
-                   and not string.match(comm, "^gvfs") then
-                    count = count + 1
-                    if count <= 16 then
-                        table.insert(processes, {
-                            name = comm,
-                        })
+                   and not string.match(comm, "^gvfs")
+                   and not string.match(comm, "crashpad")
+                   and not string.match(comm, "^sd_")
+                   and not string.match(comm, "%.sh$") then
+                    seen[comm] = true
+                    table.insert(processes, {
+                        name = comm,
+                        iconPath = resolveIcon(comm),
+                    })
+                    if #processes >= 40 then
+                        break
                     end
                 end
             end
         end
-        noctalia.state.set("sleepy.processesLoaded", true)
-        noctalia.state.set("sleepy.processes", processes)
+        pcall(function()
+            noctalia.state.set("sleepy.processesLoaded", true)
+            noctalia.state.set("sleepy.processes", processes)
+        end)
     end)
 end
 
 -- Initialize state channels
-noctalia.state.set("sleepy.presets", parseQuickPresets(config.quickTimersStr))
-noctalia.state.set("sleepy.processes", {})
-noctalia.state.set("sleepy.processesLoaded", false)
-publishState()
-fetchRunningProcesses()
+pcall(function()
+    noctalia.state.set("sleepy.presets", parseQuickPresets(config.quickTimersStr))
+    noctalia.state.set("sleepy.processes", {})
+    noctalia.state.set("sleepy.processesLoaded", false)
+    publishState()
+    fetchRunningProcesses()
+end)
 
 -- ── Time & Scheduler Helpers ─────────────────────────────────────────────────
 
@@ -207,7 +241,12 @@ local function executeAction()
     elseif act == "kill-process" then
         if target ~= "" then
             local cleanTarget = noctalia.string.trim(target)
-            cmd = "kill -15 " .. cleanTarget .. " 2>/dev/null || pkill -15 -f " .. cleanTarget .. " 2>/dev/null"
+            if string.match(cleanTarget, "^%d+$") then
+                cmd = "(kill -15 " .. cleanTarget .. " 2>/dev/null; sleep 0.3; kill -9 " .. cleanTarget .. " 2>/dev/null) &"
+            else
+                local safeTarget = string.gsub(cleanTarget, "['\\]", "")
+                cmd = "(pkill -15 -x '" .. safeTarget .. "' 2>/dev/null || killall -15 '" .. safeTarget .. "' 2>/dev/null || flatpak kill '" .. safeTarget .. "' 2>/dev/null); (sleep 0.3 && (pkill -9 -x '" .. safeTarget .. "' 2>/dev/null || killall -9 '" .. safeTarget .. "' 2>/dev/null)) &"
+            end
         end
     elseif act == "custom-command" then
         cmd = if target ~= "" then target else config.customCommand
@@ -216,7 +255,11 @@ local function executeAction()
     if cmd ~= "" then
         noctalia.log("Sleepy Time: executing action '" .. act .. "' command: " .. cmd)
         noctalia.runAsync(cmd)
-        noctalia.notify("Sleepy Time", noctalia.tr("notification.executed", { action = getActionLabel(act) }))
+        local actLabel = getActionLabel(act)
+        if act == "kill-process" and target ~= "" then
+            actLabel = actLabel .. " (" .. target .. ")"
+        end
+        noctalia.notify("Sleepy Time", noctalia.tr("notification.executed", { action = actLabel }))
     else
         noctalia.log("Sleepy Time: no valid command found for action '" .. act .. "'")
     end
@@ -301,54 +344,56 @@ end)
 -- ── Main Loop Tick ───────────────────────────────────────────────────────────
 
 function update()
-    if timerState.status ~= "RUNNING" and timerState.status ~= "WARNING" then
-        return
-    end
-
-    timerState.remaining = timerState.remaining - 1
-
-    -- Warning handling
-    if config.warningEnabled and timerState.remaining <= config.warningSeconds and timerState.remaining > 0 then
-        timerState.warningActive = true
-        timerState.status = "WARNING"
-
-        local actLabel = getActionLabel(timerState.action)
-
-        -- Early warning (at threshold)
-        if not timerState.warningNotified.early then
-            timerState.warningNotified.early = true
-            local timeStr = formatTime(timerState.remaining)
-            noctalia.notify("Sleepy Time", noctalia.tr("notification.warning-early", { action = actLabel, time = timeStr }))
+    pcall(function()
+        if timerState.status ~= "RUNNING" and timerState.status ~= "WARNING" then
+            return
         end
 
-        -- Mid warning (at <= 30s)
-        if timerState.remaining <= 30 and not timerState.warningNotified.mid then
-            timerState.warningNotified.mid = true
-            local timeStr = formatTime(timerState.remaining)
-            noctalia.notify("Sleepy Time", noctalia.tr("notification.warning-mid", { action = actLabel, time = timeStr }))
+        timerState.remaining = timerState.remaining - 1
+
+        -- Warning handling
+        if config.warningEnabled and timerState.remaining <= config.warningSeconds and timerState.remaining > 0 then
+            timerState.warningActive = true
+            timerState.status = "WARNING"
+
+            local actLabel = getActionLabel(timerState.action)
+
+            -- Early warning (at threshold)
+            if not timerState.warningNotified.early then
+                timerState.warningNotified.early = true
+                local timeStr = formatTime(timerState.remaining)
+                noctalia.notify("Sleepy Time", noctalia.tr("notification.warning-early", { action = actLabel, time = timeStr }))
+            end
+
+            -- Mid warning (at <= 30s)
+            if timerState.remaining <= 30 and not timerState.warningNotified.mid then
+                timerState.warningNotified.mid = true
+                local timeStr = formatTime(timerState.remaining)
+                noctalia.notify("Sleepy Time", noctalia.tr("notification.warning-mid", { action = actLabel, time = timeStr }))
+            end
+
+            -- Final warning (at <= 10s)
+            if timerState.remaining <= 10 and not timerState.warningNotified.final then
+                timerState.warningNotified.final = true
+                local timeStr = formatTime(timerState.remaining)
+                noctalia.notify("Sleepy Time", noctalia.tr("notification.warning-final", { action = actLabel, time = timeStr }))
+            end
         end
 
-        -- Final warning (at <= 10s)
-        if timerState.remaining <= 10 and not timerState.warningNotified.final then
-            timerState.warningNotified.final = true
-            local timeStr = formatTime(timerState.remaining)
-            noctalia.notify("Sleepy Time", noctalia.tr("notification.warning-final", { action = actLabel, time = timeStr }))
+        -- Timer Completion
+        if timerState.remaining <= 0 then
+            timerState.status          = "IDLE"
+            timerState.remaining       = 0
+            timerState.duration        = 0
+            timerState.warningActive   = false
+            timerState.warningNotified = { early = false, mid = false, final = false }
+            publishState()
+
+            executeAction()
+        else
+            publishState()
         end
-    end
-
-    -- Timer Completion
-    if timerState.remaining <= 0 then
-        timerState.status          = "IDLE"
-        timerState.remaining       = 0
-        timerState.duration        = 0
-        timerState.warningActive   = false
-        timerState.warningNotified = { early = false, mid = false, final = false }
-        publishState()
-
-        executeAction()
-    else
-        publishState()
-    end
+    end)
 end
 
 function onConfigChanged()
