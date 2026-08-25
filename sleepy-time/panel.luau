@@ -176,7 +176,6 @@ local function renderSetupView(presets: { any }, processList: { any })
                 placeholder = noctalia.tr("panel.target-time-placeholder"),
                 onChange = function(val)
                     uiState.targetTime = val
-                    renderPanel()
                 end,
             }),
         }))

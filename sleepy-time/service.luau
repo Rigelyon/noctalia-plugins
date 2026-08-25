@@ -155,31 +155,45 @@ local function executeAction()
     end
 end
 
--- ── Running Process Scanner ──────────────────────────────────────────────────
+-- ── Fast & Throttled Process Scanner ─────────────────────────────────────────
+
+local lastProcessScanTime = 0
 
 local function fetchRunningProcesses()
-    local cmd = "ps -u $(whoami) -o pid=,comm=,args= --sort=comm"
+    local now = os.time()
+    if now - lastProcessScanTime < 5 then
+        return -- Avoid frequent process listing spam
+    end
+    lastProcessScanTime = now
+
+    local cmd = "ps -u $(whoami) -o comm= --sort=comm | uniq"
     noctalia.runAsync(cmd, function(result)
         if not result or not result.stdout or result.stdout == "" then return end
         local processes = {}
-        local seenNames = {}
+        local count = 0
 
-        local ignoredNames = {
-            ps = true, sh = true, bash = true, zsh = true,
-            sed = true, grep = true, systemd = true, awk = true,
-            sleep = true, cat = true, cut = true, tr = true,
+        local ignored = {
+            ps = true, sh = true, bash = true, zsh = true, fish = true,
+            sed = true, grep = true, systemd = true, awk = true, sleep = true,
+            cat = true, cut = true, tr = true, uniq = true, sort = true,
+            head = true, tail = true, which = true, find = true, dbus = true,
+            ["dbus-daemon"] = true, ["pipewire"] = true, ["wireplumber"] = true,
+            ["pipewire-pulse"] = true, ["noctalia"] = true, ["xdg-desktop-portal"] = true,
+            ["xdg-desktop-portal-hyprland"] = true, ["xdg-desktop-portal-gnome"] = true,
+            ["xdg-desktop-portal-wlr"] = true, ["xdg-document-portal"] = true,
+            ["xdg-permission-store"] = true, ["at-spi-bus-launcher"] = true,
+            ["at-spi2-registryd"] = true, ["agent"] = true, ["ssh-agent"] = true,
+            ["gpg-agent"] = true, ["dconf-service"] = true, ["polkit-gnome-authentication-agent-1"] = true,
         }
 
-        for line in string.gmatch(result.stdout, "[^\r\n]+") do
-            local pid, comm, args = string.match(line, "^%s*(%d+)%s+(%S+)%s*(.*)$")
-            if pid and comm and not ignoredNames[comm] then
-                if not seenNames[comm] then
-                    seenNames[comm] = true
+        for comm in string.gmatch(result.stdout, "[^\r\n]+") do
+            comm = noctalia.string.trim(comm)
+            if comm ~= "" and not ignored[comm] and not string.match(comm, "^%[.*%]$") then
+                count = count + 1
+                if count <= 12 then -- Limit max lookups to prevent blocking Luau VM
                     local iconPath = noctalia.appIconPath(comm, 24) or ""
                     table.insert(processes, {
-                        pid = pid,
                         name = comm,
-                        args = args,
                         iconPath = iconPath,
                     })
                 end

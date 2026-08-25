@@ -132,10 +132,6 @@ end
 
 -- ── Callbacks & Watches ──────────────────────────────────────────────────────
 
-function update()
-    renderWidget()
-end
-
 function onClick()
     noctalia.togglePanel("rigelyon/sleepy-time:panel")
 end

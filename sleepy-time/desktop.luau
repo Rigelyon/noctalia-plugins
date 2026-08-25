@@ -177,10 +177,6 @@ end
 
 -- ── Callbacks & Watches ──────────────────────────────────────────────────────
 
-function update()
-    renderDesktop()
-end
-
 noctalia.state.watch("sleepy.state", function(_state)
     renderDesktop()
 end)
