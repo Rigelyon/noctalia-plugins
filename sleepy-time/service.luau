@@ -91,30 +91,63 @@ local ignoredProcesses = {
     ["conmon"] = true, ["catatonit"] = true, ["(sd-pam)"] = true, ["sd_dummy"] = true,
     ["sd_espeak-ng"] = true, ["speech-dispatch"] = true, ["srt-bwrap"] = true,
     ["srt-logger"] = true, ["socat"] = true, ["wsdd"] = true, ["wl-copy"] = true,
+    ["gdm-wayland-ses"] = true, ["flatpak-session"] = true, ["pv-adverb"] = true,
+    ["language_server"] = true, ["AppRun"] = true, ["server"] = true, ["python3"] = true,
+    ["tombi"] = true, ["chrome_crashpad"] = true, ["helium_crashpad"] = true,
+    ["steam-runtime-l"] = true, ["steamwebhelper"] = true, ["bazzite-steam"] = true,
 }
+
+local iconCache: { [string]: string } = {}
 
 local function fetchRunningProcesses()
     local cmd = "ps -u $(whoami) -o comm= --sort=comm | uniq"
     noctalia.runAsync(cmd, function(result)
+        if not result or not result.stdout or result.stdout == "" then
+            noctalia.state.set("sleepy.processesLoaded", true)
+            noctalia.state.set("sleepy.processes", {})
+            return
+        end
+
         local processes = {}
-        if result and result.stdout and result.stdout ~= "" then
-            for comm in string.gmatch(result.stdout, "[^\r\n]+") do
-                comm = noctalia.string.trim(comm)
-                if comm ~= ""
-                   and not ignoredProcesses[comm]
-                   and not string.match(comm, "^%[.*%]$")
-                   and not string.match(comm, "^%(.*%)$")
-                   and not string.match(comm, "^gvfs") then
-                    local iconPath = noctalia.appIconPath(comm, 24) or ""
-                    table.insert(processes, {
-                        name = comm,
-                        iconPath = iconPath,
-                    })
+        local toResolve = {}
+
+        for comm in string.gmatch(result.stdout, "[^\r\n]+") do
+            comm = noctalia.string.trim(comm)
+            if comm ~= ""
+               and not ignoredProcesses[comm]
+               and not string.match(comm, "^%[.*%]$")
+               and not string.match(comm, "^%(.*%)$")
+               and not string.match(comm, "^gvfs")
+               and not string.match(comm, "%.sh$") then
+                local cached = iconCache[comm]
+                if cached ~= nil then
+                    table.insert(processes, { name = comm, iconPath = cached })
+                else
+                    table.insert(processes, { name = comm, iconPath = "" })
+                    table.insert(toResolve, comm)
                 end
             end
         end
+
+        -- Immediately publish processes so UI renders with 0ms lag!
         noctalia.state.set("sleepy.processesLoaded", true)
         noctalia.state.set("sleepy.processes", processes)
+
+        -- Asynchronously resolve uncached icons in background
+        if #toResolve > 0 then
+            for _, name in ipairs(toResolve) do
+                local icon = noctalia.appIconPath(name, 24) or ""
+                iconCache[name] = icon
+                for _, proc in ipairs(processes) do
+                    if proc.name == name then
+                        proc.iconPath = icon
+                        break
+                    end
+                end
+            end
+            -- Publish updated process list with resolved icons
+            noctalia.state.set("sleepy.processes", processes)
+        end
     end)
 end
 
