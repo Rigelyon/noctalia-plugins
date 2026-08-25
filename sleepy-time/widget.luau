@@ -1,21 +1,21 @@
 --!nonstrict
--- widget.luau — Sleepy Time bar widget
+-- widget.luau — Sleepy Time declarative bar widget
 
-function onClick()
-    noctalia.togglePanel("rigelyon/sleepy-time:panel")
-end
+local Tooltip = {
+    active = false,
+}
 
-function onRightClick()
-    local state = noctalia.state.get("sleepy.state")
-    if state and state.isRunning then
-        noctalia.state.set("sleepy.command", { action = "cancel" })
-    else
-        noctalia.togglePanel("rigelyon/sleepy-time:panel")
+local function setSafeTooltip(text: string?)
+    if text and text ~= "" then
+        barWidget.setTooltip(text)
+        Tooltip.active = true
+    elseif Tooltip.active then
+        barWidget.clearTooltip()
+        Tooltip.active = false
     end
 end
 
--- Config helpers
-local function getConfig()
+local function getWidgetConfig()
     return {
         showWhenIdle      = noctalia.getConfig("show_when_idle") ~= false,
         idleText          = noctalia.getConfig("idle_text") or "none",
@@ -27,18 +27,7 @@ local function getConfig()
     }
 end
 
-local function formatTime(secs)
-    local h = math.floor(secs / 3600)
-    local m = math.floor((secs % 3600) / 60)
-    local s = secs % 60
-    if h > 0 then
-        return string.format("%d:%02d:%02d", h, m, s)
-    else
-        return string.format("%02d:%02d", m, s)
-    end
-end
-
-local function getActionGlyph(action)
+local function getActionGlyph(action: string?): string
     if action == "lock" then return "lock"
     elseif action == "suspend" then return "moon"
     elseif action == "shutdown" then return "power"
@@ -50,79 +39,119 @@ local function getActionGlyph(action)
     return "moon-stars"
 end
 
-local function renderWidget(state)
-    local cfg = getConfig()
+local function renderWidget()
+    local cfg = getWidgetConfig()
+    local state = noctalia.state.get("sleepy.state") or { status = "IDLE", remaining = 0 }
+    local isVertical = barWidget.isVertical()
 
-    if not state or not state.isRunning then
-        -- Idle state
+    local isRunning = (state.status == "RUNNING" or state.status == "PAUSED" or state.status == "WARNING")
+    local isPaused  = (state.status == "PAUSED")
+    local isWarning = (state.status == "WARNING" or state.warningActive == true)
+
+    if not isRunning then
+        -- IDLE STATE
         if not cfg.showWhenIdle then
-            barWidget.setGlyph("moon-stars")
-            barWidget.setText("")
-            barWidget.setGlyphColor("default")
-            barWidget.setColor("default")
-            barWidget.setTooltip(noctalia.tr("panel.title"))
+            setSafeTooltip(nil)
+            barWidget.render(ui.box({ width = 0, height = 0 }))
             return
         end
 
-        barWidget.setGlyph("moon-stars")
-        barWidget.setGlyphColor("default")
-        barWidget.setColor("default")
-
+        local idleLabel = ""
         if cfg.idleText == "plugin-name" then
-            barWidget.setText(noctalia.tr("panel.title"))
-        elseif cfg.idleText == "next-action" and state and state.action then
-            barWidget.setText(noctalia.tr("action." .. state.action))
-        else
-            barWidget.setText("")
+            idleLabel = noctalia.tr("panel.title")
+        elseif cfg.idleText == "next-action" and state.action then
+            idleLabel = noctalia.tr("action." .. state.action)
         end
 
-        barWidget.setTooltip("Sleepy Time — Click to set timer")
+        setSafeTooltip("Sleepy Time — Click to setup timer")
+
+        if isVertical or idleLabel == "" then
+            barWidget.render(
+                ui.column({ align = "center", justify = "center" }, {
+                    ui.glyph({ name = "moon-stars", color = "on_surface_variant" }),
+                })
+            )
+        else
+            barWidget.render(
+                ui.row({ gap = 6, align = "center" }, {
+                    ui.glyph({ name = "moon-stars", color = "on_surface_variant" }),
+                    ui.label({ text = idleLabel, color = "on_surface_variant", fontSize = 13 }),
+                })
+            )
+        end
         return
     end
 
-    -- Active / Paused / Warning state
-    local glyph = "clock-hour-3"
-    if state.warningActive then
+    -- RUNNING / PAUSED / WARNING STATE
+    local glyph = "timer"
+    if isWarning then
         glyph = "alert-triangle"
-    elseif state.isPaused then
+    elseif isPaused then
         glyph = "clock-pause"
-    elseif cfg.showActionIcon then
+    elseif cfg.showActionIcon and state.action then
         glyph = getActionGlyph(state.action)
     end
 
     local color = cfg.activeColor
-    if state.warningActive then
+    if isWarning then
         color = cfg.warningColor
-    elseif state.isPaused then
+    elseif isPaused then
         color = cfg.pausedColor
     end
 
-    barWidget.setGlyph(glyph)
-    barWidget.setGlyphColor(color)
-    barWidget.setColor(color)
-
-    if cfg.showCountdownText then
-        barWidget.setText(formatTime(state.secondsLeft))
-    else
-        barWidget.setText("")
-    end
-
-    local statusStr = if state.warningActive then noctalia.tr("status.warning")
-                      elseif state.isPaused then noctalia.tr("status.paused")
-                      else noctalia.tr("status.running")
-
+    local timeText = state.formattedTime or "00:00"
     local actName = noctalia.tr("action." .. (state.action or "lock"))
-    local tooltip = string.format("Sleepy Time: %s (%s)\nAction: %s\nLeft-click: Setup | Right-click: Cancel",
-        formatTime(state.secondsLeft), statusStr, actName)
-    barWidget.setTooltip(tooltip)
+    local statusName = if isWarning then noctalia.tr("status.warning")
+                       elseif isPaused then noctalia.tr("status.paused")
+                       else noctalia.tr("status.running")
+
+    local tooltipText = string.format("Sleepy Time: %s (%s)\nAction: %s\nLeft-click: Setup | Right-click: Cancel",
+        timeText, statusName, actName)
+    setSafeTooltip(tooltipText)
+
+    if isVertical or not cfg.showCountdownText then
+        barWidget.render(
+            ui.column({ align = "center", justify = "center" }, {
+                ui.glyph({ name = glyph, color = color }),
+            })
+        )
+    else
+        barWidget.render(
+            ui.row({ gap = 6, align = "center" }, {
+                ui.glyph({ name = glyph, color = color }),
+                ui.label({
+                    text = timeText,
+                    color = color,
+                    fontWeight = "bold",
+                    fontSize = 13,
+                }),
+            })
+        )
+    end
 end
 
--- Initial render
-barWidget.setGlyph("moon-stars")
-local initialState = noctalia.state.get("sleepy.state")
-renderWidget(initialState)
+-- ── Callbacks & Watches ──────────────────────────────────────────────────────
 
--- Watch state updates
-noctalia.state.watch("sleepy.state", function(state)
-    renderWidget(state)
+function update()
+    renderWidget()
+end
+
+function onClick()
+    noctalia.togglePanel("rigelyon/sleepy-time:panel")
+end
+
+function onRightClick()
+    local state = noctalia.state.get("sleepy.state")
+    if state and (state.status == "RUNNING" or state.status == "PAUSED" or state.status == "WARNING") then
+        noctalia.state.set("sleepy.cmd", { action = "cancel" })
+    else
+        noctalia.togglePanel("rigelyon/sleepy-time:panel")
+    end
+end
+
+noctalia.state.watch("sleepy.state", function(_state)
+    renderWidget()
 end)
+
+-- Initial render
+renderWidget()

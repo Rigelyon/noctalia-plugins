@@ -1,9 +1,5 @@
 --!nonstrict
--- desktop.luau — Sleepy Time desktop widget
-
-local timeFontFamily = noctalia.loadFont("JetBrainsMono-Regular.ttf")
-
-desktopWidget.setWantsSecondTicks(true)
+-- desktop.luau — Sleepy Time declarative ambient desktop widget
 
 local function getDesktopConfig()
     return {
@@ -12,38 +8,24 @@ local function getDesktopConfig()
         showProgress    = noctalia.getConfig("show_progress") ~= false,
         showPercentage  = noctalia.getConfig("show_percentage") ~= false,
         showActionLabel = noctalia.getConfig("show_action_label") ~= false,
-        fontSize        = tonumber(noctalia.getConfig("font_size")) or 42,
+        fontSize        = tonumber(noctalia.getConfig("font_size")) or 38,
         compactMode     = noctalia.getConfig("compact_mode") == true,
         pausedColor     = noctalia.getConfig("paused_color") or "#f59e0b",
         warningColor    = noctalia.getConfig("warning_color") or "#ef4444",
     }
 end
 
-local function formatTimeDisplay(secs)
-    local h = math.floor(secs / 3600)
-    local m = math.floor((secs % 3600) / 60)
-    local s = secs % 60
-    if h > 0 then
-        return string.format("%d:%02d:%02d", h, m, s)
-    else
-        return string.format("%02d:%02d", m, s)
-    end
-end
-
-function onCancelClick()
-    noctalia.state.set("sleepy.command", { action = "cancel" })
-end
-
-local function renderDesktop(state)
+local function renderDesktop()
     local cfg = getDesktopConfig()
+    local state = noctalia.state.get("sleepy.state") or { status = "IDLE", remaining = 0, duration = 0 }
 
-    local isRunning = state and state.isRunning == true
-    local isPaused  = state and state.isPaused == true
-    local isWarning = state and state.warningActive == true
+    local isRunning = (state.status == "RUNNING" or state.status == "PAUSED" or state.status == "WARNING")
+    local isPaused  = (state.status == "PAUSED")
+    local isWarning = (state.status == "WARNING" or state.warningActive == true)
 
     if not isRunning then
         if not cfg.showWhenIdle then
-            desktopWidget.render(ui.box({ width = 0, height = 0, opacity = 0 }))
+            desktopWidget.render(ui.box({ width = 0, height = 0 }))
             return
         end
 
@@ -57,10 +39,10 @@ local function renderDesktop(state)
         return
     end
 
-    -- Running state calculations
-    local secsLeft = state.secondsLeft or 0
-    local totalSecs = state.totalSeconds or 1
-    local progressRatio = if totalSecs > 0 then (1 - (secsLeft / totalSecs)) else 0
+    -- Running state progress calculations
+    local secsLeft = state.remaining or 0
+    local totalSecs = state.duration or 1
+    local progressRatio = if totalSecs > 0 then math.max(0, math.min(1, 1 - (secsLeft / totalSecs))) else 0
     local pctText = string.format("%d%%", math.floor(progressRatio * 100))
 
     local accentColor = cfg.color
@@ -71,46 +53,60 @@ local function renderDesktop(state)
     end
 
     local actName = noctalia.tr("action." .. (state.action or "lock"))
+    local glyphName = if isWarning then "alert-triangle" elseif isPaused then "clock-pause" else "moon-stars"
+    local timeText = state.formattedTime or "00:00"
 
     if cfg.compactMode then
         -- Compact single-row layout
         local rowItems = {
-            ui.glyph({ name = if isWarning then "alert-triangle" elseif isPaused then "clock-pause" else "moon-stars", size = 20, color = accentColor }),
+            ui.glyph({ name = glyphName, size = 20, color = accentColor }),
             ui.label({
-                text = formatTimeDisplay(secsLeft),
+                text = timeText,
                 fontSize = 20,
                 fontWeight = "bold",
-                fontFamily = timeFontFamily,
                 color = accentColor,
             }),
         }
 
         if cfg.showProgress then
-            table.insert(rowItems, ui.progress({ value = progressRatio, color = accentColor, width = 80 }))
+            table.insert(rowItems, ui.progress({
+                progress = progressRatio,
+                fill = accentColor,
+                width = 80,
+                height = 6,
+                radius = 3,
+            }))
         end
+
         if cfg.showPercentage then
             table.insert(rowItems, ui.label({ text = pctText, fontSize = 12, color = "on_surface_variant" }))
         end
+
         if cfg.showActionLabel then
             table.insert(rowItems, ui.label({ text = actName, fontSize = 12, fontWeight = "medium", color = "on_surface" }))
         end
-        if isWarning then
-            table.insert(rowItems, ui.button({ text = "✕", variant = "secondary", onClick = "onCancelClick" }))
-        end
+
+        table.insert(rowItems, ui.button({
+            text = "✕",
+            variant = "secondary",
+            onClick = function()
+                noctalia.state.set("sleepy.cmd", { action = "cancel" })
+            end,
+        }))
 
         desktopWidget.render(
-            ui.row({ align = "center", justify = "center", gap = 10, padding = 12, radius = 16, fill = "surface_variant/0.6" }, rowItems)
+            ui.row({ align = "center", justify = "center", gap = 10, padding = 12, radius = 16, fill = "surface_variant/0.5" }, rowItems)
         )
     else
-        -- Standard card layout
+        -- Standard ambient card layout
         local items = {}
 
         -- Title header
         table.insert(items, ui.row({ align = "center", gap = 6 }, {
-            ui.glyph({ name = if isWarning then "alert-triangle" elseif isPaused then "clock-pause" else "moon-stars", size = 18, color = accentColor }),
+            ui.glyph({ name = glyphName, size = 18, color = accentColor }),
             ui.label({
                 text = if isWarning then "⚠️ Warning" elseif isPaused then "Paused" else "Sleepy Time",
-                fontSize = 14,
+                fontSize = 13,
                 fontWeight = "bold",
                 color = if isWarning then "error" else "on_surface",
             }),
@@ -118,16 +114,21 @@ local function renderDesktop(state)
 
         -- Timer Countdown display
         table.insert(items, ui.label({
-            text = formatTimeDisplay(secsLeft),
+            text = timeText,
             fontSize = cfg.fontSize,
             fontWeight = "bold",
-            fontFamily = timeFontFamily,
             color = accentColor,
         }))
 
         -- Progress Bar
         if cfg.showProgress then
-            table.insert(items, ui.progress({ value = progressRatio, color = accentColor, flexGrow = 1 }))
+            table.insert(items, ui.progress({
+                progress = progressRatio,
+                fill = accentColor,
+                height = 6,
+                radius = 3,
+                width = 180,
+            }))
         end
 
         -- Footer info (Percentage & Action label)
@@ -140,30 +141,49 @@ local function renderDesktop(state)
         end
 
         if #footerItems > 0 then
-            table.insert(items, ui.row({ justify = "space_between", align = "center" }, footerItems))
+            table.insert(items, ui.row({ justify = "space_between", align = "center", width = 180 }, footerItems))
         end
 
-        -- Quick cancel button during warning phase
-        if isWarning then
-            table.insert(items, ui.button({
-                text = noctalia.tr("button.cancel") .. " Timer",
-                glyph = "x",
+        -- Quick adjustment buttons
+        table.insert(items, ui.row({ gap = 6, justify = "center", align = "center" }, {
+            ui.button({
+                text = "+5m",
                 variant = "secondary",
-                onClick = "onCancelClick",
-            }))
-        end
+                onClick = function()
+                    noctalia.state.set("sleepy.cmd", { action = "addTime", seconds = 300 })
+                end,
+            }),
+            ui.button({
+                text = if isPaused then "▶" else "⏸",
+                variant = "secondary",
+                onClick = function()
+                    noctalia.state.set("sleepy.cmd", { action = if isPaused then "resume" else "pause" })
+                end,
+            }),
+            ui.button({
+                text = "✕",
+                variant = "destructive",
+                onClick = function()
+                    noctalia.state.set("sleepy.cmd", { action = "cancel" })
+                end,
+            }),
+        }))
 
         desktopWidget.render(
-            ui.column({ align = "center", justify = "center", gap = 8, padding = 16, radius = 20, fill = "surface_variant/0.6" }, items)
+            ui.column({ align = "center", justify = "center", gap = 8, padding = 16, radius = 20, fill = "surface_variant/0.5" }, items)
         )
     end
 end
 
--- Initial render
-local initialState = noctalia.state.get("sleepy.state")
-renderDesktop(initialState)
+-- ── Callbacks & Watches ──────────────────────────────────────────────────────
 
--- Watch state updates
-noctalia.state.watch("sleepy.state", function(state)
-    renderDesktop(state)
+function update()
+    renderDesktop()
+end
+
+noctalia.state.watch("sleepy.state", function(_state)
+    renderDesktop()
 end)
+
+-- Initial render
+renderDesktop()
