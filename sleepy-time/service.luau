@@ -98,7 +98,6 @@ local function fetchRunningProcesses()
     noctalia.runAsync(cmd, function(result)
         local processes = {}
         if result and result.stdout and result.stdout ~= "" then
-            local count = 0
             for comm in string.gmatch(result.stdout, "[^\r\n]+") do
                 comm = noctalia.string.trim(comm)
                 if comm ~= ""
@@ -106,12 +105,11 @@ local function fetchRunningProcesses()
                    and not string.match(comm, "^%[.*%]$")
                    and not string.match(comm, "^%(.*%)$")
                    and not string.match(comm, "^gvfs") then
-                    count = count + 1
-                    if count <= 16 then
-                        table.insert(processes, {
-                            name = comm,
-                        })
-                    end
+                    local iconPath = noctalia.appIconPath(comm, 24) or ""
+                    table.insert(processes, {
+                        name = comm,
+                        iconPath = iconPath,
+                    })
                 end
             end
         end

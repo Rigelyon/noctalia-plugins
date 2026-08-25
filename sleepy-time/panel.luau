@@ -236,43 +236,65 @@ local function renderSetupView(presets: { any }, processList: { any }, isProcess
 
     -- 4. Dynamic Target Parameters (Kill Process or Custom Command)
     if uiState.selectedAction == "kill-process" then
-        local procOptions = { "-- Type custom or select --" }
-        local selectedProcIndex = 0
+        local procCards = {}
+        local filterText = string.lower(noctalia.string.trim(uiState.selectedProcess))
 
-        for i, proc in ipairs(processList) do
-            table.insert(procOptions, proc.name)
-            if uiState.selectedProcess == proc.name then
-                selectedProcIndex = i
+        for _, proc in ipairs(processList) do
+            local matches = (filterText == "" or string.find(string.lower(proc.name), filterText, 1, true) ~= nil or uiState.selectedProcess == proc.name)
+            if matches then
+                local isSelected = (uiState.selectedProcess == proc.name)
+
+                local iconNode
+                if proc.iconPath and proc.iconPath ~= "" then
+                    iconNode = ui.image({ path = proc.iconPath, width = 18, height = 18 })
+                else
+                    iconNode = ui.glyph({ name = "app-window", size = 18, color = if isSelected then "primary" else "on_surface_variant" })
+                end
+
+                table.insert(procCards, ui.row({
+                    gap = 8,
+                    align = "center",
+                    padding = 8,
+                    radius = 10,
+                    fill = if isSelected then "primary/0.2" else "surface_variant/0.3",
+                    onClick = function()
+                        uiState.selectedProcess = proc.name
+                        uiState.inputKey = uiState.inputKey + 1
+                        renderPanel()
+                    end,
+                    flexGrow = 1,
+                }, {
+                    iconNode,
+                    ui.label({
+                        text = proc.name,
+                        fontSize = 12,
+                        fontWeight = if isSelected then "bold" else "normal",
+                        color = if isSelected then "primary" else "on_surface",
+                    }),
+                }))
             end
         end
 
         local procControls = {
-            ui.select({
-                options = procOptions,
-                selectedIndex = selectedProcIndex,
-                onChange = function(index, text)
-                    local idx = tonumber(index) or 0
-                    if idx > 0 and processList[idx] then
-                        uiState.selectedProcess = processList[idx].name
-                    else
-                        uiState.selectedProcess = ""
-                    end
-                    uiState.inputKey = uiState.inputKey + 1
-                    renderPanel()
-                end,
-            }),
             ui.input({
                 key = "proc-input-" .. uiState.inputKey,
                 value = uiState.selectedProcess,
-                placeholder = "Or type custom process name (e.g. spotify)",
+                placeholder = "Search app or type process (e.g. spotify, steam)",
                 onChange = function(val)
                     uiState.selectedProcess = val
+                    renderPanel()
                 end,
             }),
         }
 
-        if not isProcessesLoaded then
+        if #procCards > 0 then
+            table.insert(procControls, ui.scroll({ maxHeight = 130, gap = 6 }, {
+                chunkIntoGrid(procCards, 2),
+            }))
+        elseif not isProcessesLoaded then
             table.insert(procControls, ui.label({ text = noctalia.tr("panel.process-loading"), fontSize = 11, color = "on_surface_variant" }))
+        else
+            table.insert(procControls, ui.label({ text = noctalia.tr("panel.process-empty"), fontSize = 11, color = "on_surface_variant" }))
         end
 
         table.insert(items, section(noctalia.tr("panel.process-label"), ui.column({ gap = 8 }, procControls)))
