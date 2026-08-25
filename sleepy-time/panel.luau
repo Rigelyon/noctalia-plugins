@@ -142,12 +142,8 @@ local function renderSetupView(presets: { any }, processList: { any }, isProcess
     table.insert(items, section(noctalia.tr("panel.mode-label"), ui.select({
         options = modeOptions,
         selectedIndex = selectedModeIndex,
-        onChange = function(val, extra)
-            if val == 1 or val == "1" or val == noctalia.tr("mode.scheduled") or extra == noctalia.tr("mode.scheduled") then
-                uiState.mode = "scheduled"
-            else
-                uiState.mode = "countdown"
-            end
+        onChange = function(index)
+            uiState.mode = if tonumber(index) == 0 then "countdown" else "scheduled"
             renderPanel()
         end,
     })))
@@ -226,42 +222,11 @@ local function renderSetupView(presets: { any }, processList: { any }, isProcess
     table.insert(items, section(noctalia.tr("panel.action-label"), ui.select({
         options = actionOptions,
         selectedIndex = selectedActionIndex,
-        onChange = function(arg1, arg2)
-            local selectedActId = nil
-
-            -- 1. Try if arg1 is numeric index (0-indexed or 1-indexed)
-            local num = tonumber(arg1)
-            if num ~= nil then
-                if ACTIONS[num + 1] then
-                    selectedActId = ACTIONS[num + 1].id
-                elseif ACTIONS[num] then
-                    selectedActId = ACTIONS[num].id
-                end
-            end
-
-            -- 2. Try if arg1 is a string matching label or id
-            if not selectedActId and type(arg1) == "string" then
-                for _, act in ipairs(ACTIONS) do
-                    if act.id == arg1 or noctalia.tr(act.labelKey) == arg1 or string.find(arg1, act.id) then
-                        selectedActId = act.id
-                        break
-                    end
-                end
-            end
-
-            -- 3. Try if arg2 is a string matching label or id
-            if not selectedActId and type(arg2) == "string" then
-                for _, act in ipairs(ACTIONS) do
-                    if act.id == arg2 or noctalia.tr(act.labelKey) == arg2 or string.find(arg2, act.id) then
-                        selectedActId = act.id
-                        break
-                    end
-                end
-            end
-
-            if selectedActId then
-                uiState.selectedAction = selectedActId
-                if selectedActId == "kill-process" then
+        onChange = function(index)
+            local idx = (tonumber(index) or 0) + 1
+            if ACTIONS[idx] then
+                uiState.selectedAction = ACTIONS[idx].id
+                if ACTIONS[idx].id == "kill-process" then
                     noctalia.state.set("sleepy.cmd", { action = "fetchProcesses" })
                 end
                 renderPanel()
@@ -271,74 +236,43 @@ local function renderSetupView(presets: { any }, processList: { any }, isProcess
 
     -- 4. Dynamic Target Parameters (Kill Process or Custom Command)
     if uiState.selectedAction == "kill-process" then
-        local procCards = {}
-        local rawProc = uiState.selectedProcess or ""
-        local filterText = string.lower(noctalia.string.trim(rawProc))
+        local procOptions = { "-- Type custom or select --" }
+        local selectedProcIndex = 0
 
-        if type(processList) == "table" then
-            local limit = 20
-            local count = 0
-            for _, proc in ipairs(processList) do
-                if type(proc) == "table" and proc.name and type(proc.name) == "string" then
-                    local procName = proc.name
-                    local matches = (filterText == "" or string.find(string.lower(procName), filterText, 1, true) ~= nil or rawProc == procName)
-                    if matches then
-                        count = count + 1
-                        if count <= limit then
-                            local isSelected = (rawProc == procName)
-
-                            local iconNode
-                            if proc.iconPath and type(proc.iconPath) == "string" and proc.iconPath ~= "" then
-                                iconNode = ui.image({ path = proc.iconPath, width = 18, height = 18 })
-                            else
-                                iconNode = ui.glyph({ name = "app-window", size = 18, color = if isSelected then "primary" else "on_surface_variant" })
-                            end
-
-                            table.insert(procCards, ui.row({
-                                gap = 8,
-                                align = "center",
-                                padding = 8,
-                                radius = 10,
-                                fill = if isSelected then "primary/0.2" else "surface_variant/0.3",
-                                onClick = function()
-                                    uiState.selectedProcess = procName
-                                    uiState.inputKey = uiState.inputKey + 1
-                                    renderPanel()
-                                end,
-                                flexGrow = 1,
-                            }, {
-                                iconNode,
-                                ui.label({
-                                    text = procName,
-                                    fontSize = 12,
-                                    fontWeight = if isSelected then "bold" else "normal",
-                                    color = if isSelected then "primary" else "on_surface",
-                                }),
-                            }))
-                        end
-                    end
-                end
+        for i, proc in ipairs(processList) do
+            table.insert(procOptions, proc.name)
+            if uiState.selectedProcess == proc.name then
+                selectedProcIndex = i
             end
         end
 
         local procControls = {
+            ui.select({
+                options = procOptions,
+                selectedIndex = selectedProcIndex,
+                onChange = function(index, text)
+                    local idx = tonumber(index) or 0
+                    if idx > 0 and processList[idx] then
+                        uiState.selectedProcess = processList[idx].name
+                    else
+                        uiState.selectedProcess = ""
+                    end
+                    uiState.inputKey = uiState.inputKey + 1
+                    renderPanel()
+                end,
+            }),
             ui.input({
                 key = "proc-input-" .. uiState.inputKey,
                 value = uiState.selectedProcess,
-                placeholder = "Search app or type process (e.g. spotify, steam)",
+                placeholder = "Or type custom process name (e.g. spotify)",
                 onChange = function(val)
-                    uiState.selectedProcess = val or ""
-                    renderPanel()
+                    uiState.selectedProcess = val
                 end,
             }),
         }
 
-        if #procCards > 0 then
-            table.insert(procControls, chunkIntoGrid(procCards, 2))
-        elseif not isProcessesLoaded then
+        if not isProcessesLoaded then
             table.insert(procControls, ui.label({ text = noctalia.tr("panel.process-loading"), fontSize = 11, color = "on_surface_variant" }))
-        else
-            table.insert(procControls, ui.label({ text = noctalia.tr("panel.process-empty"), fontSize = 11, color = "on_surface_variant" }))
         end
 
         table.insert(items, section(noctalia.tr("panel.process-label"), ui.column({ gap = 8 }, procControls)))
@@ -480,47 +414,41 @@ end
 -- ── Root Panel Renderer ──────────────────────────────────────────────────────
 
 function renderPanel()
-    local ok, err = pcall(function()
-        local state = noctalia.state.get("sleepy.state") or { status = "IDLE", remaining = 0, duration = 0 }
-        local presets = noctalia.state.get("sleepy.presets") or {}
-        local processList = noctalia.state.get("sleepy.processes") or {}
-        local isProcessesLoaded = (noctalia.state.get("sleepy.processesLoaded") == true)
+    local state = noctalia.state.get("sleepy.state") or { status = "IDLE", remaining = 0, duration = 0 }
+    local presets = noctalia.state.get("sleepy.presets") or {}
+    local processList = noctalia.state.get("sleepy.processes") or {}
+    local isProcessesLoaded = (noctalia.state.get("sleepy.processesLoaded") == true)
 
-        local isRunning = (state.status == "RUNNING" or state.status == "PAUSED" or state.status == "WARNING")
+    local isRunning = (state.status == "RUNNING" or state.status == "PAUSED" or state.status == "WARNING")
 
-        -- Panel Header
-        local headerRow = ui.row({ align = "center", justify = "space_between", gap = 8 }, {
-            ui.row({ align = "center", gap = 8 }, {
-                ui.glyph({ name = "moon-stars", size = 20, color = "primary" }),
-                ui.label({ text = noctalia.tr("panel.title"), fontSize = 16, fontWeight = "bold", color = "on_surface" }),
-            }),
-            ui.button({
-                glyph = "close",
-                variant = "ghost",
-                onClick = function()
-                    panel.close()
-                end,
-            }),
-        })
+    -- Panel Header
+    local headerRow = ui.row({ align = "center", justify = "space_between", gap = 8 }, {
+        ui.row({ align = "center", gap = 8 }, {
+            ui.glyph({ name = "moon-stars", size = 20, color = "primary" }),
+            ui.label({ text = noctalia.tr("panel.title"), fontSize = 16, fontWeight = "bold", color = "on_surface" }),
+        }),
+        ui.button({
+            glyph = "close",
+            variant = "ghost",
+            onClick = function()
+                panel.close()
+            end,
+        }),
+    })
 
-        local content
-        if isRunning then
-            content = renderActiveView(state)
-        else
-            content = renderSetupView(presets, processList, isProcessesLoaded)
-        end
-
-        panel.render(
-            ui.column({ flexGrow = 1, gap = 12 }, {
-                headerRow,
-                content,
-            })
-        )
-    end)
-
-    if not ok and err then
-        noctalia.log("Sleepy Time panel render error: " .. tostring(err))
+    local content
+    if isRunning then
+        content = renderActiveView(state)
+    else
+        content = renderSetupView(presets, processList, isProcessesLoaded)
     end
+
+    panel.render(
+        ui.column({ flexGrow = 1, gap = 12 }, {
+            headerRow,
+            content,
+        })
+    )
 end
 
 -- ── Lifecycle & Event Listeners ──────────────────────────────────────────────

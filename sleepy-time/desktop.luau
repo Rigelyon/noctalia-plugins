@@ -53,7 +53,7 @@ local function renderDesktop()
     end
 
     local actName = noctalia.tr("action." .. (state.action or "lock"))
-    local glyphName = if isWarning then "alert-triangle" elseif isPaused then "clock-pause" else "clock"
+    local glyphName = if isWarning then "alert-triangle" elseif isPaused then "clock-pause" else "moon-stars"
     local timeText = state.formattedTime or "00:00"
 
     if cfg.compactMode then

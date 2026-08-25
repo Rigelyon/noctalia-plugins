@@ -83,7 +83,7 @@ local function renderWidget()
     end
 
     -- RUNNING / PAUSED / WARNING STATE
-    local glyph = "clock"
+    local glyph = "moon-stars"
     if isWarning then
         glyph = "alert-triangle"
     elseif isPaused then
