@@ -5,6 +5,16 @@ import unittest
 
 PLUGIN_DIR = os.path.join(os.path.dirname(__file__), "..", "unicode")
 
+
+def has_key_path(data, dotted_key):
+    cur = data
+    for part in dotted_key.split("."):
+        if not isinstance(cur, dict) or part not in cur:
+            return False
+        cur = cur[part]
+    return True
+
+
 class TestManifestTranslations(unittest.TestCase):
     def test_manifest_and_translations_match(self):
         manifest_path = os.path.join(PLUGIN_DIR, "plugin.toml")
@@ -32,12 +42,22 @@ class TestManifestTranslations(unittest.TestCase):
         # Check all label_key and description_key exist in translations
         for setting in manifest.get("setting", []):
             if "label_key" in setting:
-                self.assertIn(setting["label_key"], translations, f"Missing key: {setting['label_key']}")
+                self.assertTrue(
+                    has_key_path(translations, setting["label_key"]),
+                    f"Missing key: {setting['label_key']}",
+                )
             if "description_key" in setting:
-                self.assertIn(setting["description_key"], translations, f"Missing key: {setting['description_key']}")
+                self.assertTrue(
+                    has_key_path(translations, setting["description_key"]),
+                    f"Missing key: {setting['description_key']}",
+                )
             for opt in setting.get("options", []):
                 if "label_key" in opt:
-                    self.assertIn(opt["label_key"], translations, f"Missing key: {opt['label_key']}")
+                    self.assertTrue(
+                        has_key_path(translations, opt["label_key"]),
+                        f"Missing key: {opt['label_key']}",
+                    )
+
 
 if __name__ == "__main__":
     unittest.main()
