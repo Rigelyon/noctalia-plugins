@@ -62,13 +62,19 @@ class TestScratchpadPanel(unittest.TestCase):
         self.assertIn("ui.button(", content)
 
         # Check markdown toolbar actions
-        self.assertIn('text = "H"', content)
+        self.assertIn('text = "#"', content)
         self.assertIn('text = "B"', content)
         self.assertIn('text = "I"', content)
         self.assertIn('text = "[✓]"', content)
         self.assertIn('text = "</>"', content)
         self.assertIn('text = ">"', content)
         self.assertIn('text = "•"', content)
+
+        # Check action button ordering (Save before Copy)
+        floppy_pos = content.find('"device-floppy"')
+        copy_pos = content.find('"copy"')
+        self.assertTrue(floppy_pos > 0 and copy_pos > 0)
+        self.assertLess(floppy_pos, copy_pos, "Save button must come before Copy button")
 
         # Check 2-step clear confirmation and caching
         self.assertIn("pendingClear", content)
@@ -81,6 +87,12 @@ class TestScratchpadPanel(unittest.TestCase):
 
         # Check auto-archive configuration check
         self.assertIn('noctalia.getConfig("auto_archive")', content)
+
+        # Check rename state variables and functions
+        self.assertIn("commitRename(", content)
+        self.assertIn("renamingFile", content)
+        self.assertIn("renameInput", content)
+        self.assertIn("isEditingActiveTitle", content)
 
     def test_translation_keys_exist(self):
         en_path = os.path.join(PLUGIN_DIR, "translations", "en.json")
@@ -113,6 +125,13 @@ class TestScratchpadPanel(unittest.TestCase):
             "new_draft_tooltip",
             "note_saved",
             "scratchpad_subtitle",
+            "rename_note",
+            "rename_placeholder",
+            "confirm_rename",
+            "cancel",
+            "note_renamed",
+            "rename_empty_error",
+            "rename_exists_error",
         ]
         for key in required_keys:
             self.assertIn(key, en, f"Missing key in en.json: {key}")
@@ -198,12 +217,14 @@ class TestScratchpadPanel(unittest.TestCase):
         # Ensure note click in saved notes does not forcibly reset viewMode to edit
         # Search the onClick block of the note row
         self.assertIn("currentNoteFile = file", content)
-        self.assertNotIn('viewMode = "edit"\n            render()', content)
+        # Ensure active note banner was removed per user directive (clean scratchpad)
+        self.assertNotIn("noteBanner", content)
 
-        # Check note title banner and new draft action
-        self.assertIn("noteBanner", content)
-        self.assertIn("new_draft", content)
-        self.assertIn("getDraftHeading(", content)
+        # Check title bar rename action and inline renaming
+        self.assertIn("isEditingActiveTitle", content)
+        self.assertIn("header-rename-input", content)
+        self.assertIn("inline-rename-", content)
+        self.assertIn("commitRename(", content)
 
 
 if __name__ == "__main__":

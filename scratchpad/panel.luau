@@ -9,6 +9,9 @@ local currentNoteFile = nil   -- filename when viewing/editing an existing note 
 local searchQuery = ""
 local pendingDelete = nil     -- filename awaiting confirmation
 local pendingClear = nil      -- boolean awaiting clear confirmation
+local renamingFile = nil      -- filename awaiting rename
+local renameInput = ""        -- string for rename input field
+local isEditingActiveTitle = false -- boolean for renaming active note from header
 local noteContentCache = {}   -- filename -> content
 local lastBump = nil
 local pins = {}               -- filename -> true
@@ -153,6 +156,59 @@ local function generateArchiveName(content: string): string
   return name
 end
 
+local function commitRename(oldFile: string, newName: string): boolean
+  local sanitized = noctalia.string.trim(newName):gsub("[/%\\:*?\"<>|]", "")
+  sanitized = sanitized:gsub("^%.+", "")
+  sanitized = noctalia.string.trim(sanitized)
+  if #sanitized == 0 then
+    noctalia.notify(tr("title"), tr("rename_empty_error"))
+    return false
+  end
+  local newFile = sanitized .. suffix
+  if newFile == oldFile then
+    renamingFile = nil
+    isEditingActiveTitle = false
+    render()
+    return true
+  end
+  if noctalia.fileExists(notePath(newFile)) then
+    noctalia.notify(tr("title"), tr("rename_exists_error"))
+    return false
+  end
+
+  local renamed = false
+  if noctalia.renameFile ~= nil then
+    local ok = pcall(function()
+      renamed = noctalia.renameFile(notePath(oldFile), notePath(newFile))
+    end)
+    if not ok then renamed = false end
+  end
+  if not renamed then
+    local content = getNoteContent(oldFile)
+    noctalia.writeFile(notePath(newFile), content)
+    noctalia.removeFile(notePath(oldFile))
+  end
+
+  if pins[oldFile] then
+    pins[oldFile] = nil
+    pins[newFile] = true
+    savePins()
+  end
+
+  if currentNoteFile == oldFile then
+    currentNoteFile = newFile
+  end
+
+  noteContentCache = {}
+  renamingFile = nil
+  isEditingActiveTitle = false
+  noctalia.state.set("scratchpad_bump", noctalia.nowMs())
+  refreshFiles()
+  noctalia.notify(tr("title"), tr("note_renamed"))
+  render()
+  return true
+end
+
 local function archiveCurrentDraft()
   local trimmed = noctalia.string.trim(buffer)
   if #trimmed == 0 then
@@ -185,45 +241,75 @@ end
 
 local function renderTitleBar()
   local titleText = tr("title")
-  local subtitleText = nil
-
-  if activeTab == "scratchpad" then
-    if currentNoteFile ~= nil then
-      titleText = displayName(currentNoteFile)
-      subtitleText = tr("title") .. "  ·  " .. tr("editing_note")
-    else
-      local draftHeading = getDraftHeading(buffer)
-      if draftHeading ~= nil then
-        titleText = draftHeading
-        subtitleText = tr("title")
-      else
-        titleText = tr("title")
-        subtitleText = tr("scratchpad_subtitle")
-      end
-    end
-  else
-    titleText = tr("title")
-    subtitleText = tr("tab_saved_notes") .. " (" .. tostring(#files) .. ")"
+  if currentNoteFile ~= nil then
+    titleText = displayName(currentNoteFile)
   end
 
-  local leftContent = ui.row({ align = "center", gap = 8, flexGrow = 1 }, {
-    ui.glyph({ name = "notebook", size = 20, color = "primary" }),
-    ui.column({ gap = 1, flexGrow = 1 }, {
-      ui.label({
-        text = titleText,
-        fontSize = 15,
-        fontWeight = "bold",
-        color = "on_surface",
-        maxLines = 1,
-      }),
-      subtitleText and ui.label({
-        text = subtitleText,
-        fontSize = 11,
-        color = "on_surface_variant",
-        maxLines = 1,
-      }) or nil,
-    }),
-  })
+  local leftContent
+  if activeTab == "scratchpad" and currentNoteFile ~= nil then
+    if isEditingActiveTitle then
+      leftContent = ui.row({ align = "center", gap = 4, flexGrow = 1 }, {
+        ui.input({
+          key = "header-rename-input",
+          value = renameInput,
+          placeholder = tr("rename_placeholder"),
+          flexGrow = 1,
+          focus = true,
+          onChange = function(val)
+            renameInput = val
+          end,
+          onSubmit = function()
+            commitRename(currentNoteFile, renameInput)
+          end,
+        }),
+        ui.button({
+          glyph = "check",
+          variant = "primary",
+          tooltip = tr("confirm_rename"),
+          onClick = function()
+            commitRename(currentNoteFile, renameInput)
+          end,
+        }),
+        ui.button({
+          glyph = "x",
+          variant = "ghost",
+          tooltip = tr("cancel"),
+          onClick = function()
+            isEditingActiveTitle = false
+            render()
+          end,
+        }),
+      })
+    else
+      leftContent = ui.row({ align = "center", gap = 6, flexGrow = 1 }, {
+        ui.label({
+          text = titleText,
+          fontSize = 16,
+          fontWeight = "bold",
+          color = "on_surface",
+          maxLines = 1,
+        }),
+        ui.button({
+          glyph = "pencil",
+          variant = "ghost",
+          tooltip = tr("rename_note"),
+          onClick = function()
+            isEditingActiveTitle = true
+            renameInput = displayName(currentNoteFile)
+            render()
+          end,
+        }),
+      })
+    end
+  else
+    leftContent = ui.label({
+      text = titleText,
+      fontSize = 16,
+      fontWeight = "bold",
+      color = "on_surface",
+      maxLines = 1,
+    })
+  end
 
   local closeBtn = ui.button({
     glyph = "x",
@@ -234,7 +320,7 @@ local function renderTitleBar()
     end,
   })
 
-  return ui.row({ align = "center", justify = "space_between" }, {
+  return ui.row({ align = "center", justify = "space_between", gap = 8 }, {
     leftContent,
     closeBtn,
   })
@@ -248,6 +334,7 @@ local function renderTabBar()
       onClick = function()
         activeTab = "scratchpad"
         pendingClear = nil
+        renamingFile = nil
         render()
       end,
     }),
@@ -258,6 +345,8 @@ local function renderTabBar()
         activeTab = "saved_notes"
         pendingDelete = nil
         pendingClear = nil
+        renamingFile = nil
+        isEditingActiveTitle = false
         refreshFiles()
         render()
       end,
@@ -288,27 +377,6 @@ local function renderTabBar()
         end,
       }))
     else
-      -- If editing an opened note, provide a "New Draft" button
-      if currentNoteFile ~= nil then
-        table.insert(actions, ui.button({
-          glyph = "file-plus",
-          variant = "ghost",
-          tooltip = tr("new_draft_tooltip"),
-          onClick = function()
-            if #buffer > 0 then
-              noctalia.writeFile(notePath(currentNoteFile), buffer)
-            end
-            currentNoteFile = nil
-            buffer = ""
-            editorRev += 1
-            noteContentCache = {}
-            noctalia.state.set("scratchpad_bump", noctalia.nowMs())
-            refreshFiles()
-            render()
-          end,
-        }))
-      end
-
       -- View Toggle (Split View or Full Preview based on split_view setting)
       local isSplitSetting = (noctalia.getConfig("split_view") ~= false)
       local isViewActive = (viewMode == "preview" or viewMode == "split")
@@ -329,18 +397,6 @@ local function renderTabBar()
           render()
         end,
       }))
-      -- Copy All
-      table.insert(actions, ui.button({
-        glyph = "copy",
-        variant = "ghost",
-        tooltip = tr("copy_all"),
-        onClick = function()
-          if #buffer > 0 then
-            noctalia.copyToClipboard(buffer, "text/plain;charset=utf-8")
-            noctalia.notify(tr("title"), tr("copied_all"))
-          end
-        end,
-      }))
       -- Save Note
       table.insert(actions, ui.button({
         glyph = "device-floppy",
@@ -355,8 +411,29 @@ local function renderTabBar()
             noctalia.notify(tr("title"), tr("note_saved"))
             render()
           else
-            archiveCurrentDraft()
-            render()
+            local trimmed = noctalia.string.trim(buffer)
+            if #trimmed > 0 then
+              local name = generateArchiveName(buffer)
+              noctalia.writeFile(notePath(name), buffer)
+              currentNoteFile = name
+              noteContentCache[name] = buffer
+              noctalia.state.set("scratchpad_bump", noctalia.nowMs())
+              refreshFiles()
+              noctalia.notify(tr("title"), tr("note_saved"))
+              render()
+            end
+          end
+        end,
+      }))
+      -- Copy All
+      table.insert(actions, ui.button({
+        glyph = "copy",
+        variant = "ghost",
+        tooltip = tr("copy_all"),
+        onClick = function()
+          if #buffer > 0 then
+            noctalia.copyToClipboard(buffer, "text/plain;charset=utf-8")
+            noctalia.notify(tr("title"), tr("copied_all"))
           end
         end,
       }))
@@ -382,7 +459,7 @@ end
 local function renderToolbar()
   return ui.row({ gap = 4, align = "center" }, {
     ui.button({
-      text = "H",
+      text = "#",
       variant = "ghost",
       tooltip = tr("toolbar_heading"),
       onClick = function() insertMarkdownSyntax("\n# ") end,
@@ -430,47 +507,6 @@ local function renderScratchpadView()
   local words = select(2, buffer:gsub("%S+", ""))
   local chars = utf8.len(buffer) or #buffer
   local statusLine = tr("ready") .. "  ·  " .. tr("status_counts", { words = words, chars = chars })
-
-  local noteBanner = nil
-  if currentNoteFile ~= nil then
-    noteBanner = ui.row({
-      align = "center",
-      justify = "space_between",
-      padding = 6,
-      paddingH = 10,
-      radius = 6 * cornerRadiusScale,
-      fill = "surface",
-    }, {
-      ui.row({ gap = 8, align = "center", flexGrow = 1 }, {
-        ui.glyph({ name = "file-text", size = 15, color = "primary" }),
-        ui.label({
-          text = displayName(currentNoteFile),
-          fontSize = 13,
-          fontWeight = "bold",
-          color = "on_surface",
-          maxLines = 1,
-        }),
-      }),
-      ui.button({
-        glyph = "file-plus",
-        text = tr("new_draft"),
-        variant = "ghost",
-        tooltip = tr("new_draft_tooltip"),
-        onClick = function()
-          if #buffer > 0 then
-            noctalia.writeFile(notePath(currentNoteFile), buffer)
-          end
-          currentNoteFile = nil
-          buffer = ""
-          editorRev += 1
-          noteContentCache = {}
-          noctalia.state.set("scratchpad_bump", noctalia.nowMs())
-          refreshFiles()
-          render()
-        end,
-      }),
-    })
-  end
 
   local mainContent
   if viewMode == "split" then
@@ -542,19 +578,15 @@ local function renderScratchpadView()
     })
   end
 
-  local viewChildren = {}
-  if noteBanner ~= nil then
-    table.insert(viewChildren, noteBanner)
-  end
-  table.insert(viewChildren, renderToolbar())
-  table.insert(viewChildren, mainContent)
-  table.insert(viewChildren, ui.label({
-    text = statusLine,
-    fontSize = 11,
-    color = "on_surface_variant",
-  }))
-
-  return ui.column({ flexGrow = 1, gap = 8, align = "stretch" }, viewChildren)
+  return ui.column({ flexGrow = 1, gap = 8, align = "stretch" }, {
+    renderToolbar(),
+    mainContent,
+    ui.label({
+      text = statusLine,
+      fontSize = 11,
+      color = "on_surface_variant",
+    }),
+  })
 end
 
 local function renderSavedNotesView()
@@ -591,120 +623,176 @@ local function renderSavedNotesView()
     end
 
     if matched then
-      local isPinned = pins[file] == true
-      local rowActions = {}
-
-      if pendingDelete == file then
-        table.insert(rowActions, ui.label({ text = tr("confirm_delete"), color = "error" }))
-        table.insert(rowActions, ui.button({
-          glyph = "check",
-          variant = "primary",
-          tooltip = tr("confirm_delete"),
-          onClick = function()
-            noctalia.removeFile(notePath(file))
-            if pins[file] then
-              pins[file] = nil
-              savePins()
-            end
-            if currentNoteFile == file then
-              currentNoteFile = nil
-              buffer = ""
-              editorRev += 1
-            end
-            noteContentCache = {}
-            pendingDelete = nil
-            noctalia.state.set("scratchpad_bump", noctalia.nowMs())
-            refreshFiles()
-            render()
-          end,
-        }))
-        table.insert(rowActions, ui.button({
-          glyph = "x",
-          variant = "ghost",
-          tooltip = tr("close"),
-          onClick = function()
-            pendingDelete = nil
-            render()
-          end,
+      if renamingFile == file then
+        table.insert(rows, ui.row({
+          key = "rename-" .. file,
+          align = "center",
+          gap = 4,
+          padding = 6,
+          paddingH = 10,
+          radius = 6 * cornerRadiusScale,
+          fill = "surface",
+        }, {
+          ui.input({
+            key = "inline-rename-" .. file,
+            value = renameInput,
+            placeholder = tr("rename_placeholder"),
+            flexGrow = 1,
+            focus = true,
+            onChange = function(val)
+              renameInput = val
+            end,
+            onSubmit = function()
+              commitRename(file, renameInput)
+            end,
+          }),
+          ui.button({
+            glyph = "check",
+            variant = "primary",
+            tooltip = tr("confirm_rename"),
+            onClick = function()
+              commitRename(file, renameInput)
+            end,
+          }),
+          ui.button({
+            glyph = "x",
+            variant = "ghost",
+            tooltip = tr("cancel"),
+            onClick = function()
+              renamingFile = nil
+              render()
+            end,
+          }),
         }))
       else
-        -- Copy note content directly
-        table.insert(rowActions, ui.button({
-          glyph = "copy",
-          variant = "ghost",
-          tooltip = tr("copy_note"),
-          onClick = function()
-            local content = getNoteContent(file)
-            noctalia.copyToClipboard(content, "text/plain;charset=utf-8")
-            noctalia.notify(tr("title"), tr("copied_note"))
-          end,
-        }))
-        -- Pin / Unpin
-        table.insert(rowActions, ui.button({
-          glyph = isPinned and "pinned-off" or "pin",
-          variant = "ghost",
-          tooltip = isPinned and tr("unpin") or tr("pin"),
-          onClick = function()
-            pins[file] = not pins[file] and true or nil
-            savePins()
-            noctalia.state.set("scratchpad_bump", noctalia.nowMs())
-            refreshFiles()
-            render()
-          end,
-        }))
-        -- Delete
-        table.insert(rowActions, ui.button({
-          glyph = "trash",
-          variant = "ghost",
-          tooltip = tr("delete_note"),
-          onClick = function()
-            pendingDelete = file
-            render()
-          end,
-        }))
-      end
+        local isPinned = pins[file] == true
+        local rowActions = {}
 
-      local titleChildren = {
-        ui.label({
-          text = title,
-          maxLines = 1,
-          flexGrow = 1,
-          fontWeight = isPinned and "bold" or "normal",
-        }),
-      }
-      if isPinned then
-        table.insert(titleChildren, 1, ui.glyph({ name = "pinned", size = 14 }))
-      end
+        if pendingDelete == file then
+          table.insert(rowActions, ui.label({ text = tr("confirm_delete"), color = "error" }))
+          table.insert(rowActions, ui.button({
+            glyph = "check",
+            variant = "primary",
+            tooltip = tr("confirm_delete"),
+            onClick = function()
+              noctalia.removeFile(notePath(file))
+              if pins[file] then
+                pins[file] = nil
+                savePins()
+              end
+              if currentNoteFile == file then
+                currentNoteFile = nil
+                buffer = ""
+                editorRev += 1
+              end
+              noteContentCache = {}
+              pendingDelete = nil
+              noctalia.state.set("scratchpad_bump", noctalia.nowMs())
+              refreshFiles()
+              render()
+            end,
+          }))
+          table.insert(rowActions, ui.button({
+            glyph = "x",
+            variant = "ghost",
+            tooltip = tr("close"),
+            onClick = function()
+              pendingDelete = nil
+              render()
+            end,
+          }))
+        else
+          -- Copy note content directly
+          table.insert(rowActions, ui.button({
+            glyph = "copy",
+            variant = "ghost",
+            tooltip = tr("copy_note"),
+            onClick = function()
+              local content = getNoteContent(file)
+              noctalia.copyToClipboard(content, "text/plain;charset=utf-8")
+              noctalia.notify(tr("title"), tr("copied_note"))
+            end,
+          }))
+          -- Rename note
+          table.insert(rowActions, ui.button({
+            glyph = "pencil",
+            variant = "ghost",
+            tooltip = tr("rename_note"),
+            onClick = function()
+              renamingFile = file
+              renameInput = displayName(file)
+              pendingDelete = nil
+              render()
+            end,
+          }))
+          -- Pin / Unpin
+          table.insert(rowActions, ui.button({
+            glyph = isPinned and "pinned-off" or "pin",
+            variant = "ghost",
+            tooltip = isPinned and tr("unpin") or tr("pin"),
+            onClick = function()
+              pins[file] = not pins[file] and true or nil
+              savePins()
+              noctalia.state.set("scratchpad_bump", noctalia.nowMs())
+              refreshFiles()
+              render()
+            end,
+          }))
+          -- Delete
+          table.insert(rowActions, ui.button({
+            glyph = "trash",
+            variant = "ghost",
+            tooltip = tr("delete_note"),
+            onClick = function()
+              pendingDelete = file
+              renamingFile = nil
+              render()
+            end,
+          }))
+        end
 
-      table.insert(rows, ui.row({
-        key = "note-" .. file,
-        align = "center",
-        justify = "space_between",
-        padding = 6,
-        paddingH = 10,
-        radius = 6 * cornerRadiusScale,
-        fill = "surface",
-      }, {
-        ui.row({
-          flexGrow = 1,
-          gap = 6,
+        local titleChildren = {
+          ui.label({
+            text = title,
+            maxLines = 1,
+            flexGrow = 1,
+            fontWeight = isPinned and "bold" or "normal",
+          }),
+        }
+        if isPinned then
+          table.insert(titleChildren, 1, ui.glyph({ name = "pinned", size = 14 }))
+        end
+
+        table.insert(rows, ui.row({
+          key = "note-" .. file,
           align = "center",
-          onClick = function()
-            -- Protect active scratchpad draft before loading selected note
-            if #noctalia.string.trim(buffer) > 0 and currentNoteFile == nil then
-              archiveCurrentDraft()
-            end
-            -- Open note into Scratchpad
-            local content = getNoteContent(file)
-            buffer = content
-            currentNoteFile = file
-            editorRev += 1
-            activeTab = "scratchpad"
-            render()
-          end,
-        }, titleChildren),
-        ui.row({ gap = 4, align = "center" }, rowActions),
-      }))
+          justify = "space_between",
+          padding = 6,
+          paddingH = 10,
+          radius = 6 * cornerRadiusScale,
+          fill = "surface",
+        }, {
+          ui.row({
+            flexGrow = 1,
+            gap = 6,
+            align = "center",
+            onClick = function()
+              -- Protect active scratchpad draft before loading selected note
+              if #noctalia.string.trim(buffer) > 0 and currentNoteFile == nil then
+                archiveCurrentDraft()
+              end
+              -- Open note into Scratchpad
+              local content = getNoteContent(file)
+              buffer = content
+              currentNoteFile = file
+              editorRev += 1
+              activeTab = "scratchpad"
+              render()
+            end,
+          }, titleChildren),
+          ui.row({ gap = 4, align = "center" }, rowActions),
+        }))
+      end
     end
   end
 
@@ -766,6 +854,8 @@ function onOpen(_context)
   editorRev += 1
   pendingDelete = nil
   pendingClear = nil
+  renamingFile = nil
+  isEditingActiveTitle = false
   searchQuery = ""
   render()
 end

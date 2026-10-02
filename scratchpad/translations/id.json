@@ -42,6 +42,13 @@
   "new_draft_tooltip": "Mulai draf baru yang bersih",
   "note_saved": "Catatan disimpan",
   "scratchpad_subtitle": "Scratchpad Markdown Instan",
+  "rename_note": "Ubah judul catatan",
+  "rename_placeholder": "Judul catatan...",
+  "confirm_rename": "Simpan judul",
+  "cancel": "Batal",
+  "note_renamed": "Judul catatan diubah",
+  "rename_empty_error": "Judul tidak boleh kosong",
+  "rename_exists_error": "Catatan dengan judul ini sudah ada",
   "settings": {
     "notes_dir": {
       "label": "Direktori Catatan",

@@ -42,6 +42,13 @@
   "new_draft_tooltip": "Start a new clean draft",
   "note_saved": "Note saved",
   "scratchpad_subtitle": "Instant Markdown Scratchpad",
+  "rename_note": "Rename note",
+  "rename_placeholder": "Note title...",
+  "confirm_rename": "Save title",
+  "cancel": "Cancel",
+  "note_renamed": "Note renamed",
+  "rename_empty_error": "Title cannot be empty",
+  "rename_exists_error": "A note with this title already exists",
   "settings": {
     "notes_dir": {
       "label": "Notes Directory",
