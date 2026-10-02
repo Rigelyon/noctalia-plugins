@@ -120,7 +120,7 @@ local function searchUnicode(query, limit)
       matched = true
     elseif #tokens > 0 then
       matched = true
-      local nameUpper = name:upper()
+      local nameUpper = name
       local catUpper = cat:upper()
       for t = 1, #tokens do
         local tok = tokens[t]
