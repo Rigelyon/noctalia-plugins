@@ -196,6 +196,7 @@ local function renderHeader()
       table.insert(actions, ui.button({
         glyph = viewMode == "preview" and "edit" or "eye",
         variant = "ghost",
+        tooltip = (viewMode == "preview") and tr("toggle_edit") or tr("toggle_preview"),
         onClick = function()
           viewMode = (viewMode == "preview") and "edit" or "preview"
           render()
@@ -205,6 +206,7 @@ local function renderHeader()
       table.insert(actions, ui.button({
         glyph = "copy",
         variant = "ghost",
+        tooltip = tr("copy_all"),
         onClick = function()
           if #buffer > 0 then
             noctalia.copyToClipboard(buffer, "text/plain;charset=utf-8")
@@ -212,10 +214,11 @@ local function renderHeader()
           end
         end,
       }))
-      -- Archive / Save
+      -- Save Note
       table.insert(actions, ui.button({
-        glyph = "archive",
+        glyph = "device-floppy",
         variant = "ghost",
+        tooltip = tr("archive_note"),
         onClick = function()
           archiveCurrentDraft()
           render()
@@ -225,6 +228,7 @@ local function renderHeader()
       table.insert(actions, ui.button({
         glyph = "eraser",
         variant = "ghost",
+        tooltip = tr("clear"),
         onClick = function()
           pendingClear = true
           render()
@@ -236,6 +240,7 @@ local function renderHeader()
   table.insert(actions, ui.button({
     glyph = "x",
     variant = "ghost",
+    tooltip = tr("close"),
     onClick = function()
       panel.close()
     end,
@@ -252,36 +257,43 @@ local function renderToolbar()
     ui.button({
       text = "H",
       variant = "ghost",
+      tooltip = tr("toolbar_heading"),
       onClick = function() insertMarkdownSyntax("\n# ") end,
     }),
     ui.button({
       text = "B",
       variant = "ghost",
+      tooltip = tr("toolbar_bold"),
       onClick = function() insertMarkdownSyntax("**bold**") end,
     }),
     ui.button({
       text = "I",
       variant = "ghost",
+      tooltip = tr("toolbar_italic"),
       onClick = function() insertMarkdownSyntax("*italic*") end,
     }),
     ui.button({
       text = "[✓]",
       variant = "ghost",
+      tooltip = tr("toolbar_task"),
       onClick = function() insertMarkdownSyntax("\n- [ ] ") end,
     }),
     ui.button({
       text = "</>",
       variant = "ghost",
+      tooltip = tr("toolbar_code"),
       onClick = function() insertMarkdownSyntax("\n```\n", "\n```\n") end,
     }),
     ui.button({
       text = ">",
       variant = "ghost",
+      tooltip = tr("toolbar_quote"),
       onClick = function() insertMarkdownSyntax("\n> ") end,
     }),
     ui.button({
       text = "•",
       variant = "ghost",
+      tooltip = tr("toolbar_bullet"),
       onClick = function() insertMarkdownSyntax("\n- ") end,
     }),
   })
@@ -365,6 +377,7 @@ local function renderSavedNotesView()
         table.insert(rowActions, ui.button({
           glyph = "check",
           variant = "primary",
+          tooltip = tr("confirm_delete"),
           onClick = function()
             noctalia.removeFile(notePath(file))
             if pins[file] then
@@ -386,6 +399,7 @@ local function renderSavedNotesView()
         table.insert(rowActions, ui.button({
           glyph = "x",
           variant = "ghost",
+          tooltip = tr("close"),
           onClick = function()
             pendingDelete = nil
             render()
@@ -396,6 +410,7 @@ local function renderSavedNotesView()
         table.insert(rowActions, ui.button({
           glyph = "copy",
           variant = "ghost",
+          tooltip = tr("copy_note"),
           onClick = function()
             local content = getNoteContent(file)
             noctalia.copyToClipboard(content, "text/plain;charset=utf-8")
@@ -406,6 +421,7 @@ local function renderSavedNotesView()
         table.insert(rowActions, ui.button({
           glyph = isPinned and "pinned-off" or "pin",
           variant = "ghost",
+          tooltip = isPinned and tr("unpin") or tr("pin"),
           onClick = function()
             pins[file] = not pins[file] and true or nil
             savePins()
@@ -418,6 +434,7 @@ local function renderSavedNotesView()
         table.insert(rowActions, ui.button({
           glyph = "trash",
           variant = "ghost",
+          tooltip = tr("delete_note"),
           onClick = function()
             pendingDelete = file
             render()
