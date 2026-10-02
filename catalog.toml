@@ -29,3 +29,29 @@ rev = "098a717199a8388c65f38d34c51e7673359c8ff2"
 plugin_api = 3
 version = "1.0.0"
 rev = "e586a0e57e32d99be138e3874bef6df56d9e4ca5"
+
+[[plugin]]
+id = "rigelyon/scratchpad"
+name = "Scratchpad"
+version = "1.0.0"
+updated_at = 1790930683
+added_at = 1790930683
+author = "rigelyon"
+license = "MIT"
+icon = "notebook"
+description = "Fast, private Markdown scratchpad with auto-archive, rendered preview, and note library."
+plugin_api = 28
+tags = ["productivity", "utility", "launcher", "panel", "privacy"]
+
+[[plugin]]
+id = "rigelyon/unicode"
+name = "Unicode"
+version = "1.0.0"
+updated_at = 1790918959
+added_at = 1790915071
+author = "rigelyon"
+license = "MIT"
+icon = "typography"
+description = "Fast Unicode character search and picker. Browse symbols, math, arrows, and copy characters or codepoints instantly."
+plugin_api = 28
+tags = ["launcher", "productivity", "utility"]
