@@ -35,6 +35,8 @@
   "recent_section": "Recent",
   "quick_capture_prompt": "Quick Capture to Scratchpad",
   "widget_tooltip": "Scratchpad · {count} notes",
+  "toggle_split": "Toggle Split View (Live Preview)",
+  "preview_section": "Live Preview",
   "settings": {
     "notes_dir": {
       "label": "Notes Directory",
@@ -47,6 +49,10 @@
     "auto_archive": {
       "label": "Auto-Archive on Close",
       "description": "Automatically saves scratchpad text as a note on close and clears the editor for maximum privacy."
+    },
+    "split_view": {
+      "label": "Split View (Live Preview)",
+      "description": "Show live rendered Markdown preview below the editor while typing."
     },
     "glyph": {
       "label": "Status Bar Icon"

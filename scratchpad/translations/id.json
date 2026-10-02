@@ -35,6 +35,8 @@
   "recent_section": "Terbaru",
   "quick_capture_prompt": "Simpan Cepat ke Scratchpad",
   "widget_tooltip": "Scratchpad · {count} catatan",
+  "toggle_split": "Tampilan Terpisah (Live Preview)",
+  "preview_section": "Pratinjau Langsung",
   "settings": {
     "notes_dir": {
       "label": "Direktori Catatan",
@@ -47,6 +49,10 @@
     "auto_archive": {
       "label": "Auto-Arsip saat Ditutup",
       "description": "Otomatis mengarsipkan teks scratchpad saat panel ditutup dan mengosongkan editor demi privasi."
+    },
+    "split_view": {
+      "label": "Tampilan Terpisah (Live Preview)",
+      "description": "Tampilkan pratinjau Markdown langsung di bawah editor saat mengetik."
     },
     "glyph": {
       "label": "Ikon Status Bar"

@@ -192,10 +192,20 @@ local function renderHeader()
         end,
       }))
     else
+      -- Split View Toggle
+      table.insert(actions, ui.button({
+        glyph = "layout-rows",
+        variant = (viewMode == "split") and "primary" or "ghost",
+        tooltip = tr("toggle_split"),
+        onClick = function()
+          viewMode = (viewMode == "split") and "edit" or "split"
+          render()
+        end,
+      }))
       -- Preview / Edit Toggle
       table.insert(actions, ui.button({
         glyph = viewMode == "preview" and "edit" or "eye",
-        variant = "ghost",
+        variant = (viewMode == "preview") and "primary" or "ghost",
         tooltip = (viewMode == "preview") and tr("toggle_edit") or tr("toggle_preview"),
         onClick = function()
           viewMode = (viewMode == "preview") and "edit" or "preview"
@@ -305,8 +315,58 @@ local function renderScratchpadView()
   local statusLine = tr("ready") .. "  ·  " .. tr("status_counts", { words = words, chars = chars })
 
   local mainContent
-  if viewMode == "preview" then
-    mainContent = ui.scroll({ flexGrow = 1, padding = 8 }, {
+  if viewMode == "split" then
+    local editorBox = ui.input({
+      key = "editor-" .. editorRev,
+      value = buffer,
+      multiline = true,
+      focus = true,
+      flexGrow = 1,
+      placeholder = tr("editor_placeholder"),
+      onChange = function(val)
+        buffer = val
+        -- Re-render live preview on edit in split view
+        render()
+      end,
+    })
+
+    local previewBox = ui.column({
+      flexGrow = 1,
+      gap = 4,
+      align = "stretch",
+    }, {
+      ui.label({
+        text = tr("preview_section"),
+        fontSize = 11,
+        fontWeight = "bold",
+        color = "on_surface_variant",
+      }),
+      ui.scroll({
+        flexGrow = 1,
+        padding = 8,
+        fill = "surface",
+        radius = 6 * cornerRadiusScale,
+      }, {
+        ui.markdown({ text = buffer ~= "" and buffer or "*Empty draft*" }),
+      }),
+    })
+
+    mainContent = ui.column({ flexGrow = 1, gap = 6, align = "stretch" }, {
+      editorBox,
+      ui.separator({}),
+      previewBox,
+    })
+  elseif viewMode == "preview" then
+    mainContent = ui.scroll({
+      flexGrow = 1,
+      padding = 8,
+      fill = "surface",
+      radius = 6 * cornerRadiusScale,
+      onClick = function()
+        viewMode = "edit"
+        render()
+      end,
+    }, {
       ui.markdown({ text = buffer ~= "" and buffer or "*Empty draft*" }),
     })
   else
@@ -319,7 +379,6 @@ local function renderScratchpadView()
       placeholder = tr("editor_placeholder"),
       onChange = function(val)
         buffer = val
-        -- Note: avoid heavy re-render every character to protect CPU budget
       end,
     })
   end
@@ -519,6 +578,8 @@ function onOpen(_context)
   loadPins()
   refreshFiles()
 
+  local defaultView = (noctalia.getConfig("split_view") == true) and "split" or "edit"
+
   -- Check if launched with a target file from launcher
   local target = noctalia.state.get("scratchpad_open_file")
   if type(target) == "string" and target ~= "" then
@@ -527,13 +588,13 @@ function onOpen(_context)
     buffer = content
     currentNoteFile = target
     activeTab = "scratchpad"
-    viewMode = "edit"
+    viewMode = defaultView
   else
     -- Default: Always 100% clean and ready for instant paste (Privacy First)
     buffer = ""
     currentNoteFile = nil
     activeTab = "scratchpad"
-    viewMode = "edit"
+    viewMode = defaultView
   end
 
   editorRev += 1

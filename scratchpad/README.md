@@ -73,6 +73,7 @@ Access your notes directly from Noctalia's launcher:
 | `notes_dir` | `folder` | `~/Documents/Scratchpad` | Directory where markdown notes and pins are saved. |
 | `extension` | `string` | `md` | Note file extension without leading dot. |
 | `auto_archive` | `bool` | `true` | Automatically save draft on close to preserve privacy. |
+| `split_view` | `bool` | `false` | Enable live rendered Markdown preview below the editor while typing. |
 
 ### Bar Widget Settings
 
