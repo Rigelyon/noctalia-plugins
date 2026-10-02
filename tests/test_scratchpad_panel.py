@@ -1,0 +1,150 @@
+import json
+import os
+import re
+import unittest
+
+PLUGIN_DIR = os.path.join(os.path.dirname(__file__), "..", "scratchpad")
+PANEL_FILE = os.path.join(PLUGIN_DIR, "panel.luau")
+
+
+def simulate_generate_archive_name(
+    content: str,
+    existing_files: set[str],
+    suffix: str = ".md",
+    timestamp: str = "2026-10-02 12.00.00",
+) -> str:
+    trimmed = content.strip()
+    first_line = trimmed.splitlines()[0] if trimmed else ""
+    first_line = re.sub(r"^#+\s*", "", first_line)
+    first_line = re.sub(r'[/%\\:*?"<>|]', "", first_line)
+    first_line = first_line.strip()
+    if 0 < len(first_line) <= 40:
+        candidate = first_line + suffix
+        if candidate not in existing_files:
+            return candidate
+    base = timestamp
+    name = base + suffix
+    counter = 2
+    while name in existing_files:
+        name = f"{base} ({counter}){suffix}"
+        counter += 1
+    return name
+
+
+def simulate_filter_and_sort_notes(
+    files: list[str], pins: dict[str, bool], suffix: str = ".md"
+) -> list[str]:
+    valid_files = [
+        f
+        for f in files
+        if len(f) > len(suffix) and f.endswith(suffix) and not f.startswith(".")
+    ]
+    valid_files.sort(key=lambda x: (not pins.get(x, False), x))
+    return valid_files
+
+
+class TestScratchpadPanel(unittest.TestCase):
+    def test_panel_file_exists_and_callbacks_defined(self):
+        self.assertTrue(os.path.isfile(PANEL_FILE), "scratchpad/panel.luau must exist")
+        with open(PANEL_FILE, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # Check export lifecycle callbacks
+        self.assertIn("function onOpen(", content)
+        self.assertIn("function onClose()", content)
+
+        # Check UI rendering calls
+        self.assertIn("panel.render(", content)
+        self.assertIn("ui.markdown(", content)
+        self.assertIn("ui.input(", content)
+        self.assertIn("ui.scroll(", content)
+        self.assertIn("ui.button(", content)
+
+        # Check markdown toolbar actions
+        self.assertIn('text = "H"', content)
+        self.assertIn('text = "B"', content)
+        self.assertIn('text = "I"', content)
+        self.assertIn('text = "[✓]"', content)
+        self.assertIn('text = "</>"', content)
+        self.assertIn('text = ">"', content)
+        self.assertIn('text = "•"', content)
+
+        # Check inter-component state coordination
+        self.assertIn("scratchpad_bump", content)
+        self.assertIn("scratchpad_open_file", content)
+
+        # Check auto-archive configuration check
+        self.assertIn('noctalia.getConfig("auto_archive")', content)
+
+    def test_translation_keys_exist(self):
+        en_path = os.path.join(PLUGIN_DIR, "translations", "en.json")
+        id_path = os.path.join(PLUGIN_DIR, "translations", "id.json")
+
+        self.assertTrue(os.path.isfile(en_path))
+        self.assertTrue(os.path.isfile(id_path))
+
+        with open(en_path, "r", encoding="utf-8") as f:
+            en = json.load(f)
+        with open(id_path, "r", encoding="utf-8") as f:
+            id_lang = json.load(f)
+
+        required_keys = [
+            "title",
+            "tab_scratchpad",
+            "tab_saved_notes",
+            "editor_placeholder",
+            "search_placeholder",
+            "no_notes",
+            "no_search_results",
+            "ready",
+            "status_counts",
+            "copied_all",
+            "copied_note",
+            "confirm_delete",
+        ]
+        for key in required_keys:
+            self.assertIn(key, en, f"Missing key in en.json: {key}")
+            self.assertIn(key, id_lang, f"Missing key in id.json: {key}")
+
+        # Ensure parameterized status_counts contains expected tokens
+        self.assertIn("{words}", en["status_counts"])
+        self.assertIn("{chars}", en["status_counts"])
+        self.assertIn("{words}", id_lang["status_counts"])
+        self.assertIn("{chars}", id_lang["status_counts"])
+
+    def test_generate_archive_name_from_heading(self):
+        existing = {"Existing.md"}
+        name = simulate_generate_archive_name("# Shopping List\n- Milk\n- Apples", existing)
+        self.assertEqual(name, "Shopping List.md")
+
+    def test_generate_archive_name_sanitization(self):
+        existing = set()
+        name = simulate_generate_archive_name("Draft: Review / Plan * 2026?", existing)
+        self.assertEqual(name, "Draft Review  Plan  2026.md")
+
+    def test_generate_archive_name_fallback_on_empty_or_existing(self):
+        existing = {"Shopping List.md"}
+        name = simulate_generate_archive_name("# Shopping List", existing, timestamp="2026-10-02 12.00.00")
+        self.assertEqual(name, "2026-10-02 12.00.00.md")
+
+        # Collision with timestamp
+        existing.add("2026-10-02 12.00.00.md")
+        name2 = simulate_generate_archive_name("", existing, timestamp="2026-10-02 12.00.00")
+        self.assertEqual(name2, "2026-10-02 12.00.00 (2).md")
+
+    def test_filter_and_sort_notes_with_pins(self):
+        files = [
+            ".pinned.json",
+            "zebra.md",
+            "apple.md",
+            "pinned_beta.md",
+            "notes.txt",
+            ".hidden.md",
+        ]
+        pins = {"pinned_beta.md": True}
+        result = simulate_filter_and_sort_notes(files, pins)
+        self.assertEqual(result, ["pinned_beta.md", "apple.md", "zebra.md"])
+
+
+if __name__ == "__main__":
+    unittest.main()
