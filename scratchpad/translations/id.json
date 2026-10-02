@@ -49,6 +49,8 @@
   "note_renamed": "Judul catatan diubah",
   "rename_empty_error": "Judul tidak boleh kosong",
   "rename_exists_error": "Catatan dengan judul ini sudah ada",
+  "new_scratchpad": "Scratchpad Baru",
+  "new_scratchpad_desc": "Buka draf scratchpad baru untuk menulis",
   "settings": {
     "notes_dir": {
       "label": "Direktori Catatan",

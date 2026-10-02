@@ -49,6 +49,8 @@
   "note_renamed": "Note renamed",
   "rename_empty_error": "Title cannot be empty",
   "rename_exists_error": "A note with this title already exists",
+  "new_scratchpad": "New Scratchpad",
+  "new_scratchpad_desc": "Open a clean scratchpad to write",
   "settings": {
     "notes_dir": {
       "label": "Notes Directory",

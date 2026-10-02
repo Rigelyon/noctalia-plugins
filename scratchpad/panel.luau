@@ -838,7 +838,15 @@ function onOpen(_context)
 
   -- Check if launched with a target file from launcher
   local target = noctalia.state.get("scratchpad_open_file")
-  if type(target) == "string" and target ~= "" then
+  if target == "__new__" then
+    noctalia.state.set("scratchpad_open_file", "")
+    if #noctalia.string.trim(buffer) > 0 and currentNoteFile == nil then
+      archiveCurrentDraft()
+    end
+    buffer = ""
+    currentNoteFile = nil
+    activeTab = "scratchpad"
+  elseif type(target) == "string" and target ~= "" then
     noctalia.state.set("scratchpad_open_file", "")
     local content = getNoteContent(target)
     buffer = content

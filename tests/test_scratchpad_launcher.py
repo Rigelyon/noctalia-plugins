@@ -18,6 +18,13 @@ def simulate_launcher_results(query, notes, pinned_set):
             "subtitle": "Save immediately to Scratchpad",
             "glyph": "plus",
         })
+    else:
+        results.append({
+            "id": "new",
+            "title": "New Scratchpad",
+            "subtitle": "Open a clean scratchpad to write",
+            "glyph": "file-plus",
+        })
 
     matched_notes = []
     # Filter notes
@@ -65,9 +72,11 @@ class TestScratchpadLauncher(unittest.TestCase):
 
     def test_empty_query_lists_all(self):
         res = simulate_launcher_results("", self.notes, self.pinned)
-        self.assertEqual(len(res), 2)
-        self.assertEqual(res[0]["id"], "note:Project ideas.md")
-        self.assertEqual(res[0]["glyph"], "pinned")
+        self.assertEqual(len(res), 3)
+        self.assertEqual(res[0]["id"], "new")
+        self.assertEqual(res[0]["glyph"], "file-plus")
+        self.assertEqual(res[1]["id"], "note:Project ideas.md")
+        self.assertEqual(res[1]["glyph"], "pinned")
 
     def test_query_with_text_has_quick_capture(self):
         res = simulate_launcher_results("buy milk", self.notes, self.pinned)
@@ -85,10 +94,11 @@ class TestScratchpadLauncher(unittest.TestCase):
         ]
         pinned = {"Beta.md"}
         res = simulate_launcher_results("", notes, pinned)
-        self.assertEqual(res[0]["id"], "note:Beta.md")
-        self.assertEqual(res[0]["glyph"], "pinned")
-        self.assertEqual(res[1]["id"], "note:Alpha.md")
-        self.assertEqual(res[2]["id"], "note:Gamma.md")
+        self.assertEqual(res[0]["id"], "new")
+        self.assertEqual(res[1]["id"], "note:Beta.md")
+        self.assertEqual(res[1]["glyph"], "pinned")
+        self.assertEqual(res[2]["id"], "note:Alpha.md")
+        self.assertEqual(res[3]["id"], "note:Gamma.md")
 
     def test_translation_keys_exist(self):
         en_path = os.path.join(PLUGIN_DIR, "translations", "en.json")
@@ -110,6 +120,8 @@ class TestScratchpadLauncher(unittest.TestCase):
             "tab_saved_notes",
             "title",
             "note_archived",
+            "new_scratchpad",
+            "new_scratchpad_desc",
         ]
         for key in required_keys:
             self.assertIn(key, en, f"Missing key in en.json: {key}")
@@ -125,6 +137,8 @@ class TestScratchpadLauncher(unittest.TestCase):
         self.assertIn("launcher.setResults(", content)
         self.assertIn('capture:', content)
         self.assertIn('note:', content)
+        self.assertIn('id == "new"', content)
+        self.assertIn('new_scratchpad', content)
         self.assertIn('recent_section', content)
         self.assertIn('noteContentCache', content)
         self.assertIn('noctalia.fileExists', content)

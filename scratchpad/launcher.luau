@@ -71,6 +71,13 @@ function onQuery(query: string)
       subtitle = tr("archive_note"),
       glyph = "plus",
     })
+  else
+    table.insert(results, {
+      id = "new",
+      title = tr("new_scratchpad"),
+      subtitle = tr("new_scratchpad_desc"),
+      glyph = "file-plus",
+    })
   end
 
   local list = noctalia.listDir(notesDir)
@@ -129,6 +136,12 @@ function onQuery(query: string)
 end
 
 function onActivate(id: string)
+  if id == "new" then
+    noctalia.state.set("scratchpad_open_file", "__new__")
+    noctalia.togglePanel("rigelyon/scratchpad:panel")
+    return
+  end
+
   if id:sub(1, 8) == "capture:" then
     local content = id:sub(9)
     local notesDir = getNotesDir()
