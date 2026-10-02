@@ -1,0 +1,50 @@
+id = "rigelyon/unicode"
+name = "Unicode"
+version = "1.0.0"
+plugin_api = 28
+author = "rigelyon"
+license = "MIT"
+icon = "typography"
+description = "Fast Unicode character search and picker. Browse symbols, math, arrows, and copy characters or codepoints instantly."
+tags = ["launcher", "productivity", "utility"]
+dependencies = []
+
+# ── Global Settings ──────────────────────────────────────────────────────────
+
+[[setting]]
+key = "copy_format"
+type = "select"
+label_key = "settings.copy_format.label"
+description_key = "settings.copy_format.description"
+default = "character"
+options = [
+  { value = "character", label_key = "settings.copy_format.options.character" },
+  { value = "codepoint", label_key = "settings.copy_format.options.codepoint" },
+  { value = "both", label_key = "settings.copy_format.options.both" },
+]
+
+[[setting]]
+key = "notify_on_copy"
+type = "bool"
+label_key = "settings.notify_on_copy.label"
+description_key = "settings.notify_on_copy.description"
+default = true
+
+[[setting]]
+key = "max_results"
+type = "int"
+label_key = "settings.max_results.label"
+description_key = "settings.max_results.description"
+default = 30
+min = 10
+max = 100
+
+# ── Launcher Provider Entry ──────────────────────────────────────────────────
+
+[[launcher_provider]]
+id = "search"
+entry = "launcher.luau"
+prefix = "uni"
+glyph = "typography"
+debounce_ms = 80
+include_in_global_search = false

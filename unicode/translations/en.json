@@ -1,0 +1,11 @@
+{
+  "settings.copy_format.label": "Copy Format",
+  "settings.copy_format.description": "What to copy when activating a Unicode character result in the launcher.",
+  "settings.copy_format.options.character": "Character only (e.g. ©)",
+  "settings.copy_format.options.codepoint": "Code point only (e.g. U+00A9)",
+  "settings.copy_format.options.both": "Character and code point (e.g. © (U+00A9))",
+  "settings.notify_on_copy.label": "Notification on Copy",
+  "settings.notify_on_copy.description": "Show a toast notification when a character is copied to clipboard.",
+  "settings.max_results.label": "Maximum Results",
+  "settings.max_results.description": "Maximum number of search results to display in the launcher."
+}
