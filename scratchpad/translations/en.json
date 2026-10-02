@@ -1,0 +1,47 @@
+{
+  "title": "Scratchpad",
+  "tab_scratchpad": "Scratchpad",
+  "tab_saved_notes": "Saved Notes",
+  "editor_placeholder": "Type or paste Markdown here...",
+  "search_placeholder": "Search notes by title or content...",
+  "no_notes": "No saved notes yet",
+  "no_search_results": "No notes match your search",
+  "ready": "Ready",
+  "status_counts": "{words} words · {chars} chars",
+  "copied_all": "Copied scratchpad to clipboard",
+  "copied_note": "Copied note to clipboard",
+  "note_archived": "Archived note: {name}",
+  "toggle_preview": "Toggle Preview",
+  "toggle_edit": "Back to Editor",
+  "copy_all": "Copy All",
+  "archive_note": "Archive to Notes",
+  "clear": "Clear",
+  "clear_confirm": "Clear scratchpad?",
+  "confirm_delete": "Delete?",
+  "close": "Close",
+  "pin": "Pin note",
+  "unpin": "Unpin note",
+  "edit_note": "Open in Scratchpad",
+  "delete_note": "Delete note",
+  "pinned_section": "Pinned",
+  "recent_section": "Recent",
+  "quick_capture_prompt": "Quick Capture to Scratchpad",
+  "widget_tooltip": "Scratchpad · {count} notes",
+  "settings": {
+    "notes_dir": {
+      "label": "Notes Directory",
+      "description": "Folder where markdown notes and pins are saved."
+    },
+    "extension": {
+      "label": "File Extension",
+      "description": "File extension for notes without leading dot (default: md)."
+    },
+    "auto_archive": {
+      "label": "Auto-Archive on Close",
+      "description": "Automatically saves scratchpad text as a note on close and clears the editor for maximum privacy."
+    },
+    "glyph": {
+      "label": "Status Bar Icon"
+    }
+  }
+}

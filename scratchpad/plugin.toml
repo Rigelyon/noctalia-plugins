@@ -1,0 +1,56 @@
+id = "rigelyon/scratchpad"
+name = "Scratchpad"
+version = "1.0.0"
+plugin_api = 28
+author = "rigelyon"
+license = "MIT"
+dependencies = []
+tags = ["productivity", "utility", "launcher", "panel", "privacy"]
+icon = "notebook"
+description = "Fast, private Markdown scratchpad with auto-archive, rendered preview, and note library."
+
+[[setting]]
+key = "notes_dir"
+type = "folder"
+label_key = "settings.notes_dir.label"
+description_key = "settings.notes_dir.description"
+default = "~/Documents/Scratchpad"
+
+[[setting]]
+key = "extension"
+type = "string"
+label_key = "settings.extension.label"
+description_key = "settings.extension.description"
+default = "md"
+
+[[setting]]
+key = "auto_archive"
+type = "bool"
+label_key = "settings.auto_archive.label"
+description_key = "settings.auto_archive.description"
+default = true
+
+[[panel]]
+id = "panel"
+entry = "panel.luau"
+width = 460
+height = "fill"
+placement = "floating"
+position = "center_right"
+
+[[launcher_provider]]
+id = "launcher"
+entry = "launcher.luau"
+prefix = "sp"
+glyph = "notebook"
+include_in_global_search = false
+
+[[widget]]
+id = "scratchpad"
+entry = "widget.luau"
+
+  [[widget.setting]]
+  key = "glyph"
+  type = "glyph"
+  label_key = "settings.glyph.label"
+  default = "notebook"

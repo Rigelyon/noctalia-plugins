@@ -1,0 +1,47 @@
+{
+  "title": "Scratchpad",
+  "tab_scratchpad": "Scratchpad",
+  "tab_saved_notes": "Catatan Tersimpan",
+  "editor_placeholder": "Ketik atau tempel teks Markdown di sini...",
+  "search_placeholder": "Cari catatan berdasarkan judul atau isi...",
+  "no_notes": "Belum ada catatan tersimpan",
+  "no_search_results": "Tidak ada catatan yang cocok",
+  "ready": "Siap",
+  "status_counts": "{words} kata · {chars} karakter",
+  "copied_all": "Scratchpad berhasil disalin ke clipboard",
+  "copied_note": "Catatan berhasil disalin ke clipboard",
+  "note_archived": "Catatan diarsipkan: {name}",
+  "toggle_preview": "Tampilkan Pratinjau",
+  "toggle_edit": "Kembali ke Editor",
+  "copy_all": "Salin Semua",
+  "archive_note": "Arsipkan ke Catatan",
+  "clear": "Bersihkan",
+  "clear_confirm": "Bersihkan scratchpad?",
+  "confirm_delete": "Hapus?",
+  "close": "Tutup",
+  "pin": "Pin catatan",
+  "unpin": "Lepas pin catatan",
+  "edit_note": "Buka di Scratchpad",
+  "delete_note": "Hapus catatan",
+  "pinned_section": "Disematkan",
+  "recent_section": "Terbaru",
+  "quick_capture_prompt": "Simpan Cepat ke Scratchpad",
+  "widget_tooltip": "Scratchpad · {count} catatan",
+  "settings": {
+    "notes_dir": {
+      "label": "Direktori Catatan",
+      "description": "Folder tempat penyimpanan berkas markdown dan pin."
+    },
+    "extension": {
+      "label": "Ekstensi Berkas",
+      "description": "Ekstensi berkas catatan tanpa titik awalan (default: md)."
+    },
+    "auto_archive": {
+      "label": "Auto-Arsip saat Ditutup",
+      "description": "Otomatis mengarsipkan teks scratchpad saat panel ditutup dan mengosongkan editor demi privasi."
+    },
+    "glyph": {
+      "label": "Ikon Status Bar"
+    }
+  }
+}
