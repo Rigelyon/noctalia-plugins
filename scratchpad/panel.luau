@@ -3,7 +3,7 @@
 -- auto-archive on close for maximum privacy, and a saved notes library.
 
 local activeTab = "scratchpad" -- "scratchpad" | "saved_notes"
-local viewMode = "edit"       -- "edit" | "preview"
+local viewMode = nil           -- "edit" | "preview" | "split" (persisted)
 local buffer = ""
 local currentNoteFile = nil   -- filename when viewing/editing an existing note from library
 local searchQuery = ""
@@ -69,6 +69,45 @@ local function savePins()
   if encoded ~= nil then
     noctalia.writeFile(pinsPath(), encoded)
   end
+end
+
+local function statePath(): string
+  return notesDir .. "/.state.json"
+end
+
+local function loadState()
+  local raw = noctalia.readFile(statePath())
+  if raw ~= nil then
+    local decoded = noctalia.json.decode(raw)
+    if type(decoded) == "table" and type(decoded.viewMode) == "string" then
+      if decoded.viewMode == "edit" or decoded.viewMode == "split" or decoded.viewMode == "preview" then
+        viewMode = decoded.viewMode
+      end
+    end
+  end
+end
+
+local function saveState()
+  local encoded = noctalia.json.encode({
+    viewMode = viewMode,
+  })
+  if encoded ~= nil then
+    noctalia.writeFile(statePath(), encoded)
+  end
+end
+
+local function getDraftHeading(text: string): string?
+  local trimmed = noctalia.string.trim(text)
+  if #trimmed == 0 then return nil end
+  local firstLine = trimmed:match("^[^\r\n]+") or ""
+  local heading = firstLine:match("^#+%s*(.+)")
+  if heading and #heading > 0 then
+    heading = noctalia.string.trim(heading)
+    if #heading <= 50 then
+      return heading
+    end
+  end
+  return nil
 end
 
 local function refreshFiles()
@@ -144,7 +183,64 @@ end
 
 -- ── UI Components ─────────────────────────────────────────────────────────────
 
-local function renderHeader()
+local function renderTitleBar()
+  local titleText = tr("title")
+  local subtitleText = nil
+
+  if activeTab == "scratchpad" then
+    if currentNoteFile ~= nil then
+      titleText = displayName(currentNoteFile)
+      subtitleText = tr("title") .. "  ·  " .. tr("editing_note")
+    else
+      local draftHeading = getDraftHeading(buffer)
+      if draftHeading ~= nil then
+        titleText = draftHeading
+        subtitleText = tr("title")
+      else
+        titleText = tr("title")
+        subtitleText = tr("scratchpad_subtitle")
+      end
+    end
+  else
+    titleText = tr("title")
+    subtitleText = tr("tab_saved_notes") .. " (" .. tostring(#files) .. ")"
+  end
+
+  local leftContent = ui.row({ align = "center", gap = 8, flexGrow = 1 }, {
+    ui.glyph({ name = "notebook", size = 20, color = "primary" }),
+    ui.column({ gap = 1, flexGrow = 1 }, {
+      ui.label({
+        text = titleText,
+        fontSize = 15,
+        fontWeight = "bold",
+        color = "on_surface",
+        maxLines = 1,
+      }),
+      subtitleText and ui.label({
+        text = subtitleText,
+        fontSize = 11,
+        color = "on_surface_variant",
+        maxLines = 1,
+      }) or nil,
+    }),
+  })
+
+  local closeBtn = ui.button({
+    glyph = "x",
+    variant = "ghost",
+    tooltip = tr("close"),
+    onClick = function()
+      panel.close()
+    end,
+  })
+
+  return ui.row({ align = "center", justify = "space_between" }, {
+    leftContent,
+    closeBtn,
+  })
+end
+
+local function renderTabBar()
   local tabs = ui.row({ gap = 4, align = "center" }, {
     ui.button({
       text = tr("tab_scratchpad"),
@@ -192,6 +288,27 @@ local function renderHeader()
         end,
       }))
     else
+      -- If editing an opened note, provide a "New Draft" button
+      if currentNoteFile ~= nil then
+        table.insert(actions, ui.button({
+          glyph = "file-plus",
+          variant = "ghost",
+          tooltip = tr("new_draft_tooltip"),
+          onClick = function()
+            if #buffer > 0 then
+              noctalia.writeFile(notePath(currentNoteFile), buffer)
+            end
+            currentNoteFile = nil
+            buffer = ""
+            editorRev += 1
+            noteContentCache = {}
+            noctalia.state.set("scratchpad_bump", noctalia.nowMs())
+            refreshFiles()
+            render()
+          end,
+        }))
+      end
+
       -- View Toggle (Split View or Full Preview based on split_view setting)
       local isSplitSetting = (noctalia.getConfig("split_view") ~= false)
       local isViewActive = (viewMode == "preview" or viewMode == "split")
@@ -208,6 +325,7 @@ local function renderHeader()
           else
             viewMode = isSplitSetting and "split" or "preview"
           end
+          saveState()
           render()
         end,
       }))
@@ -229,8 +347,17 @@ local function renderHeader()
         variant = "ghost",
         tooltip = tr("archive_note"),
         onClick = function()
-          archiveCurrentDraft()
-          render()
+          if currentNoteFile ~= nil then
+            noctalia.writeFile(notePath(currentNoteFile), buffer)
+            noteContentCache[currentNoteFile] = buffer
+            noctalia.state.set("scratchpad_bump", noctalia.nowMs())
+            refreshFiles()
+            noctalia.notify(tr("title"), tr("note_saved"))
+            render()
+          else
+            archiveCurrentDraft()
+            render()
+          end
         end,
       }))
       -- Clear
@@ -245,15 +372,6 @@ local function renderHeader()
       }))
     end
   end
-
-  table.insert(actions, ui.button({
-    glyph = "x",
-    variant = "ghost",
-    tooltip = tr("close"),
-    onClick = function()
-      panel.close()
-    end,
-  }))
 
   return ui.row({ align = "center", justify = "space_between" }, {
     tabs,
@@ -313,6 +431,47 @@ local function renderScratchpadView()
   local chars = utf8.len(buffer) or #buffer
   local statusLine = tr("ready") .. "  ·  " .. tr("status_counts", { words = words, chars = chars })
 
+  local noteBanner = nil
+  if currentNoteFile ~= nil then
+    noteBanner = ui.row({
+      align = "center",
+      justify = "space_between",
+      padding = 6,
+      paddingH = 10,
+      radius = 6 * cornerRadiusScale,
+      fill = "surface",
+    }, {
+      ui.row({ gap = 8, align = "center", flexGrow = 1 }, {
+        ui.glyph({ name = "file-text", size = 15, color = "primary" }),
+        ui.label({
+          text = displayName(currentNoteFile),
+          fontSize = 13,
+          fontWeight = "bold",
+          color = "on_surface",
+          maxLines = 1,
+        }),
+      }),
+      ui.button({
+        glyph = "file-plus",
+        text = tr("new_draft"),
+        variant = "ghost",
+        tooltip = tr("new_draft_tooltip"),
+        onClick = function()
+          if #buffer > 0 then
+            noctalia.writeFile(notePath(currentNoteFile), buffer)
+          end
+          currentNoteFile = nil
+          buffer = ""
+          editorRev += 1
+          noteContentCache = {}
+          noctalia.state.set("scratchpad_bump", noctalia.nowMs())
+          refreshFiles()
+          render()
+        end,
+      }),
+    })
+  end
+
   local mainContent
   if viewMode == "split" then
     local editorBox = ui.input({
@@ -363,6 +522,7 @@ local function renderScratchpadView()
       radius = 6 * cornerRadiusScale,
       onClick = function()
         viewMode = "edit"
+        saveState()
         render()
       end,
     }, {
@@ -382,15 +542,19 @@ local function renderScratchpadView()
     })
   end
 
-  return ui.column({ flexGrow = 1, gap = 8, align = "stretch" }, {
-    renderToolbar(),
-    mainContent,
-    ui.label({
-      text = statusLine,
-      fontSize = 11,
-      color = "on_surface_variant",
-    }),
-  })
+  local viewChildren = {}
+  if noteBanner ~= nil then
+    table.insert(viewChildren, noteBanner)
+  end
+  table.insert(viewChildren, renderToolbar())
+  table.insert(viewChildren, mainContent)
+  table.insert(viewChildren, ui.label({
+    text = statusLine,
+    fontSize = 11,
+    color = "on_surface_variant",
+  }))
+
+  return ui.column({ flexGrow = 1, gap = 8, align = "stretch" }, viewChildren)
 end
 
 local function renderSavedNotesView()
@@ -536,7 +700,6 @@ local function renderSavedNotesView()
             currentNoteFile = file
             editorRev += 1
             activeTab = "scratchpad"
-            viewMode = "edit"
             render()
           end,
         }, titleChildren),
@@ -558,7 +721,8 @@ end
 
 render = function()
   panel.render(ui.column({ flexGrow = 1, gap = 12, align = "stretch" }, {
-    renderHeader(),
+    renderTitleBar(),
+    renderTabBar(),
     (activeTab == "scratchpad") and renderScratchpadView() or renderSavedNotesView(),
   }))
 end
@@ -575,9 +739,14 @@ function onOpen(_context)
   noteContentCache = {}
   noctalia.mkdirAll(notesDir)
   loadPins()
+  loadState()
   refreshFiles()
 
-  local defaultView = (noctalia.getConfig("split_view") == true) and "split" or "edit"
+  -- Initialize viewMode if not yet set (persists across open/close and sessions)
+  if viewMode == nil then
+    local isSplitSetting = (noctalia.getConfig("split_view") ~= false)
+    viewMode = isSplitSetting and "split" or "edit"
+  end
 
   -- Check if launched with a target file from launcher
   local target = noctalia.state.get("scratchpad_open_file")
@@ -587,13 +756,11 @@ function onOpen(_context)
     buffer = content
     currentNoteFile = target
     activeTab = "scratchpad"
-    viewMode = defaultView
   else
     -- Default: Always 100% clean and ready for instant paste (Privacy First)
     buffer = ""
     currentNoteFile = nil
     activeTab = "scratchpad"
-    viewMode = defaultView
   end
 
   editorRev += 1

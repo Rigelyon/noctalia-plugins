@@ -37,6 +37,11 @@
   "widget_tooltip": "Scratchpad · {count} catatan",
   "toggle_split": "Tampilan Terpisah (Live Preview)",
   "preview_section": "Pratinjau Langsung",
+  "editing_note": "Mengedit catatan",
+  "new_draft": "Draf Baru",
+  "new_draft_tooltip": "Mulai draf baru yang bersih",
+  "note_saved": "Catatan disimpan",
+  "scratchpad_subtitle": "Scratchpad Markdown Instan",
   "settings": {
     "notes_dir": {
       "label": "Direktori Catatan",

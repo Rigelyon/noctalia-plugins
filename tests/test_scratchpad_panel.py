@@ -108,6 +108,11 @@ class TestScratchpadPanel(unittest.TestCase):
             "copied_note",
             "clear_confirm",
             "confirm_delete",
+            "editing_note",
+            "new_draft",
+            "new_draft_tooltip",
+            "note_saved",
+            "scratchpad_subtitle",
         ]
         for key in required_keys:
             self.assertIn(key, en, f"Missing key in en.json: {key}")
@@ -169,6 +174,36 @@ class TestScratchpadPanel(unittest.TestCase):
         pins = {"pinned_beta.md": True}
         result = simulate_filter_and_sort_notes(files, pins)
         self.assertEqual(result, ["pinned_beta.md", "apple.md", "zebra.md"])
+
+    def test_view_state_persistence_and_title_display(self):
+        with open(PANEL_FILE, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # Check title bar and tab bar separation
+        self.assertIn("function renderTitleBar()", content)
+        self.assertIn("function renderTabBar()", content)
+        self.assertIn("renderTitleBar()", content)
+        self.assertIn("renderTabBar()", content)
+
+        # Check view state persistence (.state.json, loadState, saveState)
+        self.assertIn(".state.json", content)
+        self.assertIn("function loadState()", content)
+        self.assertIn("function saveState()", content)
+        self.assertIn("loadState()", content)
+
+        # Ensure viewMode is not unconditionally overwritten in onOpen
+        self.assertIn("if viewMode == nil then", content)
+        self.assertNotIn('viewMode = defaultView', content)
+
+        # Ensure note click in saved notes does not forcibly reset viewMode to edit
+        # Search the onClick block of the note row
+        self.assertIn("currentNoteFile = file", content)
+        self.assertNotIn('viewMode = "edit"\n            render()', content)
+
+        # Check note title banner and new draft action
+        self.assertIn("noteBanner", content)
+        self.assertIn("new_draft", content)
+        self.assertIn("getDraftHeading(", content)
 
 
 if __name__ == "__main__":

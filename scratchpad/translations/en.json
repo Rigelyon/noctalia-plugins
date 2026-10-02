@@ -37,6 +37,11 @@
   "widget_tooltip": "Scratchpad · {count} notes",
   "toggle_split": "Toggle Split View (Live Preview)",
   "preview_section": "Live Preview",
+  "editing_note": "Editing note",
+  "new_draft": "New Draft",
+  "new_draft_tooltip": "Start a new clean draft",
+  "note_saved": "Note saved",
+  "scratchpad_subtitle": "Instant Markdown Scratchpad",
   "settings": {
     "notes_dir": {
       "label": "Notes Directory",
