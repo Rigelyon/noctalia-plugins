@@ -192,23 +192,22 @@ local function renderHeader()
         end,
       }))
     else
-      -- Split View Toggle
+      -- View Toggle (Split View or Full Preview based on split_view setting)
+      local isSplitSetting = (noctalia.getConfig("split_view") ~= false)
+      local isViewActive = (viewMode == "preview" or viewMode == "split")
+      local viewGlyph = isViewActive and "edit" or (isSplitSetting and "layout-rows" or "eye")
+      local viewTooltip = isViewActive and tr("toggle_edit") or (isSplitSetting and tr("toggle_split") or tr("toggle_preview"))
+
       table.insert(actions, ui.button({
-        glyph = "layout-rows",
-        variant = (viewMode == "split") and "primary" or "ghost",
-        tooltip = tr("toggle_split"),
+        glyph = viewGlyph,
+        variant = isViewActive and "primary" or "ghost",
+        tooltip = viewTooltip,
         onClick = function()
-          viewMode = (viewMode == "split") and "edit" or "split"
-          render()
-        end,
-      }))
-      -- Preview / Edit Toggle
-      table.insert(actions, ui.button({
-        glyph = viewMode == "preview" and "edit" or "eye",
-        variant = (viewMode == "preview") and "primary" or "ghost",
-        tooltip = (viewMode == "preview") and tr("toggle_edit") or tr("toggle_preview"),
-        onClick = function()
-          viewMode = (viewMode == "preview") and "edit" or "preview"
+          if isViewActive then
+            viewMode = "edit"
+          else
+            viewMode = isSplitSetting and "split" or "preview"
+          end
           render()
         end,
       }))

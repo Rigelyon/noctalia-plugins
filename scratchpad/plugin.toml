@@ -35,7 +35,7 @@ key = "split_view"
 type = "bool"
 label_key = "settings.split_view.label"
 description_key = "settings.split_view.description"
-default = false
+default = true
 
 [[panel]]
 id = "panel"
