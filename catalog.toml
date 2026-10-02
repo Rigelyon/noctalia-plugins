@@ -11,7 +11,7 @@
 id = "rigelyon/sleepy-time"
 name = "Sleepy Time"
 version = "1.0.0"
-updated_at = 1787671119
+updated_at = 1787665699
 added_at = 1785000336
 author = "rigelyon"
 license = "MIT"
@@ -42,16 +42,3 @@ icon = "notebook"
 description = "Fast, private Markdown scratchpad with auto-archive, rendered preview, and note library."
 plugin_api = 28
 tags = ["productivity", "utility", "launcher", "panel", "privacy"]
-
-[[plugin]]
-id = "rigelyon/unicode"
-name = "Unicode"
-version = "1.0.0"
-updated_at = 1790918959
-added_at = 1790915071
-author = "rigelyon"
-license = "MIT"
-icon = "typography"
-description = "Fast Unicode character search and picker. Browse symbols, math, arrows, and copy characters or codepoints instantly."
-plugin_api = 28
-tags = ["launcher", "productivity", "utility"]

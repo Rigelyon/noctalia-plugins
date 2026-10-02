@@ -1,6 +1,9 @@
 --!nonstrict
 -- Launcher provider for Scratchpad (prefix 'sp').
 
+local noteContentCache: { [string]: string } = {}
+local lastBump: any = nil
+
 local function tr(key: string, subst: { [string]: any }?): string
   return noctalia.tr(key, subst)
 end
@@ -13,6 +16,16 @@ local function getExtension(): string
   local ext = noctalia.string.trim(tostring(noctalia.getConfig("extension") or "md")):gsub("^%.", "")
   if ext == "" then ext = "md" end
   return "." .. ext
+end
+
+local function getNoteContent(notesDir: string, file: string): string
+  local cached = noteContentCache[file]
+  if cached ~= nil then
+    return cached
+  end
+  local content = noctalia.readFile(notesDir .. "/" .. file) or ""
+  noteContentCache[file] = content
+  return content
 end
 
 local function loadPins(): { [string]: boolean }
@@ -39,6 +52,12 @@ local function sanitizeTitle(filename: string, suffix: string): string
 end
 
 function onQuery(query: string)
+  local currentBump = noctalia.state.get("scratchpad_bump")
+  if currentBump ~= lastBump then
+    lastBump = currentBump
+    noteContentCache = {}
+  end
+
   local trimmed = noctalia.string.trim(query)
   local notesDir = getNotesDir()
   local suffix = getExtension()
@@ -65,7 +84,7 @@ function onQuery(query: string)
           local qLower = trimmed:lower()
           local tLower = title:lower()
           if not tLower:find(qLower, 1, true) then
-            local contents = noctalia.readFile(notesDir .. "/" .. file) or ""
+            local contents = getNoteContent(notesDir, file)
             local cLower = contents:lower()
             if not cLower:find(qLower, 1, true) then
               local anyTokenMatch = false
@@ -101,7 +120,7 @@ function onQuery(query: string)
     table.insert(results, {
       id = "note:" .. file,
       title = sanitizeTitle(file, suffix),
-      subtitle = isPinned and tr("pinned_section") or tr("tab_saved_notes"),
+      subtitle = isPinned and tr("pinned_section") or tr("recent_section"),
       glyph = isPinned and "pinned" or "file-text",
     })
   end
@@ -115,8 +134,15 @@ function onActivate(id: string)
     local notesDir = getNotesDir()
     noctalia.mkdirAll(notesDir)
     local suffix = getExtension()
-    local name = noctalia.formatTime("%Y-%m-%d %H.%M.%S") .. suffix
+    local base = noctalia.formatTime("%Y-%m-%d %H.%M.%S")
+    local name = base .. suffix
+    local counter = 2
+    while noctalia.fileExists(notesDir .. "/" .. name) do
+      name = base .. " (" .. counter .. ")" .. suffix
+      counter += 1
+    end
     noctalia.writeFile(notesDir .. "/" .. name, content)
+    noteContentCache = {}
     noctalia.state.set("scratchpad_bump", noctalia.nowMs())
     noctalia.notify(tr("title"), tr("note_archived", { name = name }))
     return

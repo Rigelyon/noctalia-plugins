@@ -17,7 +17,8 @@ def simulate_generate_archive_name(
     first_line = trimmed.splitlines()[0] if trimmed else ""
     first_line = re.sub(r"^#+\s*", "", first_line)
     first_line = re.sub(r'[/%\\:*?"<>|]', "", first_line)
-    first_line = first_line.strip()
+    first_line = re.sub(r"^\.+", "", first_line).strip()
+    first_line = re.sub(r"^\.+", "", first_line).strip()
     if 0 < len(first_line) <= 40:
         candidate = first_line + suffix
         if candidate not in existing_files:
@@ -69,6 +70,11 @@ class TestScratchpadPanel(unittest.TestCase):
         self.assertIn('text = ">"', content)
         self.assertIn('text = "•"', content)
 
+        # Check 2-step clear confirmation and caching
+        self.assertIn("pendingClear", content)
+        self.assertIn("clear_confirm", content)
+        self.assertIn("noteContentCache", content)
+
         # Check inter-component state coordination
         self.assertIn("scratchpad_bump", content)
         self.assertIn("scratchpad_open_file", content)
@@ -100,6 +106,7 @@ class TestScratchpadPanel(unittest.TestCase):
             "status_counts",
             "copied_all",
             "copied_note",
+            "clear_confirm",
             "confirm_delete",
         ]
         for key in required_keys:
@@ -121,6 +128,24 @@ class TestScratchpadPanel(unittest.TestCase):
         existing = set()
         name = simulate_generate_archive_name("Draft: Review / Plan * 2026?", existing)
         self.assertEqual(name, "Draft Review  Plan  2026.md")
+
+        name_dot = simulate_generate_archive_name("# .env.local", existing)
+        self.assertEqual(name_dot, "env.local.md")
+
+        name_dots = simulate_generate_archive_name("...notes", existing)
+        self.assertEqual(name_dots, "notes.md")
+
+    def test_panel_draft_protection_and_delete_handling(self):
+        with open(PANEL_FILE, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # Draft protection before loading note
+        self.assertIn("archiveCurrentDraft()", content)
+        self.assertIn("currentNoteFile == nil", content)
+
+        # Editor reset on delete open note
+        self.assertIn("if currentNoteFile == file then", content)
+        self.assertIn('buffer = ""', content)
 
     def test_generate_archive_name_fallback_on_empty_or_existing(self):
         existing = {"Shopping List.md"}

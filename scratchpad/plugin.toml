@@ -43,6 +43,7 @@ id = "launcher"
 entry = "launcher.luau"
 prefix = "sp"
 glyph = "notebook"
+debounce_ms = 80
 include_in_global_search = false
 
 [[widget]]

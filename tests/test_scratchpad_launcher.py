@@ -106,6 +106,7 @@ class TestScratchpadLauncher(unittest.TestCase):
             "quick_capture_prompt",
             "archive_note",
             "pinned_section",
+            "recent_section",
             "tab_saved_notes",
             "title",
             "note_archived",
@@ -124,6 +125,9 @@ class TestScratchpadLauncher(unittest.TestCase):
         self.assertIn("launcher.setResults(", content)
         self.assertIn('capture:', content)
         self.assertIn('note:', content)
+        self.assertIn('recent_section', content)
+        self.assertIn('noteContentCache', content)
+        self.assertIn('noctalia.fileExists', content)
         self.assertIn('scratchpad_bump', content)
         self.assertIn('scratchpad_open_file', content)
         self.assertIn('noctalia.togglePanel("rigelyon/scratchpad:panel")', content)

@@ -51,6 +51,7 @@ class TestScratchpadManifest(unittest.TestCase):
         self.assertEqual(len(providers), 1)
         self.assertEqual(providers[0].get("prefix"), "sp")
         self.assertEqual(providers[0].get("entry"), "launcher.luau")
+        self.assertEqual(providers[0].get("debounce_ms"), 80)
 
         # Verify all setting translation keys in en and id
         for setting in manifest.get("setting", []):

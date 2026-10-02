@@ -8,6 +8,9 @@ local buffer = ""
 local currentNoteFile = nil   -- filename when viewing/editing an existing note from library
 local searchQuery = ""
 local pendingDelete = nil     -- filename awaiting confirmation
+local pendingClear = nil      -- boolean awaiting clear confirmation
+local noteContentCache = {}   -- filename -> content
+local lastBump = nil
 local pins = {}               -- filename -> true
 local files = {}
 local notesDir = ""
@@ -23,6 +26,16 @@ end
 
 local function notePath(file: string): string
   return notesDir .. "/" .. file
+end
+
+local function getNoteContent(file: string): string
+  local cached = noteContentCache[file]
+  if cached ~= nil then
+    return cached
+  end
+  local content = noctalia.readFile(notePath(file)) or ""
+  noteContentCache[file] = content
+  return content
 end
 
 local function displayName(file: string): string
@@ -81,6 +94,9 @@ local function generateArchiveName(content: string): string
   local trimmed = noctalia.string.trim(content)
   local firstLine = trimmed:match("^[^\r\n]+") or ""
   firstLine = firstLine:gsub("^#+%s*", ""):gsub("[/%\\:*?\"<>|]", "")
+  firstLine = firstLine:gsub("^%.+", "")
+  firstLine = noctalia.string.trim(firstLine)
+  firstLine = firstLine:gsub("^%.+", "")
   firstLine = noctalia.string.trim(firstLine)
   if #firstLine > 0 and #firstLine <= 40 then
     local candidate = firstLine .. suffix
@@ -114,6 +130,7 @@ local function archiveCurrentDraft()
   end
   buffer = ""
   editorRev += 1
+  noteContentCache = {}
   noctalia.state.set("scratchpad_bump", noctalia.nowMs())
   refreshFiles()
 end
@@ -134,6 +151,7 @@ local function renderHeader()
       variant = activeTab == "scratchpad" and "primary" or "ghost",
       onClick = function()
         activeTab = "scratchpad"
+        pendingClear = nil
         render()
       end,
     }),
@@ -143,6 +161,7 @@ local function renderHeader()
       onClick = function()
         activeTab = "saved_notes"
         pendingDelete = nil
+        pendingClear = nil
         refreshFiles()
         render()
       end,
@@ -151,46 +170,67 @@ local function renderHeader()
 
   local actions = {}
   if activeTab == "scratchpad" then
-    -- Preview / Edit Toggle
-    table.insert(actions, ui.button({
-      glyph = viewMode == "preview" and "edit" or "eye",
-      variant = "ghost",
-      onClick = function()
-        viewMode = (viewMode == "preview") and "edit" or "preview"
-        render()
-      end,
-    }))
-    -- Copy All
-    table.insert(actions, ui.button({
-      glyph = "copy",
-      variant = "ghost",
-      onClick = function()
-        if #buffer > 0 then
-          noctalia.copyToClipboard(buffer, "text/plain;charset=utf-8")
-          noctalia.notify(tr("title"), tr("copied_all"))
-        end
-      end,
-    }))
-    -- Archive / Save
-    table.insert(actions, ui.button({
-      glyph = "archive",
-      variant = "ghost",
-      onClick = function()
-        archiveCurrentDraft()
-        render()
-      end,
-    }))
-    -- Clear
-    table.insert(actions, ui.button({
-      glyph = "eraser",
-      variant = "ghost",
-      onClick = function()
-        buffer = ""
-        currentNoteFile = nil
-        editorRev += 1
-        render()
-      end,
-    }))
+    if pendingClear then
+      table.insert(actions, ui.label({ text = tr("clear_confirm"), color = "error" }))
+      table.insert(actions, ui.button({
+        glyph = "check",
+        variant = "primary",
+        onClick = function()
+          buffer = ""
+          currentNoteFile = nil
+          editorRev += 1
+          pendingClear = nil
+          render()
+        end,
+      }))
+      table.insert(actions, ui.button({
+        glyph = "x",
+        variant = "ghost",
+        onClick = function()
+          pendingClear = nil
+          render()
+        end,
+      }))
+    else
+      -- Preview / Edit Toggle
+      table.insert(actions, ui.button({
+        glyph = viewMode == "preview" and "edit" or "eye",
+        variant = "ghost",
+        onClick = function()
+          viewMode = (viewMode == "preview") and "edit" or "preview"
+          render()
+        end,
+      }))
+      -- Copy All
+      table.insert(actions, ui.button({
+        glyph = "copy",
+        variant = "ghost",
+        onClick = function()
+          if #buffer > 0 then
+            noctalia.copyToClipboard(buffer, "text/plain;charset=utf-8")
+            noctalia.notify(tr("title"), tr("copied_all"))
+          end
+        end,
+      }))
+      -- Archive / Save
+      table.insert(actions, ui.button({
+        glyph = "archive",
+        variant = "ghost",
+        onClick = function()
+          archiveCurrentDraft()
+          render()
+        end,
+      }))
+      -- Clear
+      table.insert(actions, ui.button({
+        glyph = "eraser",
+        variant = "ghost",
+        onClick = function()
+          pendingClear = true
+          render()
+        end,
+      }))
+    end
   end
 
   table.insert(actions, ui.button({
@@ -284,6 +324,12 @@ local function renderScratchpadView()
 end
 
 local function renderSavedNotesView()
+  local currentBump = noctalia.state.get("scratchpad_bump")
+  if currentBump ~= lastBump then
+    lastBump = currentBump
+    noteContentCache = {}
+  end
+
   local searchBar = ui.input({
     key = "search-input",
     value = searchQuery,
@@ -303,7 +349,7 @@ local function renderSavedNotesView()
     if queryLower ~= "" then
       local tLower = title:lower()
       if not tLower:find(queryLower, 1, true) then
-        local raw = noctalia.readFile(notePath(file)) or ""
+        local raw = getNoteContent(file)
         if not raw:lower():find(queryLower, 1, true) then
           matched = false
         end
@@ -325,6 +371,12 @@ local function renderSavedNotesView()
               pins[file] = nil
               savePins()
             end
+            if currentNoteFile == file then
+              currentNoteFile = nil
+              buffer = ""
+              editorRev += 1
+            end
+            noteContentCache = {}
             pendingDelete = nil
             noctalia.state.set("scratchpad_bump", noctalia.nowMs())
             refreshFiles()
@@ -345,7 +397,7 @@ local function renderSavedNotesView()
           glyph = "copy",
           variant = "ghost",
           onClick = function()
-            local content = noctalia.readFile(notePath(file)) or ""
+            local content = getNoteContent(file)
             noctalia.copyToClipboard(content, "text/plain;charset=utf-8")
             noctalia.notify(tr("title"), tr("copied_note"))
           end,
@@ -399,8 +451,12 @@ local function renderSavedNotesView()
           gap = 6,
           align = "center",
           onClick = function()
+            -- Protect active scratchpad draft before loading selected note
+            if #noctalia.string.trim(buffer) > 0 and currentNoteFile == nil then
+              archiveCurrentDraft()
+            end
             -- Open note into Scratchpad
-            local content = noctalia.readFile(notePath(file)) or ""
+            local content = getNoteContent(file)
             buffer = content
             currentNoteFile = file
             editorRev += 1
@@ -441,6 +497,7 @@ function onOpen(_context)
   if ext == "" then ext = "md" end
   suffix = "." .. ext
 
+  noteContentCache = {}
   noctalia.mkdirAll(notesDir)
   loadPins()
   refreshFiles()
@@ -449,7 +506,7 @@ function onOpen(_context)
   local target = noctalia.state.get("scratchpad_open_file")
   if type(target) == "string" and target ~= "" then
     noctalia.state.set("scratchpad_open_file", "")
-    local content = noctalia.readFile(notePath(target)) or ""
+    local content = getNoteContent(target)
     buffer = content
     currentNoteFile = target
     activeTab = "scratchpad"
@@ -464,6 +521,7 @@ function onOpen(_context)
 
   editorRev += 1
   pendingDelete = nil
+  pendingClear = nil
   searchQuery = ""
   render()
 end
