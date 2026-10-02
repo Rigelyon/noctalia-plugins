@@ -48,3 +48,43 @@ prefix = "uni"
 glyph = "typography"
 debounce_ms = 80
 include_in_global_search = false
+
+  [[launcher_provider.category]]
+  label = "Arrows"
+  glyph = "arrow-right"
+
+  [[launcher_provider.category]]
+  label = "Math"
+  glyph = "math-function"
+
+  [[launcher_provider.category]]
+  label = "Currency"
+  glyph = "currency-dollar"
+
+  [[launcher_provider.category]]
+  label = "Symbols"
+  glyph = "sparkles"
+
+  [[launcher_provider.category]]
+  label = "Box Drawing"
+  glyph = "box"
+
+  [[launcher_provider.category]]
+  label = "Typography"
+  glyph = "quote"
+
+  [[launcher_provider.category]]
+  label = "Numbers"
+  glyph = "numbers"
+
+  [[launcher_provider.category]]
+  label = "Letterlike"
+  glyph = "typography"
+
+  [[launcher_provider.category]]
+  label = "Greek"
+  glyph = "letter-case"
+
+  [[launcher_provider.category]]
+  label = "Latin"
+  glyph = "alphabet-latin"

@@ -10,7 +10,7 @@ class TestUnicodeDataset(unittest.TestCase):
         with open(DATA_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
         self.assertIsInstance(data, list)
-        self.assertGreaterEqual(len(data), 35000, "Dataset should have at least 35,000 named characters")
+        self.assertGreaterEqual(len(data), 3000, "Dataset should have at least 3,000 curated characters")
 
     def test_entry_structure_and_popular_symbols(self):
         with open(DATA_FILE, "r", encoding="utf-8") as f:

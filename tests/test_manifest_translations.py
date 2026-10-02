@@ -35,9 +35,20 @@ class TestManifestTranslations(unittest.TestCase):
 
         providers = manifest.get("launcher_provider", [])
         self.assertEqual(len(providers), 1)
-        self.assertEqual(providers[0].get("prefix"), "uni")
-        self.assertEqual(providers[0].get("debounce_ms"), 80)
-        self.assertEqual(providers[0].get("entry"), "launcher.luau")
+        prov = providers[0]
+        self.assertEqual(prov.get("prefix"), "uni")
+        self.assertEqual(prov.get("debounce_ms"), 80)
+        self.assertEqual(prov.get("entry"), "launcher.luau")
+
+        # Verify categories are declared
+        categories = prov.get("category", [])
+        self.assertGreaterEqual(len(categories), 5, "Should have native categories declared")
+        cat_labels = set()
+        for cat in categories:
+            self.assertIn("label", cat)
+            self.assertIn("glyph", cat)
+            self.assertNotIn(cat["label"], cat_labels, f"Duplicate category: {cat['label']}")
+            cat_labels.add(cat["label"])
 
         # Check all label_key and description_key exist in translations
         for setting in manifest.get("setting", []):
