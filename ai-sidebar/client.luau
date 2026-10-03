@@ -4,6 +4,7 @@ local anthropic = require("./providers/anthropic.luau")
 local gemini = require("./providers/gemini.luau")
 local custom = require("./providers/custom.luau")
 local context = require("./context.luau")
+local search = require("./search.luau")
 
 local client = {}
 
@@ -19,11 +20,36 @@ local function getProvider(name: string): any
   end
 end
 
-local function buildEnvironmentPrompt(baseSystemPrompt: string?): string
+local function buildEnvironmentPrompt(baseSystemPrompt: string?, searchContext: string?): string
   local timeStr = noctalia.formatTime("%Y-%m-%d %H:%M:%S")
   local envInfo = "\n\n[Environment Context: Current system time is " .. timeStr .. ", running on Noctalia Hyprland Shell inside custom Bazzite-DX image.]"
   local base = (baseSystemPrompt and baseSystemPrompt ~= "") and baseSystemPrompt or "You are a helpful and concise AI assistant."
-  return base .. envInfo
+  local prompt = base .. envInfo
+  if searchContext and searchContext ~= "" then
+    prompt = prompt .. "\n\n" .. searchContext
+  end
+  return prompt
+end
+
+function client.prepareSearchContext(query: string, config: any, callback: (searchContext: string?) -> ()): ()
+  if not (config and config.enable_web_search == true) then
+    callback(nil)
+    return
+  end
+
+  if config.active_provider == "gemini" and config.search_engine == "gemini_native" then
+    -- Native grounding handles retrieval directly
+    callback(nil)
+    return
+  end
+
+  search.performSearch(query, config, function(ok, contextBlock, _err)
+    if ok and contextBlock and contextBlock ~= "" then
+      callback(contextBlock)
+    else
+      callback(nil)
+    end
+  end)
 end
 
 function client.testConnection(providerName: string, config: any, callback: (ok: boolean, msg: string) -> ())
@@ -45,10 +71,11 @@ function client.streamChat(
   onChunk: (text: string) -> (),
   onError: (err: string) -> (),
   onDone: () -> (),
-  onStatus: ((status: string, attempt: number, maxRetries: number) -> ())?
+  onStatus: ((status: string, attempt: number, maxRetries: number) -> ())?,
+  searchContext: string?
 ): any
   local prov = getProvider(config.active_provider)
-  local augmentedPrompt = buildEnvironmentPrompt(config.system_prompt)
+  local augmentedPrompt = buildEnvironmentPrompt(config.system_prompt, searchContext)
   
   -- Prepare rolling context to prevent token overflows and context amnesia
   local contextMessages = context.prepareContext(messages, context.BUDGET_TOKENS or 4096, augmentedPrompt)

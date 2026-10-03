@@ -22,6 +22,12 @@ function gemini.buildChatRequest(messages: { Message }, systemPrompt: string, co
     }
   end
 
+  if config and config.enable_web_search == true and config.search_engine == "gemini_native" then
+    bodyObj.tools = {
+      { googleSearch = {} }
+    }
+  end
+
   local encoded, _ = noctalia.json.encode(bodyObj)
   local model = (config and config.gemini_model and config.gemini_model ~= "") and config.gemini_model or "gemini-1.5-flash"
   local apiKey = config and config.gemini_key or ""

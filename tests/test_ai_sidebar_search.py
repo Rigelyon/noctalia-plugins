@@ -123,6 +123,27 @@ class TestAiSidebarSearch(unittest.TestCase):
         self.assertGreaterEqual(len(items), 1)
         self.assertEqual(items[0]["title"], "Python")
 
+    def test_gemini_google_search_grounding_payload(self):
+        gemini_file = os.path.join(
+            os.path.dirname(__file__), "..", "ai-sidebar", "providers", "gemini.luau"
+        )
+        with open(gemini_file, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        self.assertIn("googleSearch", content)
+        self.assertIn("enable_web_search", content)
+
+    def test_client_search_integration(self):
+        client_file = os.path.join(
+            os.path.dirname(__file__), "..", "ai-sidebar", "client.luau"
+        )
+        with open(client_file, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        self.assertIn('require("./search.luau")', content)
+        self.assertIn("client.prepareSearchContext", content)
+
 
 if __name__ == "__main__":
     unittest.main()
+
