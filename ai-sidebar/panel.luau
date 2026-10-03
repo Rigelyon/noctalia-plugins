@@ -36,6 +36,7 @@ local startFreshOnOpen = false
 local showPromptPicker = false
 local hoveredPromptTag: string? = nil
 local hoveredSlashCmd: string? = nil
+local saveSuccess = false
 
 local render
 
@@ -1457,13 +1458,31 @@ local function renderSettingView()
 
   table.insert(scrollItems, ui.separator({}))
   table.insert(scrollItems, ui.button({
-    glyph = "device-floppy",
-    text = tr("save_settings"),
-    variant = "primary",
+    glyph = if saveSuccess then "check" else "device-floppy",
+    text = if saveSuccess then tr("settings_saved") else tr("save_settings"),
+    variant = if saveSuccess then "secondary" else "primary",
     onClick = function()
-      local ok = storage.saveConfig(config, true)
+      local ok = storage.saveConfig(config, false)
       if ok then
-        noctalia.notify(tr("title"), tr("settings_saved"))
+        saveSuccess = true
+        settingRev += 1
+        render()
+        pcall(function()
+          local ran = noctalia.runAsync({ "sleep", "2" }, function()
+            if saveSuccess then
+              saveSuccess = false
+              render()
+            end
+          end)
+          if not ran then
+            noctalia.runAsync("sleep 2", function()
+              if saveSuccess then
+                saveSuccess = false
+                render()
+              end
+            end)
+          end
+        end)
       else
         noctalia.notifyError(tr("title"), tr("settings_save_error"))
       end
@@ -1597,6 +1616,7 @@ function onOpen(_context)
   showApiKey = false
   showSearchApiKey = false
   isSearching = false
+  saveSuccess = false
   settingRev += 1
   render()
 end

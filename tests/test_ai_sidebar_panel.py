@@ -261,6 +261,7 @@ class TestAiSidebarPanel(unittest.TestCase):
         self.assertIn("search.isSlashSearch", content)
         self.assertIn("isSearching = true", content)
         self.assertIn("storage.saveConfig(config, true)", content)
+        self.assertIn("storage.saveConfig(config, false)", content)
 
 
 if __name__ == "__main__":
