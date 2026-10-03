@@ -9,6 +9,8 @@
   "clear_confirm": "Clear messages?",
   "send": "Send",
   "stop": "Stop",
+  "copy": "Copy Response",
+  "copied_to_clipboard": "Copied to clipboard",
   "input_placeholder": "Ask AI anything... (Enter to send, Shift+Enter for new line)",
   "welcome_title": "AI Assistant Ready",
   "welcome_subtitle": "Select a provider, enter your API key in Settings, and start chatting.",

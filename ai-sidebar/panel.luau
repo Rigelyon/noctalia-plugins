@@ -10,6 +10,8 @@ local currentSession = nil
 local config = nil
 
 local inputBuffer = ""
+local inputRev = 0
+local scrollRev = 0
 local historySearch = ""
 local isStreaming = false
 local streamHandle = nil
@@ -74,6 +76,8 @@ local function sendMessage()
   })
 
   inputBuffer = ""
+  inputRev += 1
+  scrollRev += 1
   isStreaming = true
   lastRenderMs = noctalia.nowMs()
   render()
@@ -89,6 +93,7 @@ local function sendMessage()
       -- Throttled UI update (>= 80ms) for CPU budget compliance
       if now - lastRenderMs >= 80 then
         lastRenderMs = now
+        scrollRev += 1
         render()
       end
     end,
@@ -98,12 +103,14 @@ local function sendMessage()
       streamHandle = nil
       assistantMsg.content = assistantMsg.content .. "\n\n**[" .. tr("error_title") .. ": " .. err .. "]**"
       storage.saveSessions(sessions)
+      scrollRev += 1
       render()
     end,
     function()
       isStreaming = false
       streamHandle = nil
       storage.saveSessions(sessions)
+      scrollRev += 1
       render()
     end
   )
@@ -131,14 +138,23 @@ local function renderChatView()
   else
     for _, msg in ipairs(currentSession.messages) do
       if msg.role == "user" then
-        table.insert(messageNodes, ui.row({ justify = "end" }, {
+        local timeStr = msg.timestamp and noctalia.formatTime("%H:%M", msg.timestamp) or ""
+        table.insert(messageNodes, ui.row({ justify = "end", align = "start" }, {
           ui.column({
-            fill = "surface_variant",
+            fill = "primary/0.2",
             radius = 12,
             padding = 10,
             paddingH = 14,
+            gap = 2,
           }, {
-            ui.label({ text = msg.content, selectable = true }),
+            ui.markdown({ text = msg.content }),
+            ui.row({ justify = "end" }, {
+              ui.label({
+                text = timeStr,
+                fontSize = 9,
+                color = "on_surface_variant",
+              }),
+            }),
           }),
         }))
       elseif msg.role == "assistant" then
@@ -146,14 +162,44 @@ local function renderChatView()
         if content == "" and isStreaming then
           content = "_" .. tr("status_typing") .. "_"
         end
-        table.insert(messageNodes, ui.row({ justify = "start" }, {
+        local providerTitle = config.active_provider:sub(1, 1):upper() .. config.active_provider:sub(2)
+        local timeStr = msg.timestamp and noctalia.formatTime("%H:%M", msg.timestamp) or ""
+        table.insert(messageNodes, ui.row({ justify = "start", align = "start" }, {
           ui.column({
-            fill = "surface",
+            fill = "surface_variant/0.25",
             radius = 12,
             padding = 10,
             paddingH = 14,
             flexGrow = 1,
+            gap = 6,
           }, {
+            ui.row({ gap = 6, align = "center", justify = "space_between" }, {
+              ui.row({ gap = 6, align = "center" }, {
+                ui.glyph({ name = "sparkles", size = 13, color = "primary" }),
+                ui.label({
+                  text = providerTitle,
+                  fontSize = 11,
+                  fontWeight = "bold",
+                  color = "primary",
+                }),
+                ui.label({
+                  text = "·  " .. timeStr,
+                  fontSize = 10,
+                  color = "on_surface_variant",
+                }),
+              }),
+              ui.button({
+                glyph = "copy",
+                variant = "ghost",
+                tooltip = tr("copy"),
+                onClick = function()
+                  if content ~= "" then
+                    noctalia.copyToClipboard(msg.content, "text/plain")
+                    noctalia.notify(tr("copied_to_clipboard"), "sparkles")
+                  end
+                end,
+              }),
+            }),
             ui.markdown({ text = content }),
           }),
         }))
@@ -180,6 +226,8 @@ local function renderChatView()
             currentSession.messages = {}
             storage.saveSessions(sessions)
           end
+          inputBuffer = ""
+          inputRev += 1
           pendingClear = false
           render()
         end,
@@ -213,10 +261,11 @@ local function renderChatView()
 
   local inputRow = ui.column({ gap = 6, align = "stretch" }, {
     ui.input({
-      key = "chat-input",
+      key = "chat-input-" .. inputRev,
       value = inputBuffer,
       placeholder = tr("input_placeholder"),
       multiline = true,
+      submitOnEnter = true,
       focus = true,
       height = 70,
       onChange = function(val)
@@ -237,7 +286,14 @@ local function renderChatView()
   })
 
   return ui.column({ flexGrow = 1, gap = 8, align = "stretch" }, {
-    ui.scroll({ flexGrow = 1, gap = 8, padding = 4 }, messageNodes),
+    ui.scroll({
+      flexGrow = 1,
+      gap = 10,
+      padding = 10,
+      paddingH = 12,
+      stickToBottom = true,
+      scrollToBottomRev = scrollRev,
+    }, messageNodes),
     ui.separator({}),
     inputRow,
   })
@@ -346,6 +402,8 @@ local function renderHistoryView()
         currentSession = storage.createSession(nil, config.active_provider, config[config.active_provider .. "_model"])
         table.insert(sessions, 1, currentSession)
         storage.saveSessions(sessions)
+        inputBuffer = ""
+        inputRev += 1
         activeTab = "chat"
         render()
       end,
@@ -503,6 +561,8 @@ render = function()
           currentSession = storage.createSession(nil, config.active_provider, config[config.active_provider .. "_model"])
           table.insert(sessions, 1, currentSession)
           storage.saveSessions(sessions)
+          inputBuffer = ""
+          inputRev += 1
           activeTab = "chat"
           render()
         end,

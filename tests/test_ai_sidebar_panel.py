@@ -70,6 +70,10 @@ class TestAiSidebarPanel(unittest.TestCase):
         self.assertNotIn("ui.box", content, "ui.box cannot have children in Noctalia, must use ui.column")
         self.assertIn("surface_variant", content)
         self.assertIn("chat-input", content)
+        self.assertIn("submitOnEnter", content, "Input must have submitOnEnter enabled for Enter-to-send UX")
+        self.assertIn("inputRev", content, "Input must use revision keying to clear native buffer after send")
+        self.assertIn("stickToBottom", content, "Chat scroll must stickToBottom")
+        self.assertIn("copyToClipboard", content, "Assistant card must have 1-click copy action")
 
     def test_history_view_components(self):
         self.assertTrue(os.path.isfile(PANEL_FILE), "Missing panel.luau")

@@ -9,6 +9,8 @@
   "clear_confirm": "Hapus percakapan?",
   "send": "Kirim",
   "stop": "Berhenti",
+  "copy": "Salin Balasan",
+  "copied_to_clipboard": "Tersalin ke clipboard",
   "input_placeholder": "Tanyakan apa saja ke AI... (Enter untuk kirim, Shift+Enter untuk baris baru)",
   "welcome_title": "AI Assistant Siap",
   "welcome_subtitle": "Pilih provider, isi API Key di Pengaturan, dan mulai percakapan.",
