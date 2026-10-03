@@ -614,7 +614,9 @@ local function renderChatView()
         padding = 3,
         paddingH = 6,
         radius = 4,
-        fill = isHovered and "surface_variant" or nil,
+        -- Always pass an explicit fill: omitting the prop (nil) does not clear a
+        -- previously-set fill when the node is reconciled, leaving rows stuck highlighted.
+        fill = isHovered and "surface_variant" or "surface_variant/0",
         onHover = function(state)
           if state == "true" or state == true then
             if hoveredPromptTag ~= p.tag then
@@ -657,8 +659,11 @@ local function renderChatView()
       padding = 4,
       gap = 2,
       align = "stretch",
-      onHover = function(state)
-        if (state == "false" or state == false) and hoveredPromptTag ~= nil then
+      -- Only the innermost hovered node reports, so the container only fires when the
+      -- pointer is in its padding/gaps (enter) or has left it entirely (leave). In both
+      -- cases no row is hovered.
+      onHover = function()
+        if hoveredPromptTag ~= nil then
           hoveredPromptTag = nil
           render()
         end

@@ -110,6 +110,19 @@ class TestAiSidebarPrompts(unittest.TestCase):
         self.assertIn('justify = "start"', content)
         self.assertIn("hoveredPromptTag", content)
 
+    def test_no_conditional_nil_ui_props(self):
+        # Noctalia's reconciler keeps a prop that is omitted, so `x and "a" or nil`
+        # never clears a previous value (caused stuck hover highlights).
+        panel_file = os.path.join(
+            os.path.dirname(__file__), "..", "ai-sidebar", "panel.luau"
+        )
+        with open(panel_file, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIsNone(
+            re.search(r"\b(fill|color|glyph|text)\s*=\s*[^,\n]*\bor nil\b", content),
+            "UI props must use an explicit fallback value, not `or nil`",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
