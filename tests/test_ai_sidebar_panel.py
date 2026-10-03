@@ -245,6 +245,15 @@ class TestAiSidebarPanel(unittest.TestCase):
         self.assertIn("role_assistant", content)
         self.assertIn('name = "user"', content)
 
+    def test_web_search_ui_components(self):
+        with open(PANEL_FILE, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        self.assertIn("enable_web_search", content)
+        self.assertIn("search_engine", content)
+        self.assertIn("search_max_results", content)
+        self.assertIn("status_searching_web", content)
+
 
 if __name__ == "__main__":
     unittest.main()

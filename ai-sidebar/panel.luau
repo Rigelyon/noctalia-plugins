@@ -19,6 +19,7 @@ local settingRev = 0
 local scrollRev = 0
 local historySearch = ""
 local isStreaming = false
+local isSearching = false
 local streamHandle = nil
 local lastRenderMs = 0
 local retryStatus = nil
@@ -29,6 +30,7 @@ local pendingDeleteSessionId = nil
 local pendingClear = false
 local testConnStatus = nil -- nil | "testing" | "success" | "error: <msg>"
 local showApiKey = false
+local showSearchApiKey = false
 local startFreshOnOpen = false
 local showPromptPicker = false
 local hoveredPromptTag: string? = nil
@@ -47,6 +49,7 @@ local function stopStreaming()
     streamHandle = nil
   end
   isStreaming = false
+  isSearching = false
   retryStatus = nil
   if currentSession and #currentSession.messages > 0 then
     storage.saveSessions(sessions)
@@ -105,15 +108,19 @@ local function sendMessage()
   retryStatus = nil
   lastRenderMs = noctalia.nowMs()
   local streamStartMs = noctalia.nowMs()
-  render()
-
   local assistantMsg = currentSession.messages[#currentSession.messages]
 
-  streamHandle = client.streamChat(
-    capped,
-    config,
-    function(chunk: string)
-      retryStatus = nil
+  local function beginStream(searchCtx: string?)
+    if not isStreaming then return end
+    isSearching = false
+    lastRenderMs = noctalia.nowMs()
+    render()
+
+    streamHandle = client.streamChat(
+      capped,
+      config,
+      function(chunk: string)
+        retryStatus = nil
       assistantMsg.content = assistantMsg.content .. chunk
       local now = noctalia.nowMs()
       -- Throttled UI update (>= 80ms) for CPU budget compliance
@@ -122,9 +129,9 @@ local function sendMessage()
         scrollRev += 1
         render()
       end
-    end,
-    function(err: string)
-      if not isStreaming then return end
+      end,
+      function(err: string)
+        if not isStreaming then return end
       isStreaming = false
       streamHandle = nil
       retryStatus = nil
@@ -132,9 +139,9 @@ local function sendMessage()
       storage.saveSessions(sessions)
       scrollRev += 1
       render()
-    end,
-    function()
-      isStreaming = false
+      end,
+      function()
+        isStreaming = false
       streamHandle = nil
       retryStatus = nil
 
@@ -173,13 +180,25 @@ local function sendMessage()
         end)
       end
     end,
-    function(status: string, attempt: number, maxRetries: number)
-      if status == "retrying" then
-        retryStatus = tr("status_retrying", { attempt = tostring(attempt), max = tostring(maxRetries) })
-        render()
-      end
-    end
-  )
+      function(status: string, attempt: number, maxRetries: number)
+        if status == "retrying" then
+          retryStatus = tr("status_retrying", { attempt = tostring(attempt), max = tostring(maxRetries) })
+          render()
+        end
+      end,
+      searchCtx
+    )
+  end
+
+  if config and config.enable_web_search == true and not (config.active_provider == "gemini" and config.search_engine == "gemini_native") then
+    isSearching = true
+    render()
+    client.prepareSearchContext(text, config, function(searchCtx)
+      beginStream(searchCtx)
+    end)
+  else
+    beginStream(nil)
+  end
 end
 
 local function regenerateResponse()
@@ -207,59 +226,75 @@ local function regenerateResponse()
   retryStatus = nil
   lastRenderMs = noctalia.nowMs()
   local streamStartMs = noctalia.nowMs()
-  render()
-
   local assistantMsg = currentSession.messages[#currentSession.messages]
 
-  streamHandle = client.streamChat(
-    capped,
-    config,
-    function(chunk: string)
-      retryStatus = nil
-      assistantMsg.content = assistantMsg.content .. chunk
-      local now = noctalia.nowMs()
-      if now - lastRenderMs >= 80 then
-        lastRenderMs = now
+  local function beginStream(searchCtx: string?)
+    if not isStreaming then return end
+    isSearching = false
+    lastRenderMs = noctalia.nowMs()
+    render()
+
+    streamHandle = client.streamChat(
+      capped,
+      config,
+      function(chunk: string)
+        retryStatus = nil
+        assistantMsg.content = assistantMsg.content .. chunk
+        local now = noctalia.nowMs()
+        if now - lastRenderMs >= 80 then
+          lastRenderMs = now
+          scrollRev += 1
+          render()
+        end
+      end,
+      function(err: string)
+        if not isStreaming then return end
+        isStreaming = false
+        streamHandle = nil
+        retryStatus = nil
+        assistantMsg.content = assistantMsg.content .. "\n\n**[" .. tr("error_title") .. ": " .. err .. "]**"
+        storage.saveSessions(sessions)
         scrollRev += 1
         render()
-      end
-    end,
-    function(err: string)
-      if not isStreaming then return end
-      isStreaming = false
-      streamHandle = nil
-      retryStatus = nil
-      assistantMsg.content = assistantMsg.content .. "\n\n**[" .. tr("error_title") .. ": " .. err .. "]**"
-      storage.saveSessions(sessions)
-      scrollRev += 1
-      render()
-    end,
-    function()
-      isStreaming = false
-      streamHandle = nil
-      retryStatus = nil
+      end,
+      function()
+        isStreaming = false
+        streamHandle = nil
+        retryStatus = nil
 
-      local durationMs = math.max(100, noctalia.nowMs() - streamStartMs)
-      local tokens = context.estimateTokens(assistantMsg.content)
-      local durationSec = durationMs / 1000
-      local tokensPerSec = math.round((tokens / durationSec) * 10) / 10
-      assistantMsg.metrics = {
-        tokens = tokens,
-        durationMs = durationMs,
-        tokensPerSec = tokensPerSec,
-      }
+        local durationMs = math.max(100, noctalia.nowMs() - streamStartMs)
+        local tokens = context.estimateTokens(assistantMsg.content)
+        local durationSec = durationMs / 1000
+        local tokensPerSec = math.round((tokens / durationSec) * 10) / 10
+        assistantMsg.metrics = {
+          tokens = tokens,
+          durationMs = durationMs,
+          tokensPerSec = tokensPerSec,
+        }
 
-      storage.saveSessions(sessions)
-      scrollRev += 1
-      render()
-    end,
-    function(status: string, attempt: number, maxRetries: number)
-      if status == "retrying" then
-        retryStatus = tr("status_retrying", { attempt = tostring(attempt), max = tostring(maxRetries) })
+        storage.saveSessions(sessions)
+        scrollRev += 1
         render()
-      end
-    end
-  )
+      end,
+      function(status: string, attempt: number, maxRetries: number)
+        if status == "retrying" then
+          retryStatus = tr("status_retrying", { attempt = tostring(attempt), max = tostring(maxRetries) })
+          render()
+        end
+      end,
+      searchCtx
+    )
+  end
+
+  if config and config.enable_web_search == true and not (config.active_provider == "gemini" and config.search_engine == "gemini_native") then
+    isSearching = true
+    render()
+    client.prepareSearchContext(lastUserMsg.content, config, function(searchCtx)
+      beginStream(searchCtx)
+    end)
+  else
+    beginStream(nil)
+  end
 end
 
 local function renderAssistantContent(content: string, msgIndex: number): { any }
@@ -425,7 +460,11 @@ local function renderChatView()
       elseif msg.role == "assistant" then
         local content = msg.content
         if content == "" and isStreaming then
-          content = "_" .. tr("status_typing") .. "_"
+          if isSearching then
+            content = "_" .. tr("status_searching_web") .. "_"
+          else
+            content = "_" .. tr("status_typing") .. "_"
+          end
         end
         local timeStr = msg.timestamp and noctalia.formatTime("%H:%M", msg.timestamp) or ""
         local isLastAssistant = (idx == #currentSession.messages)
@@ -717,7 +756,11 @@ local function renderChatView()
 
   local statusText: string
   if isStreaming then
-    statusText = retryStatus or tr("status_typing")
+    if isSearching then
+      statusText = tr("status_searching_web")
+    else
+      statusText = retryStatus or tr("status_typing")
+    end
   else
     local msgs = (currentSession and currentSession.messages) or {}
     local totalTokens = context.estimateTotalTokens(msgs)
@@ -1115,6 +1158,135 @@ local function renderSettingView()
     table.insert(scrollItems, testConnBanner)
   end
 
+  local engineOptions = {
+    tr("search_engine_ddg"),
+    tr("search_engine_gemini"),
+    tr("search_engine_tavily"),
+    tr("search_engine_brave"),
+  }
+  local engineIds = { "duckduckgo", "gemini_native", "tavily", "brave" }
+  local selectedEngineIndex = 0
+  for i, eid in ipairs(engineIds) do
+    if config.search_engine == eid then
+      selectedEngineIndex = i - 1
+      break
+    end
+  end
+
+  local engineDropdown = ui.select({
+    options = engineOptions,
+    items = engineOptions,
+    selectedIndex = selectedEngineIndex,
+    onChange = function(val)
+      local num = tonumber(val)
+      local chosenId = nil
+      if num ~= nil then
+        local idx = num + 1
+        chosenId = engineIds[idx]
+      elseif type(val) == "string" then
+        for i, eid in ipairs(engineIds) do
+          if eid == val or engineOptions[i] == val then
+            chosenId = eid
+            break
+          end
+        end
+      end
+      if chosenId and chosenId ~= config.search_engine then
+        config.search_engine = chosenId
+        settingRev += 1
+        render()
+      end
+    end,
+  })
+
+  local maxResultsOptions = {
+    tr("search_results_3"),
+    tr("search_results_5"),
+    tr("search_results_7"),
+  }
+  local maxResultsValues = { 3, 5, 7 }
+  local selectedMaxResultsIndex = 0
+  for i, mval in ipairs(maxResultsValues) do
+    if config.search_max_results == mval then
+      selectedMaxResultsIndex = i - 1
+      break
+    end
+  end
+
+  local maxResultsDropdown = ui.select({
+    options = maxResultsOptions,
+    items = maxResultsOptions,
+    selectedIndex = selectedMaxResultsIndex,
+    onChange = function(val)
+      local num = tonumber(val)
+      local chosenVal = nil
+      if num ~= nil then
+        local idx = num + 1
+        chosenVal = maxResultsValues[idx]
+      elseif type(val) == "string" then
+        for i, mval in ipairs(maxResultsValues) do
+          if tostring(mval) == val or maxResultsOptions[i] == val then
+            chosenVal = mval
+            break
+          end
+        end
+      end
+      if chosenVal and chosenVal ~= config.search_max_results then
+        config.search_max_results = chosenVal
+        settingRev += 1
+        render()
+      end
+    end,
+  })
+
+  table.insert(scrollItems, ui.separator({}))
+  table.insert(scrollItems, ui.row({ align = "center", justify = "space_between" }, {
+    ui.row({ gap = 8, align = "center" }, {
+      ui.glyph({ name = "world", size = 16, color = "primary" }),
+      ui.label({ text = tr("web_search_title"), fontSize = 13, fontWeight = "bold" }),
+    }),
+    ui.toggle({
+      value = config.enable_web_search,
+      onChange = function(val)
+        config.enable_web_search = val
+        render()
+      end,
+    }),
+  }))
+
+  if config.enable_web_search then
+    local searchItems = {
+      ui.label({ text = tr("search_engine"), fontSize = 12, fontWeight = "bold" }),
+      engineDropdown,
+    }
+    if config.search_engine == "tavily" or config.search_engine == "brave" then
+      table.insert(searchItems, ui.label({ text = tr("search_api_key"), fontSize = 12, fontWeight = "bold" }))
+      table.insert(searchItems, ui.row({ gap = 6, align = "center" }, {
+        ui.input({
+          flexGrow = 1,
+          key = "setting-search-key-" .. tostring(settingRev) .. "-" .. (showSearchApiKey and "vis" or "hid"),
+          value = config.search_api_key,
+          placeholder = (config.search_engine == "tavily" and "tvly-..." or "BSAE..."),
+          password = not showSearchApiKey,
+          onChange = function(v) config.search_api_key = v or "" end,
+        }),
+        ui.button({
+          glyph = showSearchApiKey and "eye-off" or "eye",
+          variant = "ghost",
+          tooltip = showSearchApiKey and tr("hide_api_key") or tr("show_api_key"),
+          onClick = function()
+            showSearchApiKey = not showSearchApiKey
+            render()
+          end,
+        }),
+      }))
+    end
+    table.insert(searchItems, ui.label({ text = tr("search_max_results"), fontSize = 12, fontWeight = "bold" }))
+    table.insert(searchItems, maxResultsDropdown)
+
+    table.insert(scrollItems, ui.column({ gap = 8, align = "stretch" }, searchItems))
+  end
+
   table.insert(scrollItems, ui.separator({}))
   table.insert(scrollItems, ui.button({
     glyph = "device-floppy",
@@ -1255,6 +1427,8 @@ function onOpen(_context)
   testConnStatus = nil
   historySearch = ""
   showApiKey = false
+  showSearchApiKey = false
+  isSearching = false
   settingRev += 1
   render()
 end
