@@ -1,5 +1,6 @@
 # Editor type definitions, fetched from official-plugins (see README).
 /noctalia.d.luau
 
-/.github/workflows/__pycache__
+/__pycache__/
+/**/__pycache__/
 /.worktrees

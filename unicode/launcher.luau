@@ -45,9 +45,8 @@ local db = nil
 local function row(code, char, name, cat)
   return {
     id = char .. "\t" .. code .. "\t" .. name,
-    title = char,
-    subtitle = name .. " • U+" .. code,
-    badge = "U+" .. code,
+    title = char .. "   " .. name,
+    subtitle = "U+" .. code .. " • " .. cat,
     glyph = CATEGORY_GLYPHS[cat] or "typography",
     category = cat,
   }
