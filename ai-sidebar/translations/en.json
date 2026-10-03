@@ -68,6 +68,7 @@
   "disabled": "Disabled",
   "web_search_on_hint": "Search the web before responding",
   "web_search_off_hint": "Search disabled, offline model knowledge only",
+  "web_search_slash_hint": "Trigger search anytime by typing /search in chat",
   "search_engine": "Search Engine",
   "search_engine_ddg": "DuckDuckGo (Free)",
   "search_engine_gemini": "Gemini Native (Google Search)",

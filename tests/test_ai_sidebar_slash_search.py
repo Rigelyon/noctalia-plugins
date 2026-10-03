@@ -51,5 +51,17 @@ class TestAiSidebarSlashSearch(unittest.TestCase):
         self.assertIn("client.prepareContextualSearch", content)
 
 
+    def test_panel_uses_prepare_contextual_search(self):
+        panel_file = os.path.join(
+            os.path.dirname(__file__), "..", "ai-sidebar", "panel.luau"
+        )
+        with open(panel_file, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn("client.prepareContextualSearch", content)
+        self.assertIn("search.isSlashSearch", content)
+        # Verify the persistent toggle in settings was removed
+        self.assertNotIn("tr(\"enable_web_search\")", content)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -7,6 +7,7 @@ local markdown = require("./markdown.luau")
 local export = require("./export.luau")
 local prompts = require("./prompts.luau")
 local context = require("./context.luau")
+local search = require("./search.luau")
 
 local activeTab = "chat" -- "chat" | "history" | "setting"
 local sessions = {}
@@ -190,7 +191,8 @@ local function sendMessage()
     )
   end
 
-  if config and config.enable_web_search == true and not (config.active_provider == "gemini" and config.search_engine == "gemini_native") then
+  local isSearch, _ = search.isSlashSearch(text)
+  if isSearch then
     isSearching = true
     render()
     local searchCompleted = false
@@ -201,17 +203,17 @@ local function sendMessage()
     end
 
     pcall(function()
-      local ran = noctalia.runAsync({ "sleep", "4" }, function()
+      local ran = noctalia.runAsync({ "sleep", "6" }, function()
         finishSearch(nil)
       end)
       if not ran then
-        noctalia.runAsync("sleep 4", function()
+        noctalia.runAsync("sleep 6", function()
           finishSearch(nil)
         end)
       end
     end)
 
-    client.prepareSearchContext(text, config, function(searchCtx)
+    client.prepareContextualSearch(text, capped, config, function(searchCtx)
       finishSearch(searchCtx)
     end)
   else
@@ -304,7 +306,8 @@ local function regenerateResponse()
     )
   end
 
-  if config and config.enable_web_search == true and not (config.active_provider == "gemini" and config.search_engine == "gemini_native") then
+  local isSearch, _ = search.isSlashSearch(lastUserMsg.content)
+  if isSearch then
     isSearching = true
     render()
     local searchCompleted = false
@@ -315,17 +318,17 @@ local function regenerateResponse()
     end
 
     pcall(function()
-      local ran = noctalia.runAsync({ "sleep", "4" }, function()
+      local ran = noctalia.runAsync({ "sleep", "6" }, function()
         finishSearch(nil)
       end)
       if not ran then
-        noctalia.runAsync("sleep 4", function()
+        noctalia.runAsync("sleep 6", function()
           finishSearch(nil)
         end)
       end
     end)
 
-    client.prepareSearchContext(lastUserMsg.content, config, function(searchCtx)
+    client.prepareContextualSearch(lastUserMsg.content, capped, config, function(searchCtx)
       finishSearch(searchCtx)
     end)
   else
@@ -1276,68 +1279,52 @@ local function renderSettingView()
   })
 
   table.insert(scrollItems, ui.separator({}))
-  table.insert(scrollItems, ui.row({
-    align = "center",
-    justify = "space_between",
-  }, {
-    ui.row({ gap = 8, align = "center" }, {
-      ui.glyph({
-        name = "world",
-        size = 16,
-        color = if config.enable_web_search then "primary" else "on_surface_variant",
-      }),
-      ui.column({ gap = 2 }, {
-        ui.label({ text = tr("web_search_title"), fontSize = 13, fontWeight = "bold" }),
-        ui.label({
-          text = if config.enable_web_search then tr("web_search_on_hint") else tr("web_search_off_hint"),
-          fontSize = 11,
-          color = "on_surface_variant",
-        }),
-      }),
+  table.insert(scrollItems, ui.row({ gap = 8, align = "center" }, {
+    ui.glyph({
+      name = "world",
+      size = 16,
+      color = "primary",
     }),
-    ui.button({
-      glyph = if config.enable_web_search then "toggle-right" else "toggle-left",
-      variant = if config.enable_web_search then "primary" else "ghost",
-      text = if config.enable_web_search then tr("enabled") else tr("disabled"),
-      onClick = function()
-        config.enable_web_search = not config.enable_web_search
-        render()
-      end,
+    ui.column({ gap = 2 }, {
+      ui.label({ text = tr("web_search_title") .. " (/search)", fontSize = 13, fontWeight = "bold" }),
+      ui.label({
+        text = tr("web_search_slash_hint") ~= "web_search_slash_hint" and tr("web_search_slash_hint") or "Type /search in chat for AI contextual search",
+        fontSize = 11,
+        color = "on_surface_variant",
+      }),
     }),
   }))
 
-  if config.enable_web_search then
-    local searchItems = {
-      ui.label({ text = tr("search_engine"), fontSize = 12, fontWeight = "bold" }),
-      engineDropdown,
-    }
-    if config.search_engine == "tavily" or config.search_engine == "brave" then
-      table.insert(searchItems, ui.label({ text = tr("search_api_key"), fontSize = 12, fontWeight = "bold" }))
-      table.insert(searchItems, ui.row({ gap = 6, align = "center" }, {
-        ui.input({
-          flexGrow = 1,
-          key = "setting-search-key-" .. tostring(settingRev) .. "-" .. (showSearchApiKey and "vis" or "hid"),
-          value = config.search_api_key,
-          placeholder = (config.search_engine == "tavily" and "tvly-..." or "BSAE..."),
-          password = not showSearchApiKey,
-          onChange = function(v) config.search_api_key = v or "" end,
-        }),
-        ui.button({
-          glyph = showSearchApiKey and "eye-off" or "eye",
-          variant = "ghost",
-          tooltip = showSearchApiKey and tr("hide_api_key") or tr("show_api_key"),
-          onClick = function()
-            showSearchApiKey = not showSearchApiKey
-            render()
-          end,
-        }),
-      }))
-    end
-    table.insert(searchItems, ui.label({ text = tr("search_max_results"), fontSize = 12, fontWeight = "bold" }))
-    table.insert(searchItems, maxResultsDropdown)
-
-    table.insert(scrollItems, ui.column({ gap = 8, align = "stretch" }, searchItems))
+  local searchItems = {
+    ui.label({ text = tr("search_engine"), fontSize = 12, fontWeight = "bold" }),
+    engineDropdown,
+  }
+  if config.search_engine == "tavily" or config.search_engine == "brave" then
+    table.insert(searchItems, ui.label({ text = tr("search_api_key"), fontSize = 12, fontWeight = "bold" }))
+    table.insert(searchItems, ui.row({ gap = 6, align = "center" }, {
+      ui.input({
+        flexGrow = 1,
+        key = "setting-search-key-" .. tostring(settingRev) .. "-" .. (showSearchApiKey and "vis" or "hid"),
+        value = config.search_api_key,
+        placeholder = (config.search_engine == "tavily" and "tvly-..." or "BSAE..."),
+        password = not showSearchApiKey,
+        onChange = function(v) config.search_api_key = v or "" end,
+      }),
+      ui.button({
+        glyph = showSearchApiKey and "eye-off" or "eye",
+        variant = "ghost",
+        tooltip = showSearchApiKey and tr("hide_api_key") or tr("show_api_key"),
+        onClick = function()
+          showSearchApiKey = not showSearchApiKey
+          render()
+        end,
+      }),
+    }))
   end
+  table.insert(searchItems, ui.label({ text = tr("search_max_results"), fontSize = 12, fontWeight = "bold" }))
+  table.insert(searchItems, maxResultsDropdown)
+
+  table.insert(scrollItems, ui.column({ gap = 8, align = "stretch" }, searchItems))
 
   table.insert(scrollItems, ui.separator({}))
   table.insert(scrollItems, ui.button({

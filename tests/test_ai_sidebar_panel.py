@@ -249,19 +249,17 @@ class TestAiSidebarPanel(unittest.TestCase):
         with open(PANEL_FILE, "r", encoding="utf-8") as f:
             content = f.read()
 
-        self.assertIn("enable_web_search", content)
         self.assertIn("search_engine", content)
         self.assertIn("search_max_results", content)
         self.assertIn("status_searching_web", content)
+        self.assertIn("client.prepareContextualSearch", content)
 
-    def test_web_search_toggle_button_and_save(self):
+    def test_web_search_slash_command_flow(self):
         with open(PANEL_FILE, "r", encoding="utf-8") as f:
             content = f.read()
 
-        # Toggle must use ui.button with toggle-right/left glyphs for native Noctalia compatibility
-        self.assertIn("toggle-right", content)
-        self.assertIn("toggle-left", content)
-        self.assertIn("config.enable_web_search = not config.enable_web_search", content)
+        self.assertIn("search.isSlashSearch", content)
+        self.assertIn("isSearching = true", content)
         self.assertIn("storage.saveConfig(config, true)", content)
 
 
