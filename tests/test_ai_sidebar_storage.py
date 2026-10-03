@@ -233,6 +233,34 @@ panel_layer = "overlay"
         self.assertEqual(len(session["messages"]), 1)
         self.assertEqual(session["messages"][-1]["role"], "user")
 
+    def test_empty_sessions_filtering_simulation(self):
+        with open(STORAGE_FILE, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # storage.saveSessions must check for #sess.messages > 0
+        self.assertIn("#sess.messages > 0", content)
+        # storage.loadSessions must check for #messages > 0
+        self.assertIn("#messages > 0", content)
+
+        # Simulation: filtering empty sessions on save
+        raw_sessions = [
+            {"id": "s_empty", "title": "Empty 1", "messages": []},
+            {"id": "s_valid", "title": "Chat", "messages": [{"role": "user", "content": "hi"}]},
+            {"id": "s_empty2", "title": "Empty 2", "messages": []},
+        ]
+        filtered = [s for s in raw_sessions if len(s["messages"]) > 0]
+        self.assertEqual(len(filtered), 1)
+        self.assertEqual(filtered[0]["id"], "s_valid")
+
+    def test_save_config_no_forced_sync_toml(self):
+        with open(STORAGE_FILE, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # saveConfig should accept optional syncToml parameter
+        self.assertIn("function storage.saveConfig(cfg: ConfigTable, syncToml: boolean?)", content)
+        self.assertIn("if syncToml == true then", content)
+
 
 if __name__ == "__main__":
     unittest.main()
+

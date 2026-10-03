@@ -61,6 +61,17 @@ local function sendMessage()
   if not currentSession then
     currentSession = storage.createSession(text, config.active_provider, config[config.active_provider .. "_model"])
     table.insert(sessions, 1, currentSession)
+  else
+    local exists = false
+    for _, s in ipairs(sessions) do
+      if s.id == currentSession.id then
+        exists = true
+        break
+      end
+    end
+    if not exists then
+      table.insert(sessions, 1, currentSession)
+    end
   end
 
   -- Add user message
@@ -523,6 +534,13 @@ local function renderChatView()
         variant = "primary",
         onClick = function()
           if currentSession then
+            local updated = {}
+            for _, s in ipairs(sessions) do
+              if s.id ~= currentSession.id then
+                table.insert(updated, s)
+              end
+            end
+            sessions = updated
             currentSession.messages = {}
             storage.saveSessions(sessions)
           end
@@ -749,15 +767,16 @@ local function renderHistoryView()
   local queryLower = noctalia.string.trim(historySearch):lower()
 
   for _, sess in ipairs(sessions) do
-    local matched = true
-    if queryLower ~= "" then
-      local tLower = sess.title:lower()
-      if not tLower:find(queryLower, 1, true) then
-        matched = false
+    if #sess.messages > 0 then
+      local matched = true
+      if queryLower ~= "" then
+        local tLower = sess.title:lower()
+        if not tLower:find(queryLower, 1, true) then
+          matched = false
+        end
       end
-    end
 
-    if matched then
+      if matched then
       local itemActions = {}
       if pendingDeleteSessionId == sess.id then
         table.insert(itemActions, ui.button({
@@ -834,8 +853,6 @@ local function renderHistoryView()
       variant = "primary",
       onClick = function()
         currentSession = storage.createSession(nil, config.active_provider, config[config.active_provider .. "_model"])
-        table.insert(sessions, 1, currentSession)
-        storage.saveSessions(sessions)
         inputBuffer = ""
         inputRev += 1
         activeTab = "chat"
@@ -1150,8 +1167,6 @@ render = function()
         tooltip = tr("new_chat"),
         onClick = function()
           currentSession = storage.createSession(nil, config.active_provider, config[config.active_provider .. "_model"])
-          table.insert(sessions, 1, currentSession)
-          storage.saveSessions(sessions)
           inputBuffer = ""
           inputRev += 1
           activeTab = "chat"
@@ -1247,6 +1262,9 @@ function onClose()
   if isStreaming then
     stopStreaming()
   end
+  pcall(function()
+    storage.syncToSettingsToml(config)
+  end)
 end
 
 function onConfigChanged()

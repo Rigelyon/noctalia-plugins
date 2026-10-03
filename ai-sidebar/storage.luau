@@ -236,10 +236,29 @@ function storage.loadConfig(): ConfigTable
   return cfg
 end
 
-function storage.saveConfig(cfg: ConfigTable): boolean
-  pcall(function()
-    storage.syncToSettingsToml(cfg)
-  end)
+function storage.saveConfig(cfg: ConfigTable, syncToml: boolean?): boolean
+  local n = noctalia :: any
+  if type(n.setConfig) == "function" then
+    pcall(function()
+      noctalia.setConfig("default_provider", cfg.active_provider)
+      noctalia.setConfig("openai_api_key", cfg.openai_key)
+      noctalia.setConfig("openai_model", cfg.openai_model)
+      noctalia.setConfig("anthropic_api_key", cfg.anthropic_key)
+      noctalia.setConfig("anthropic_model", cfg.anthropic_model)
+      noctalia.setConfig("gemini_api_key", cfg.gemini_key)
+      noctalia.setConfig("gemini_model", cfg.gemini_model)
+      noctalia.setConfig("custom_base_url", cfg.custom_base_url)
+      noctalia.setConfig("custom_api_key", cfg.custom_key)
+      noctalia.setConfig("custom_model", cfg.custom_model)
+      noctalia.setConfig("system_prompt", cfg.system_prompt)
+    end)
+  end
+
+  if syncToml == true then
+    pcall(function()
+      storage.syncToSettingsToml(cfg)
+    end)
+  end
 
   local encoded, _ = noctalia.json.encode(cfg, true)
   if encoded then
@@ -279,15 +298,17 @@ function storage.loadSessions(): { Session }
             end
           end
 
-          table.insert(sessions, {
-            id = item.id,
-            title = type(item.title) == "string" and item.title or "Conversation",
-            created_at = type(item.created_at) == "number" and item.created_at or 0,
-            updated_at = type(item.updated_at) == "number" and item.updated_at or 0,
-            provider = type(item.provider) == "string" and item.provider or "openai",
-            model = type(item.model) == "string" and item.model or "",
-            messages = messages,
-          })
+          if #messages > 0 then
+            table.insert(sessions, {
+              id = item.id,
+              title = type(item.title) == "string" and item.title or "Conversation",
+              created_at = type(item.created_at) == "number" and item.created_at or 0,
+              updated_at = type(item.updated_at) == "number" and item.updated_at or 0,
+              provider = type(item.provider) == "string" and item.provider or "openai",
+              model = type(item.model) == "string" and item.model or "",
+              messages = messages,
+            })
+          end
         end
       end
     end
@@ -300,7 +321,13 @@ function storage.loadSessions(): { Session }
 end
 
 function storage.saveSessions(sessions: { Session }): boolean
-  local encoded, _ = noctalia.json.encode(sessions, true)
+  local filtered: { Session } = {}
+  for _, sess in ipairs(sessions) do
+    if type(sess.messages) == "table" and #sess.messages > 0 then
+      table.insert(filtered, sess)
+    end
+  end
+  local encoded, _ = noctalia.json.encode(filtered, true)
   if encoded then
     local ok, _ = noctalia.writeFile(sessionsPath(), encoded)
     return ok
