@@ -97,7 +97,7 @@ id = "panel"
 entry = "panel.luau"
 placement = "floating"
 position = "center_right"
-width = 440
+width = 560
 height = "fill"
 
 [[widget]]

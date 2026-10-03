@@ -53,7 +53,7 @@ class TestAiSidebarManifest(unittest.TestCase):
         self.assertEqual(panels[0].get("entry"), "panel.luau")
         self.assertEqual(panels[0].get("placement"), "floating")
         self.assertEqual(panels[0].get("position"), "center_right")
-        self.assertEqual(panels[0].get("width"), 440)
+        self.assertEqual(panels[0].get("width"), 560)
         self.assertEqual(panels[0].get("height"), "fill")
 
         widgets = manifest.get("widget", [])
