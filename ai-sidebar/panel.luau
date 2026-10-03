@@ -575,7 +575,18 @@ local function renderChatView()
 
   local promptNodes = {}
   if isPromptActive and #matchingPrompts > 0 then
-    table.insert(promptNodes, ui.row({ align = "center", justify = "space_between", paddingH = 6, padding = 2 }, {
+    table.insert(promptNodes, ui.row({
+      align = "center",
+      justify = "space_between",
+      paddingH = 6,
+      padding = 2,
+      onHover = function(state)
+        if (state == "true" or state == true) and hoveredPromptTag ~= nil then
+          hoveredPromptTag = nil
+          render()
+        end
+      end,
+    }, {
       ui.row({ gap = 5, align = "center" }, {
         ui.glyph({ name = "sparkles", size = 11, color = "primary" }),
         ui.label({ text = tr("prompt_library"), fontSize = 10, fontWeight = "bold", color = "primary" }),
@@ -583,8 +594,6 @@ local function renderChatView()
       ui.button({
         glyph = "x",
         variant = "ghost",
-        padding = 1,
-        paddingH = 3,
         tooltip = tr("close"),
         onClick = function()
           showPromptPicker = false
@@ -606,14 +615,18 @@ local function renderChatView()
         paddingH = 6,
         radius = 4,
         fill = isHovered and "surface_variant" or nil,
-        tooltip = p.description,
         onHover = function(state)
-          if state == "true" then
-            hoveredPromptTag = p.tag
-          elseif hoveredPromptTag == p.tag then
-            hoveredPromptTag = nil
+          if state == "true" or state == true then
+            if hoveredPromptTag ~= p.tag then
+              hoveredPromptTag = p.tag
+              render()
+            end
+          else
+            if hoveredPromptTag == p.tag then
+              hoveredPromptTag = nil
+              render()
+            end
           end
-          render()
         end,
         onClick = function()
           if hashQuery ~= nil then
@@ -644,6 +657,12 @@ local function renderChatView()
       padding = 4,
       gap = 2,
       align = "stretch",
+      onHover = function(state)
+        if (state == "false" or state == false) and hoveredPromptTag ~= nil then
+          hoveredPromptTag = nil
+          render()
+        end
+      end,
     }, promptNodes))
   end
 
