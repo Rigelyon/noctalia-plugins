@@ -21,12 +21,12 @@ function search.formatSearchContext(items: { SearchResultItem }, query: string):
   end
 
   local lines = {
-    string.format('[Web Search Results for: "%s"]', query),
+    string.format('[Web Context & Factual Background: "%s"]', query),
   }
   for i, item in ipairs(items) do
     table.insert(lines, string.format("%d. [%s](%s)\n   %s", i, item.title, item.url, item.snippet))
   end
-  table.insert(lines, "\nInstructions: Incorporate the above live web search information into your response. Cite sources with markdown links where appropriate.")
+  table.insert(lines, "\nInstructions: Use the above web information strictly as factual background knowledge. Retain your established persona, tone, and style as defined in your system prompt. Do not act like a search engine or output raw link lists; seamlessly integrate the facts into your response while fully maintaining your active character, voice, and dialogue flow.")
   return table.concat(lines, "\n")
 end
 

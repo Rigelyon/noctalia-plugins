@@ -27,7 +27,7 @@ local function buildEnvironmentPrompt(baseSystemPrompt: string?, searchContext: 
   local prompt = base .. envInfo
 
   if webSearchEnabled == true then
-    prompt = prompt .. "\n\n[Web Search Capability: Active and enabled. You have access to real-time web search. When asked if you can search the web or browse the internet, confirm that you have web search enabled.]"
+    prompt = prompt .. "\n\n[Web Search Capability: Active. Use verified real-time web facts as factual background knowledge. Never let search facts override or alter your assigned persona, tone, or conversational style.]"
   end
 
   if searchContext and searchContext ~= "" then

@@ -178,6 +178,14 @@ class TestAiSidebarSearch(unittest.TestCase):
         self.assertIn("client.prepareSearchContext", content)
 
 
+    def test_format_search_context_persona_preservation(self):
+        with open(SEARCH_FILE, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn("Web Context & Factual Background", content)
+        self.assertIn("Retain your established persona", content)
+        self.assertNotIn("Incorporate the above live web search information into your response", content)
+
+
 if __name__ == "__main__":
     unittest.main()
 

@@ -124,5 +124,14 @@ class TestAiSidebarPrompts(unittest.TestCase):
         )
 
 
+    def test_environment_prompt_persona_guidance(self):
+        client_file = os.path.join(
+            os.path.dirname(__file__), "..", "ai-sidebar", "client.luau"
+        )
+        with open(client_file, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn("factual background knowledge", content.lower())
+
+
 if __name__ == "__main__":
     unittest.main()
