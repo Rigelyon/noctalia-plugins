@@ -53,7 +53,7 @@ end
 function storage.generateTitle(firstMessage: string): string
   local trimmed = noctalia.string.trim(firstMessage or "")
   local firstLine = trimmed:match("^[^\r\n]+") or ""
-  firstLine = firstLine:gsub("^#+%s*", ""):gsub("[/%\\:*?\"<>|]", "")
+  firstLine = firstLine:gsub("^#+%s*", ""):gsub("[/\\%%:*?\"<>|]", "")
   firstLine = firstLine:gsub("^%.+", "")
   firstLine = noctalia.string.trim(firstLine)
   if #firstLine == 0 then
@@ -230,23 +230,6 @@ function storage.loadConfig(): ConfigTable
 end
 
 function storage.saveConfig(cfg: ConfigTable): boolean
-  local n = noctalia :: any
-  if type(n.setConfig) == "function" then
-    pcall(function()
-      noctalia.setConfig("default_provider", cfg.active_provider)
-      noctalia.setConfig("openai_api_key", cfg.openai_key)
-      noctalia.setConfig("openai_model", cfg.openai_model)
-      noctalia.setConfig("anthropic_api_key", cfg.anthropic_key)
-      noctalia.setConfig("anthropic_model", cfg.anthropic_model)
-      noctalia.setConfig("gemini_api_key", cfg.gemini_key)
-      noctalia.setConfig("gemini_model", cfg.gemini_model)
-      noctalia.setConfig("custom_base_url", cfg.custom_base_url)
-      noctalia.setConfig("custom_api_key", cfg.custom_key)
-      noctalia.setConfig("custom_model", cfg.custom_model)
-      noctalia.setConfig("system_prompt", cfg.system_prompt)
-    end)
-  end
-
   pcall(function()
     storage.syncToSettingsToml(cfg)
   end)

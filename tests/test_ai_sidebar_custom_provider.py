@@ -55,10 +55,9 @@ class TestAiSidebarCustomProvider(unittest.TestCase):
         self.assertIn("custom_model: string", content)
         self.assertIn('noctalia.getConfig("custom_base_url")', content)
         self.assertIn('noctalia.getConfig("custom_api_key")', content)
-        self.assertIn('noctalia.getConfig("custom_model")', content)
-        self.assertIn('noctalia.setConfig("custom_base_url"', content)
-        self.assertIn('noctalia.setConfig("custom_api_key"', content)
-        self.assertIn('noctalia.setConfig("custom_model"', content)
+        self.assertIn('custom_base_url = escapeTomlString', content)
+        self.assertIn('custom_api_key = escapeTomlString', content)
+        self.assertIn('custom_model = escapeTomlString', content)
 
     def test_client_router_includes_custom(self):
         client_file = os.path.join(PLUGIN_DIR, "client.luau")
