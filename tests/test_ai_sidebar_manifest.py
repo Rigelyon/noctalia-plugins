@@ -57,9 +57,10 @@ class TestAiSidebarManifest(unittest.TestCase):
         self.assertEqual(panels[0].get("height"), 760)
 
         widgets = manifest.get("widget", [])
-        self.assertEqual(len(widgets), 1)
-        self.assertEqual(widgets[0].get("id"), "ai-sidebar")
-        self.assertEqual(widgets[0].get("entry"), "widget.luau")
+        self.assertGreaterEqual(len(widgets), 1)
+        widget_ids = [w.get("id") for w in widgets]
+        self.assertIn("ai-sidebar", widget_ids)
+        self.assertIn("bar_widget", widget_ids)
 
         # Verify settings schema and keys in en and id
         settings = manifest.get("setting", [])

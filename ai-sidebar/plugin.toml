@@ -88,3 +88,7 @@ height = 760
 [[widget]]
 id = "ai-sidebar"
 entry = "widget.luau"
+
+[[widget]]
+id = "bar_widget"
+entry = "widget.luau"

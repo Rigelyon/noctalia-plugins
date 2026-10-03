@@ -7,7 +7,7 @@ A sleek, robust AI chat sidebar panel for the Noctalia desktop shell. Connect di
 | Field | Value |
 | --- | --- |
 | ID | `rigelyon/ai-sidebar` |
-| Entries | Panel: `panel`; Bar widget: `ai-sidebar` |
+| Entries | Panel: `panel`; Bar widget: `ai-sidebar`, `bar_widget` |
 
 ## Features
 
