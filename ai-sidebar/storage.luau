@@ -36,6 +36,10 @@ export type ConfigTable = {
   custom_key: string,
   custom_model: string,
   system_prompt: string,
+  enable_web_search: boolean,
+  search_engine: string,
+  search_api_key: string,
+  search_max_results: number,
 }
 
 local function getDataDir(): string
@@ -113,6 +117,10 @@ function storage.syncToSettingsToml(cfg: ConfigTable): boolean
     custom_api_key = escapeTomlString(cfg.custom_key),
     custom_model = escapeTomlString(cfg.custom_model),
     system_prompt = escapeTomlString(cfg.system_prompt),
+    enable_web_search = cfg.enable_web_search and "true" or "false",
+    search_engine = escapeTomlString(cfg.search_engine),
+    search_api_key = escapeTomlString(cfg.search_api_key),
+    search_max_results = escapeTomlString(tostring(cfg.search_max_results)),
   }
 
   local lines = {}
@@ -200,6 +208,10 @@ function storage.loadConfig(): ConfigTable
     custom_key = (noctalia.getConfig("custom_api_key") or "") :: string,
     custom_model = (noctalia.getConfig("custom_model") or "llama3.2") :: string,
     system_prompt = (noctalia.getConfig("system_prompt") or "You are a helpful and concise AI assistant.") :: string,
+    enable_web_search = (noctalia.getConfig("enable_web_search") == true) or false,
+    search_engine = (noctalia.getConfig("search_engine") or "duckduckgo") :: string,
+    search_api_key = (noctalia.getConfig("search_api_key") or "") :: string,
+    search_max_results = tonumber(noctalia.getConfig("search_max_results")) or 3,
   }
 
   local raw = noctalia.readFile(configPath())
@@ -222,6 +234,10 @@ function storage.loadConfig(): ConfigTable
         if type(decoded.custom_key) == "string" then cfg.custom_key = decoded.custom_key end
         if type(decoded.custom_model) == "string" and decoded.custom_model ~= "" then cfg.custom_model = decoded.custom_model end
         if type(decoded.system_prompt) == "string" and decoded.system_prompt ~= "" then cfg.system_prompt = decoded.system_prompt end
+        if type(decoded.enable_web_search) == "boolean" then cfg.enable_web_search = decoded.enable_web_search end
+        if type(decoded.search_engine) == "string" and decoded.search_engine ~= "" then cfg.search_engine = decoded.search_engine end
+        if type(decoded.search_api_key) == "string" then cfg.search_api_key = decoded.search_api_key end
+        if type(decoded.search_max_results) == "number" then cfg.search_max_results = decoded.search_max_results end
       else
         if cfg.openai_key == "" and type(decoded.openai_key) == "string" then cfg.openai_key = decoded.openai_key end
         if cfg.anthropic_key == "" and type(decoded.anthropic_key) == "string" then cfg.anthropic_key = decoded.anthropic_key end
@@ -240,17 +256,21 @@ function storage.saveConfig(cfg: ConfigTable, syncToml: boolean?): boolean
   local n = noctalia :: any
   if type(n.setConfig) == "function" then
     pcall(function()
-      noctalia.setConfig("default_provider", cfg.active_provider)
-      noctalia.setConfig("openai_api_key", cfg.openai_key)
-      noctalia.setConfig("openai_model", cfg.openai_model)
-      noctalia.setConfig("anthropic_api_key", cfg.anthropic_key)
-      noctalia.setConfig("anthropic_model", cfg.anthropic_model)
-      noctalia.setConfig("gemini_api_key", cfg.gemini_key)
-      noctalia.setConfig("gemini_model", cfg.gemini_model)
-      noctalia.setConfig("custom_base_url", cfg.custom_base_url)
-      noctalia.setConfig("custom_api_key", cfg.custom_key)
-      noctalia.setConfig("custom_model", cfg.custom_model)
-      noctalia.setConfig("system_prompt", cfg.system_prompt)
+      n.setConfig("default_provider", cfg.active_provider)
+      n.setConfig("openai_api_key", cfg.openai_key)
+      n.setConfig("openai_model", cfg.openai_model)
+      n.setConfig("anthropic_api_key", cfg.anthropic_key)
+      n.setConfig("anthropic_model", cfg.anthropic_model)
+      n.setConfig("gemini_api_key", cfg.gemini_key)
+      n.setConfig("gemini_model", cfg.gemini_model)
+      n.setConfig("custom_base_url", cfg.custom_base_url)
+      n.setConfig("custom_api_key", cfg.custom_key)
+      n.setConfig("custom_model", cfg.custom_model)
+      n.setConfig("system_prompt", cfg.system_prompt)
+      n.setConfig("enable_web_search", cfg.enable_web_search)
+      n.setConfig("search_engine", cfg.search_engine)
+      n.setConfig("search_api_key", cfg.search_api_key)
+      n.setConfig("search_max_results", tostring(cfg.search_max_results))
     end)
   end
 

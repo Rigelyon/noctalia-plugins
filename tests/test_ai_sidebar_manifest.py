@@ -88,6 +88,10 @@ class TestAiSidebarManifest(unittest.TestCase):
         self.assertIn("custom_base_url", setting_keys)
         self.assertIn("custom_api_key", setting_keys)
         self.assertIn("custom_model", setting_keys)
+        self.assertIn("enable_web_search", setting_keys)
+        self.assertIn("search_engine", setting_keys)
+        self.assertIn("search_api_key", setting_keys)
+        self.assertIn("search_max_results", setting_keys)
 
         # Thumbnail dimension & size check
         self.assertLessEqual(os.path.getsize(thumb_path), 512 * 1024)

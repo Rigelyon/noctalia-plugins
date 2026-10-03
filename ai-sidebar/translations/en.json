@@ -112,6 +112,33 @@
     "system-prompt": {
       "label": "Default System Prompt",
       "description": "Base instruction given to the AI assistant"
+    },
+    "enable-web-search": {
+      "label": "Enable Web Search",
+      "description": "Allow AI to search the internet before responding"
+    },
+    "search-engine": {
+      "label": "Search Engine",
+      "description": "Default web search engine",
+      "options": {
+        "duckduckgo": "DuckDuckGo (Free)",
+        "gemini_native": "Gemini Native (Google Search)",
+        "tavily": "Tavily Search (API Key)",
+        "brave": "Brave Search (API Key)"
+      }
+    },
+    "search-api-key": {
+      "label": "Search API Key",
+      "description": "API Key for Tavily or Brave Search (optional for DuckDuckGo/Gemini)"
+    },
+    "search-max-results": {
+      "label": "Max Search Results",
+      "description": "Maximum number of search results to include in context",
+      "options": {
+        "3": "3 Results (Compact)",
+        "5": "5 Results (Standard)",
+        "7": "7 Results (Detailed)"
+      }
     }
   }
 }

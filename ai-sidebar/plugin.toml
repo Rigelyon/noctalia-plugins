@@ -92,6 +92,45 @@ label_key = "settings.system-prompt.label"
 description_key = "settings.system-prompt.description"
 default = "You are a helpful and concise AI assistant."
 
+[[setting]]
+key = "enable_web_search"
+type = "bool"
+label_key = "settings.enable-web-search.label"
+description_key = "settings.enable-web-search.description"
+default = false
+
+[[setting]]
+key = "search_engine"
+type = "select"
+label_key = "settings.search-engine.label"
+description_key = "settings.search-engine.description"
+default = "duckduckgo"
+options = [
+  { value = "duckduckgo", label_key = "settings.search-engine.options.duckduckgo" },
+  { value = "gemini_native", label_key = "settings.search-engine.options.gemini_native" },
+  { value = "tavily", label_key = "settings.search-engine.options.tavily" },
+  { value = "brave", label_key = "settings.search-engine.options.brave" },
+]
+
+[[setting]]
+key = "search_api_key"
+type = "string"
+label_key = "settings.search-api-key.label"
+description_key = "settings.search-api-key.description"
+default = ""
+
+[[setting]]
+key = "search_max_results"
+type = "select"
+label_key = "settings.search-max-results.label"
+description_key = "settings.search-max-results.description"
+default = "3"
+options = [
+  { value = "3", label_key = "settings.search-max-results.options.3" },
+  { value = "5", label_key = "settings.search-max-results.options.5" },
+  { value = "7", label_key = "settings.search-max-results.options.7" },
+]
+
 [[panel]]
 id = "panel"
 entry = "panel.luau"

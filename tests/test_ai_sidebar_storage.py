@@ -260,6 +260,15 @@ panel_layer = "overlay"
         self.assertIn("function storage.saveConfig(cfg: ConfigTable, syncToml: boolean?)", content)
         self.assertIn("if syncToml == true then", content)
 
+    def test_search_config_fields(self):
+        with open(STORAGE_FILE, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        self.assertIn("enable_web_search", content)
+        self.assertIn("search_engine", content)
+        self.assertIn("search_api_key", content)
+        self.assertIn("search_max_results", content)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -112,6 +112,33 @@
     "system-prompt": {
       "label": "System Prompt Bawaan",
       "description": "Instruksi dasar yang diberikan kepada AI"
+    },
+    "enable-web-search": {
+      "label": "Aktifkan Pencarian Web",
+      "description": "Izinkan AI mencari informasi di internet sebelum menjawab"
+    },
+    "search-engine": {
+      "label": "Mesin Pencari",
+      "description": "Mesin pencari web bawaan",
+      "options": {
+        "duckduckgo": "DuckDuckGo (Gratis)",
+        "gemini_native": "Gemini Native (Google Search)",
+        "tavily": "Tavily Search (API Key)",
+        "brave": "Brave Search (API Key)"
+      }
+    },
+    "search-api-key": {
+      "label": "Search API Key",
+      "description": "API Key untuk Tavily atau Brave Search (opsional untuk DuckDuckGo/Gemini)"
+    },
+    "search-max-results": {
+      "label": "Maksimal Hasil Pencarian",
+      "description": "Jumlah maksimal cuplikan hasil pencarian yang disertakan",
+      "options": {
+        "3": "3 Hasil (Hemat)",
+        "5": "5 Hasil (Standar)",
+        "7": "7 Hasil (Lengkap)"
+      }
     }
   }
 }
