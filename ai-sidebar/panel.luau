@@ -139,24 +139,36 @@ local function renderChatView()
     for _, msg in ipairs(currentSession.messages) do
       if msg.role == "user" then
         local timeStr = msg.timestamp and noctalia.formatTime("%H:%M", msg.timestamp) or ""
-        table.insert(messageNodes, ui.row({ justify = "end", align = "start" }, {
-          ui.column({
-            fill = "primary/0.2",
-            radius = 12,
-            padding = 10,
-            paddingH = 14,
-            gap = 2,
-          }, {
-            ui.markdown({ text = msg.content }),
-            ui.row({ justify = "end" }, {
-              ui.label({
-                text = timeStr,
-                fontSize = 9,
-                color = "on_surface_variant",
-              }),
+        local isLong = (#msg.content > 32) or (msg.content:find("\n") ~= nil)
+
+        local bubbleNode = ui.column({
+          fill = "primary/0.2",
+          radius = 12,
+          padding = 10,
+          paddingH = 14,
+          gap = 2,
+          flexGrow = if isLong then 4 else nil,
+        }, {
+          ui.markdown({ text = msg.content }),
+          ui.row({ justify = "end" }, {
+            ui.label({
+              text = timeStr,
+              fontSize = 9,
+              color = "on_surface_variant",
             }),
           }),
-        }))
+        })
+
+        if isLong then
+          table.insert(messageNodes, ui.row({ align = "start" }, {
+            ui.spacer({}),
+            bubbleNode,
+          }))
+        else
+          table.insert(messageNodes, ui.row({ justify = "end", align = "start" }, {
+            bubbleNode,
+          }))
+        end
       elseif msg.role == "assistant" then
         local content = msg.content
         if content == "" and isStreaming then
