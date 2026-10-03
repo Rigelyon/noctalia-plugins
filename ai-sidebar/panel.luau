@@ -346,6 +346,32 @@ local function renderChatView()
           contentNode = ui.markdown({ text = msg.content })
         end
 
+        local userActionButtons = {}
+        table.insert(userActionButtons, ui.button({
+          glyph = "pencil",
+          variant = "ghost",
+          tooltip = tr("action_edit"),
+          onClick = function()
+            if not isStreaming then
+              inputBuffer = msg.content
+              inputRev += 1
+              storage.rewindSession(sessions, currentSession.id, idx - 1)
+              render()
+            end
+          end,
+        }))
+        table.insert(userActionButtons, ui.button({
+          glyph = "arrow-back-up",
+          variant = "ghost",
+          tooltip = tr("action_rewind"),
+          onClick = function()
+            if not isStreaming then
+              storage.rewindSession(sessions, currentSession.id, idx)
+              render()
+            end
+          end,
+        }))
+
         local bubbleNode = ui.column({
           fill = "primary/0.2",
           radius = 12,
@@ -355,42 +381,22 @@ local function renderChatView()
           minWidth = 110,
           flexGrow = if isLong then 4 else nil,
         }, {
-          ui.row({ align = "center", justify = "space_between", gap = 8 }, {
-            ui.label({
-              text = timeStr,
-              fontSize = 10,
-              color = "on_surface_variant",
-            }),
-            ui.row({ gap = 2, align = "center" }, {
-              ui.button({
-                glyph = "pencil",
-                variant = "ghost",
-                padding = 2,
-                paddingH = 4,
-                tooltip = tr("action_edit"),
-                onClick = function()
-                  if not isStreaming then
-                    inputBuffer = msg.content
-                    inputRev += 1
-                    storage.rewindSession(sessions, currentSession.id, idx - 1)
-                    render()
-                  end
-                end,
+          ui.row({ gap = 6, align = "center", justify = "space_between" }, {
+            ui.row({ gap = 6, align = "center" }, {
+              ui.glyph({ name = "user", size = 13, color = "primary" }),
+              ui.label({
+                text = tr("role_user"),
+                fontSize = 11,
+                fontWeight = "bold",
+                color = "primary",
               }),
-              ui.button({
-                glyph = "arrow-back-up",
-                variant = "ghost",
-                padding = 2,
-                paddingH = 4,
-                tooltip = tr("action_rewind"),
-                onClick = function()
-                  if not isStreaming then
-                    storage.rewindSession(sessions, currentSession.id, idx)
-                    render()
-                  end
-                end,
+              ui.label({
+                text = "·  " .. timeStr,
+                fontSize = 10,
+                color = "on_surface_variant",
               }),
             }),
+            ui.row({ gap = 2, align = "center" }, userActionButtons),
           }),
           contentNode,
         })
@@ -419,8 +425,6 @@ local function renderChatView()
           table.insert(actionButtons, ui.button({
             glyph = "refresh",
             variant = "ghost",
-            padding = 2,
-            paddingH = 4,
             tooltip = tr("action_regenerate"),
             onClick = regenerateResponse,
           }))
@@ -428,8 +432,6 @@ local function renderChatView()
         table.insert(actionButtons, ui.button({
           glyph = "copy",
           variant = "ghost",
-          padding = 2,
-          paddingH = 4,
           tooltip = tr("copy"),
           onClick = function()
             if content ~= "" then
@@ -441,8 +443,6 @@ local function renderChatView()
         table.insert(actionButtons, ui.button({
           glyph = "arrow-back-up",
           variant = "ghost",
-          padding = 2,
-          paddingH = 4,
           tooltip = tr("action_rewind"),
           onClick = function()
             if not isStreaming then
@@ -614,8 +614,6 @@ local function renderChatView()
         padding = 3,
         paddingH = 6,
         radius = 4,
-        -- Always pass an explicit fill: omitting the prop (nil) does not clear a
-        -- previously-set fill when the node is reconciled, leaving rows stuck highlighted.
         fill = isHovered and "surface_variant" or "surface_variant/0",
         onHover = function(state)
           if state == "true" or state == true then

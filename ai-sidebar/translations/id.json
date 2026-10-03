@@ -43,6 +43,7 @@
   "api_key_optional": "API Key (Opsional untuk lokal)",
   "model": "Model",
   "system_prompt": "System Prompt",
+  "role_user": "Anda",
   "action_regenerate": "Buat Ulang",
   "action_edit": "Edit",
   "action_rewind": "Kembalikan ke sini",

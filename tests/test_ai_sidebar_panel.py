@@ -241,6 +241,8 @@ class TestAiSidebarPanel(unittest.TestCase):
         self.assertIn("action_copy_code", content)
         self.assertIn("storage.rewindSession", content)
         self.assertIn("storage.removeLastAssistantMessage", content)
+        self.assertIn("role_user", content)
+        self.assertIn('name = "user"', content)
 
 
 if __name__ == "__main__":
