@@ -457,11 +457,24 @@ local function renderSettingView()
 
   local providerDropdown = ui.select({
     options = providerOptions,
+    items = providerOptions,
     selectedIndex = selectedProviderIndex,
-    onChange = function(index)
-      local idx = (tonumber(index) or 0) + 1
-      if providerIds[idx] and providerIds[idx] ~= config.active_provider then
-        config.active_provider = providerIds[idx]
+    onChange = function(val)
+      local num = tonumber(val)
+      local chosenId = nil
+      if num ~= nil then
+        local idx = num + 1
+        chosenId = providerIds[idx]
+      elseif type(val) == "string" then
+        for i, pid in ipairs(providerIds) do
+          if pid == val or providerOptions[i] == val then
+            chosenId = pid
+            break
+          end
+        end
+      end
+      if chosenId and chosenId ~= config.active_provider then
+        config.active_provider = chosenId
         settingRev += 1
         testConnStatus = nil
         render()
@@ -680,8 +693,20 @@ local function renderSettingView()
     text = tr("save_settings"),
     variant = "primary",
     onClick = function()
-      storage.saveConfig(config)
-      noctalia.notify(tr("title"), tr("settings_saved"))
+      local ok = storage.saveConfig(config)
+      if ok then
+        noctalia.notify(tr("title"), tr("settings_saved"))
+      else
+        noctalia.notifyError(tr("title"), tr("settings_save_error"))
+      end
+    end,
+  }))
+  table.insert(scrollItems, ui.button({
+    glyph = "settings",
+    text = tr("open_plugin_settings"),
+    variant = "ghost",
+    onClick = function()
+      noctalia.openSettings()
     end,
   }))
 
@@ -802,4 +827,10 @@ function onClose()
   if isStreaming then
     stopStreaming()
   end
+end
+
+function onConfigChanged()
+  config = storage.loadConfig()
+  settingRev += 1
+  render()
 end

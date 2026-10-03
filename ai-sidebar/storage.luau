@@ -63,7 +63,118 @@ function storage.generateTitle(firstMessage: string): string
   return firstLine
 end
 
+local function getSettingsTomlPath(): string
+  local p = noctalia.expandPath("~/.local/state/noctalia/settings.toml")
+  if noctalia.fileExists(p) then
+    return p
+  end
+  local p2 = noctalia.expandPath("~/.config/noctalia/settings.toml")
+  if noctalia.fileExists(p2) then
+    return p2
+  end
+  return p
+end
+
+local function escapeTomlString(s: string?): string
+  local val = s or ""
+  local esc = val:gsub("\\", "\\\\")
+                 :gsub('"', '\\"')
+                 :gsub("\n", "\\n")
+                 :gsub("\r", "\\r")
+                 :gsub("\t", "\\t")
+  return '"' .. esc .. '"'
+end
+
+function storage.syncToSettingsToml(cfg: ConfigTable): boolean
+  local path = getSettingsTomlPath()
+  local rawToml, _ = noctalia.readFile(path)
+  if not rawToml then
+    return false
+  end
+
+  local pluginKeys: { [string]: string } = {
+    default_provider = escapeTomlString(cfg.active_provider),
+    openai_api_key = escapeTomlString(cfg.openai_key),
+    openai_model = escapeTomlString(cfg.openai_model),
+    anthropic_api_key = escapeTomlString(cfg.anthropic_key),
+    anthropic_model = escapeTomlString(cfg.anthropic_model),
+    gemini_api_key = escapeTomlString(cfg.gemini_key),
+    gemini_model = escapeTomlString(cfg.gemini_model),
+    custom_base_url = escapeTomlString(cfg.custom_base_url),
+    custom_api_key = escapeTomlString(cfg.custom_key),
+    custom_model = escapeTomlString(cfg.custom_model),
+    system_prompt = escapeTomlString(cfg.system_prompt),
+  }
+
+  local lines = {}
+  for line in (rawToml .. "\n"):gmatch("([^\r\n]*)\r?\n") do
+    table.insert(lines, line)
+  end
+
+  local newLines = {}
+  local inSection = false
+  local sectionFound = false
+  local handledKeys: { [string]: boolean } = {}
+
+  for _, line in ipairs(lines) do
+    local sec = line:match("^%s*%[%s*([^%]]+)%s*%]")
+    if sec then
+      if inSection then
+        for k, v in pairs(pluginKeys) do
+          if not handledKeys[k] then
+            table.insert(newLines, k .. " = " .. v)
+            handledKeys[k] = true
+          end
+        end
+        inSection = false
+      end
+      if sec:match('^plugin_settings%s*%.%s*["\']rigelyon/ai%-sidebar["\']') then
+        inSection = true
+        sectionFound = true
+        table.insert(newLines, line)
+      else
+        table.insert(newLines, line)
+      end
+    elseif inSection then
+      local k = line:match("^%s*([%w_%-]+)%s*=")
+      if k and pluginKeys[k] ~= nil then
+        table.insert(newLines, k .. " = " .. pluginKeys[k])
+        handledKeys[k] = true
+      else
+        table.insert(newLines, line)
+      end
+    else
+      table.insert(newLines, line)
+    end
+  end
+
+  if inSection then
+    for k, v in pairs(pluginKeys) do
+      if not handledKeys[k] then
+        table.insert(newLines, k .. " = " .. v)
+        handledKeys[k] = true
+      end
+    end
+  end
+
+  if not sectionFound then
+    table.insert(newLines, "")
+    table.insert(newLines, '[plugin_settings."rigelyon/ai-sidebar"]')
+    for k, v in pairs(pluginKeys) do
+      table.insert(newLines, k .. " = " .. v)
+    end
+  end
+
+  local updated = table.concat(newLines, "\n")
+  local ok, _ = noctalia.writeFile(path, updated)
+  return ok
+end
+
 function storage.loadConfig(): ConfigTable
+  local tomlPath = getSettingsTomlPath()
+  local tomlInfo = noctalia.fileInfo(tomlPath)
+  local jsonInfo = noctalia.fileInfo(configPath())
+
   local activeProv = (noctalia.getConfig("default_provider") or noctalia.getConfig("provider") or "openai") :: string
   local geminiKey = (noctalia.getConfig("gemini_api_key") or noctalia.getConfig("api_key") or "") :: string
   local geminiModel = (noctalia.getConfig("gemini_model") or noctalia.getConfig("default_model") or "gemini-1.5-flash") :: string
@@ -86,36 +197,57 @@ function storage.loadConfig(): ConfigTable
   if raw then
     local decoded, _ = noctalia.json.decode(raw)
     if type(decoded) == "table" then
-      if type(decoded.active_provider) == "string" and decoded.active_provider ~= "" then
-        cfg.active_provider = decoded.active_provider
+      local preferToml = (tomlInfo ~= nil and jsonInfo ~= nil and tomlInfo.mtime > jsonInfo.mtime)
+
+      if not preferToml then
+        if type(decoded.active_provider) == "string" and decoded.active_provider ~= "" then
+          cfg.active_provider = decoded.active_provider
+        end
+        if type(decoded.openai_key) == "string" then cfg.openai_key = decoded.openai_key end
+        if type(decoded.openai_model) == "string" and decoded.openai_model ~= "" then cfg.openai_model = decoded.openai_model end
+        if type(decoded.anthropic_key) == "string" then cfg.anthropic_key = decoded.anthropic_key end
+        if type(decoded.anthropic_model) == "string" and decoded.anthropic_model ~= "" then cfg.anthropic_model = decoded.anthropic_model end
+        if type(decoded.gemini_key) == "string" then cfg.gemini_key = decoded.gemini_key end
+        if type(decoded.gemini_model) == "string" and decoded.gemini_model ~= "" then cfg.gemini_model = decoded.gemini_model end
+        if type(decoded.custom_base_url) == "string" and decoded.custom_base_url ~= "" then cfg.custom_base_url = decoded.custom_base_url end
+        if type(decoded.custom_key) == "string" then cfg.custom_key = decoded.custom_key end
+        if type(decoded.custom_model) == "string" and decoded.custom_model ~= "" then cfg.custom_model = decoded.custom_model end
+        if type(decoded.system_prompt) == "string" and decoded.system_prompt ~= "" then cfg.system_prompt = decoded.system_prompt end
+      else
+        if cfg.openai_key == "" and type(decoded.openai_key) == "string" then cfg.openai_key = decoded.openai_key end
+        if cfg.anthropic_key == "" and type(decoded.anthropic_key) == "string" then cfg.anthropic_key = decoded.anthropic_key end
+        if cfg.gemini_key == "" and type(decoded.gemini_key) == "string" then cfg.gemini_key = decoded.gemini_key end
+        if cfg.custom_key == "" and type(decoded.custom_key) == "string" then cfg.custom_key = decoded.custom_key end
+        if cfg.system_prompt == "You are a helpful and concise AI assistant." and type(decoded.system_prompt) == "string" and decoded.system_prompt ~= "" then
+          cfg.system_prompt = decoded.system_prompt
+        end
       end
-      if type(decoded.openai_key) == "string" then cfg.openai_key = decoded.openai_key end
-      if type(decoded.openai_model) == "string" and decoded.openai_model ~= "" then cfg.openai_model = decoded.openai_model end
-      if type(decoded.anthropic_key) == "string" then cfg.anthropic_key = decoded.anthropic_key end
-      if type(decoded.anthropic_model) == "string" and decoded.anthropic_model ~= "" then cfg.anthropic_model = decoded.anthropic_model end
-      if type(decoded.gemini_key) == "string" then cfg.gemini_key = decoded.gemini_key end
-      if type(decoded.gemini_model) == "string" and decoded.gemini_model ~= "" then cfg.gemini_model = decoded.gemini_model end
-      if type(decoded.custom_base_url) == "string" and decoded.custom_base_url ~= "" then cfg.custom_base_url = decoded.custom_base_url end
-      if type(decoded.custom_key) == "string" then cfg.custom_key = decoded.custom_key end
-      if type(decoded.custom_model) == "string" and decoded.custom_model ~= "" then cfg.custom_model = decoded.custom_model end
-      if type(decoded.system_prompt) == "string" and decoded.system_prompt ~= "" then cfg.system_prompt = decoded.system_prompt end
     end
   end
   return cfg
 end
 
 function storage.saveConfig(cfg: ConfigTable): boolean
-  noctalia.setConfig("default_provider", cfg.active_provider)
-  noctalia.setConfig("openai_api_key", cfg.openai_key)
-  noctalia.setConfig("openai_model", cfg.openai_model)
-  noctalia.setConfig("anthropic_api_key", cfg.anthropic_key)
-  noctalia.setConfig("anthropic_model", cfg.anthropic_model)
-  noctalia.setConfig("gemini_api_key", cfg.gemini_key)
-  noctalia.setConfig("gemini_model", cfg.gemini_model)
-  noctalia.setConfig("custom_base_url", cfg.custom_base_url)
-  noctalia.setConfig("custom_api_key", cfg.custom_key)
-  noctalia.setConfig("custom_model", cfg.custom_model)
-  noctalia.setConfig("system_prompt", cfg.system_prompt)
+  local n = noctalia :: any
+  if type(n.setConfig) == "function" then
+    pcall(function()
+      noctalia.setConfig("default_provider", cfg.active_provider)
+      noctalia.setConfig("openai_api_key", cfg.openai_key)
+      noctalia.setConfig("openai_model", cfg.openai_model)
+      noctalia.setConfig("anthropic_api_key", cfg.anthropic_key)
+      noctalia.setConfig("anthropic_model", cfg.anthropic_model)
+      noctalia.setConfig("gemini_api_key", cfg.gemini_key)
+      noctalia.setConfig("gemini_model", cfg.gemini_model)
+      noctalia.setConfig("custom_base_url", cfg.custom_base_url)
+      noctalia.setConfig("custom_api_key", cfg.custom_key)
+      noctalia.setConfig("custom_model", cfg.custom_model)
+      noctalia.setConfig("system_prompt", cfg.system_prompt)
+    end)
+  end
+
+  pcall(function()
+    storage.syncToSettingsToml(cfg)
+  end)
 
   local encoded, _ = noctalia.json.encode(cfg, true)
   if encoded then

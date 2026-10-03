@@ -112,6 +112,9 @@ class TestAiSidebarPanel(unittest.TestCase):
         self.assertIn("showApiKey", content)
         self.assertIn("password = not showApiKey", content)
         self.assertIn("testConnBanner", content)
+        self.assertIn("open_plugin_settings", content)
+        self.assertIn("noctalia.openSettings()", content)
+        self.assertIn("function onConfigChanged()", content)
 
     def test_all_tr_keys_exist_in_translations(self):
         self.assertTrue(os.path.isfile(PANEL_FILE), "Missing panel.luau")

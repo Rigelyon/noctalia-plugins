@@ -21,6 +21,7 @@ class TestAiSidebarStorage(unittest.TestCase):
             "deleteSession",
             "capMessages",
             "generateTitle",
+            "syncToSettingsToml",
         ]
         for exp in expected_exports:
             self.assertIn(exp, content, f"storage.luau missing export {exp}")
@@ -148,6 +149,59 @@ class TestAiSidebarStorage(unittest.TestCase):
         updated = [s for s in sessions if s["id"] != "sess_2"]
         self.assertEqual(len(updated), 2)
         self.assertEqual([s["id"] for s in updated], ["sess_1", "sess_3"])
+
+    def test_toml_sync_simulation(self):
+        sample_toml = """[plugin_settings."noctalia/timer"]
+panel_placement = "floating"
+
+[plugin_settings."rigelyon/ai-sidebar"]
+default_provider = "gemini"
+gemini_api_key = "test_key"
+panel_placement = "floating"
+
+[plugin_settings."rigelyon/scratchpad"]
+panel_layer = "overlay"
+"""
+        plugin_keys = {
+            "default_provider": '"custom"',
+            "custom_base_url": '"http://localhost:11434/v1"',
+        }
+
+        lines = sample_toml.split("\n")
+        new_lines = []
+        in_section = False
+        handled = set()
+
+        for line in lines:
+            m = re.match(r"^\s*\[\s*([^\]]+)\s*\]", line)
+            if m:
+                if in_section:
+                    for k, v in plugin_keys.items():
+                        if k not in handled:
+                            new_lines.append(f"{k} = {v}")
+                            handled.add(k)
+                    in_section = False
+                sec = m.group(1)
+                if re.match(r"^plugin_settings\s*\.\s*[\"']rigelyon/ai-sidebar[\"']", sec):
+                    in_section = True
+                    new_lines.append(line)
+                    continue
+            if in_section:
+                km = re.match(r"^\s*([\w_-]+)\s*=", line)
+                if km and km.group(1) in plugin_keys:
+                    k = km.group(1)
+                    new_lines.append(f"{k} = {plugin_keys[k]}")
+                    handled.add(k)
+                else:
+                    new_lines.append(line)
+            else:
+                new_lines.append(line)
+
+        res = "\n".join(new_lines)
+        self.assertIn('default_provider = "custom"', res)
+        self.assertIn('custom_base_url = "http://localhost:11434/v1"', res)
+        self.assertIn('panel_placement = "floating"', res)
+        self.assertIn('[plugin_settings."rigelyon/scratchpad"]', res)
 
 
 if __name__ == "__main__":
