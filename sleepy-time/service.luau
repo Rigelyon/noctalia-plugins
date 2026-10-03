@@ -240,12 +240,25 @@ local function executeAction()
         end
     elseif act == "kill-process" then
         if target ~= "" then
-            local cleanTarget = noctalia.string.trim(target)
-            if string.match(cleanTarget, "^%d+$") then
-                cmd = "(kill -15 " .. cleanTarget .. " 2>/dev/null; sleep 0.3; kill -9 " .. cleanTarget .. " 2>/dev/null) &"
-            else
-                local safeTarget = string.gsub(cleanTarget, "['\\]", "")
-                cmd = "(pkill -15 -x '" .. safeTarget .. "' 2>/dev/null || killall -15 '" .. safeTarget .. "' 2>/dev/null || flatpak kill '" .. safeTarget .. "' 2>/dev/null); (sleep 0.3 && (pkill -9 -x '" .. safeTarget .. "' 2>/dev/null || killall -9 '" .. safeTarget .. "' 2>/dev/null)) &"
+            local targets = {}
+            for item in string.gmatch(target, "([^,]+)") do
+                local clean = noctalia.string.trim(item)
+                if clean ~= "" then
+                    table.insert(targets, clean)
+                end
+            end
+
+            if #targets > 0 then
+                local subCmds = {}
+                for _, t in ipairs(targets) do
+                    if string.match(t, "^%d+$") then
+                        table.insert(subCmds, "(kill -15 " .. t .. " 2>/dev/null; sleep 0.3; kill -9 " .. t .. " 2>/dev/null)")
+                    else
+                        local safeTarget = string.gsub(t, "['\\]", "")
+                        table.insert(subCmds, "((pkill -15 -x '" .. safeTarget .. "' 2>/dev/null || killall -15 '" .. safeTarget .. "' 2>/dev/null || flatpak kill '" .. safeTarget .. "' 2>/dev/null); (sleep 0.3 && (pkill -9 -x '" .. safeTarget .. "' 2>/dev/null || killall -9 '" .. safeTarget .. "' 2>/dev/null)))")
+                    end
+                end
+                cmd = table.concat(subCmds, " & ") .. " &"
             end
         end
     elseif act == "custom-command" then
@@ -257,7 +270,20 @@ local function executeAction()
         noctalia.runAsync(cmd)
         local actLabel = getActionLabel(act)
         if act == "kill-process" and target ~= "" then
-            actLabel = actLabel .. " (" .. target .. ")"
+            local targets = {}
+            for item in string.gmatch(target, "([^,]+)") do
+                local clean = noctalia.string.trim(item)
+                if clean ~= "" then
+                    table.insert(targets, clean)
+                end
+            end
+            if #targets == 1 then
+                actLabel = actLabel .. " (" .. targets[1] .. ")"
+            elseif #targets == 2 then
+                actLabel = actLabel .. " (" .. targets[1] .. ", " .. targets[2] .. ")"
+            elseif #targets > 2 then
+                actLabel = actLabel .. " (" .. targets[1] .. ", " .. targets[2] .. ", +" .. (#targets - 2) .. " more)"
+            end
         end
         noctalia.notify("Sleepy Time", noctalia.tr("notification.executed", { action = actLabel }))
     else

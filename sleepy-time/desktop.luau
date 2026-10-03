@@ -17,6 +17,27 @@ local function getDesktopConfig()
     }
 end
 
+local function formatTargetSummary(targetStr: string, maxItems: number?): string
+    if not targetStr or targetStr == "" then return "" end
+    local max = maxItems or 1
+    local items = {}
+    for item in string.gmatch(targetStr, "([^,]+)") do
+        local clean = noctalia.string.trim(item)
+        if clean ~= "" then
+            table.insert(items, clean)
+        end
+    end
+    if #items == 0 then return "" end
+    if #items == 1 then return items[1] end
+    if #items <= max then return table.concat(items, ", ") end
+    local remaining = #items - max
+    local prefix = {}
+    for i = 1, max do
+        table.insert(prefix, items[i])
+    end
+    return table.concat(prefix, ", ") .. string.format(" (+%d more)", remaining)
+end
+
 local function renderDesktop()
     pcall(function()
         local cfg = getDesktopConfig()
@@ -103,7 +124,11 @@ local function renderDesktop()
             end
 
             if cfg.showActionLabel then
-                table.insert(rowItems, ui.label({ text = actName, fontSize = compactLabelSize, fontWeight = "medium", color = "on_surface" }))
+                local compactActLabel = actName
+                if state.action == "kill-process" and state.actionTarget and state.actionTarget ~= "" then
+                    compactActLabel = actName .. ": " .. formatTargetSummary(state.actionTarget, 1)
+                end
+                table.insert(rowItems, ui.label({ text = compactActLabel, fontSize = compactLabelSize, fontWeight = "medium", color = "on_surface" }))
             end
 
             if cfg.showControls then
@@ -132,7 +157,9 @@ local function renderDesktop()
             local fullFooterLabel = actName
             if cfg.showActionLabel then
                 local targetText = state.actionTarget or ""
-                if (state.action == "kill-process" or state.action == "custom-command") and targetText ~= "" then
+                if state.action == "kill-process" and targetText ~= "" then
+                    fullFooterLabel = actName .. ": " .. formatTargetSummary(targetText, 1)
+                elseif state.action == "custom-command" and targetText ~= "" then
                     fullFooterLabel = actName .. ": " .. targetText
                 end
             end

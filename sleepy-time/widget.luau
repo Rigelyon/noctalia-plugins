@@ -42,6 +42,27 @@ local function getActionGlyph(action: string?): string
     return "moon-stars"
 end
 
+local function formatTargetSummary(targetStr: string, maxItems: number?): string
+    if not targetStr or targetStr == "" then return "" end
+    local max = maxItems or 1
+    local items = {}
+    for item in string.gmatch(targetStr, "([^,]+)") do
+        local clean = noctalia.string.trim(item)
+        if clean ~= "" then
+            table.insert(items, clean)
+        end
+    end
+    if #items == 0 then return "" end
+    if #items == 1 then return items[1] end
+    if #items <= max then return table.concat(items, ", ") end
+    local remaining = #items - max
+    local prefix = {}
+    for i = 1, max do
+        table.insert(prefix, items[i])
+    end
+    return table.concat(prefix, ", ") .. string.format(" (+%d)", remaining)
+end
+
 local function renderWidget()
     pcall(function()
         local cfg = getWidgetConfig()
@@ -112,8 +133,12 @@ local function renderWidget()
                            elseif isPaused then noctalia.tr("status.paused")
                            else noctalia.tr("status.running")
 
+        local actionInfo = if state.action == "kill-process" and state.actionTarget and state.actionTarget ~= ""
+            then string.format("%s (%s)", actName, state.actionTarget)
+            else actName
+
         local tooltipText = string.format("Sleepy Time: %s (%s)\nAction: %s\nLeft-click: Setup | Right-click: Cancel",
-            timeText, statusName, actName)
+            timeText, statusName, actionInfo)
         setSafeTooltip(tooltipText)
 
         if isVertical then
@@ -152,9 +177,11 @@ local function renderWidget()
                 fontWeight = "bold",
                 fontSize = 13,
             }))
-            local targetShort = state.actionTarget or ""
-            if targetShort ~= "" and string.len(targetShort) > 12 then
-                targetShort = string.sub(targetShort, 1, 10) .. "…"
+            local targetShort = if state.action == "kill-process"
+                then formatTargetSummary(state.actionTarget, 1)
+                else (state.actionTarget or "")
+            if targetShort ~= "" and string.len(targetShort) > 14 then
+                targetShort = string.sub(targetShort, 1, 12) .. "…"
             end
             local detailLabel = if targetShort ~= "" then targetShort else actName
             table.insert(rowItems, ui.label({

@@ -4,14 +4,15 @@
 -- ── Local UI State ───────────────────────────────────────────────────────────
 
 local uiState = {
-    mode            = "countdown", -- "countdown" | "scheduled"
-    selectedAction  = "lock",
-    selectedMins    = 30,
-    customDuration  = "30:00",
-    targetTime      = "23:30",
-    selectedProcess = "",
-    customCmdText   = "",
-    inputKey        = 0,
+    mode              = "countdown", -- "countdown" | "scheduled"
+    selectedAction    = "lock",
+    selectedMins      = 30,
+    customDuration    = "30:00",
+    targetTime        = "23:30",
+    selectedProcesses = {} :: { string },
+    procSearchQuery   = "",
+    customCmdText     = "",
+    inputKey          = 0,
 }
 
 -- ── Action Definitions ───────────────────────────────────────────────────────
@@ -116,6 +117,69 @@ local function formatPreviewDiff(secs: number?): string
     end
 end
 
+local function parseProcessSet(str: string): ({ [string]: boolean }, { string })
+    local set = {}
+    local list = {}
+    if not str or str == "" then return set, list end
+    for item in string.gmatch(str, "([^,]+)") do
+        local clean = noctalia.string.trim(item)
+        if clean ~= "" and not set[clean] then
+            set[clean] = true
+            table.insert(list, clean)
+        end
+    end
+    return set, list
+end
+
+local function formatProcessList(list: { string }): string
+    return table.concat(list, ", ")
+end
+
+local function getSelectedProcessSet(): { [string]: boolean }
+    local set = {}
+    for _, name in ipairs(uiState.selectedProcesses) do
+        set[name] = true
+    end
+    return set
+end
+
+local function toggleProcessSelection(procName: string)
+    local foundIndex = nil
+    for i, name in ipairs(uiState.selectedProcesses) do
+        if name == procName then
+            foundIndex = i
+            break
+        end
+    end
+    if foundIndex then
+        table.remove(uiState.selectedProcesses, foundIndex)
+    else
+        table.insert(uiState.selectedProcesses, procName)
+    end
+    renderPanel()
+end
+
+local function formatTargetSummary(targetStr: string, maxItems: number?): string
+    if not targetStr or targetStr == "" then return "" end
+    local max = maxItems or 1
+    local items = {}
+    for item in string.gmatch(targetStr, "([^,]+)") do
+        local clean = noctalia.string.trim(item)
+        if clean ~= "" then
+            table.insert(items, clean)
+        end
+    end
+    if #items == 0 then return "" end
+    if #items == 1 then return items[1] end
+    if #items <= max then return table.concat(items, ", ") end
+    local remaining = #items - max
+    local prefix = {}
+    for i = 1, max do
+        table.insert(prefix, items[i])
+    end
+    return table.concat(prefix, ", ") .. string.format(" (+%d more)", remaining)
+end
+
 local function chunkIntoGrid(items: { any }, cols: number)
     local rows = {}
     local currentRow = {}
@@ -134,12 +198,16 @@ local function chunkIntoGrid(items: { any }, cols: number)
     return ui.column({ gap = 6 }, rows)
 end
 
-local function section(title: string, control: any, extraLabel: string?)
+local function section(title: string, control: any, extraLabel: (string | any)?)
     local headerItems = {
         ui.label({ text = title, fontSize = 12, fontWeight = "bold", color = "on_surface_variant" }),
     }
-    if extraLabel and extraLabel ~= "" then
-        table.insert(headerItems, ui.label({ text = extraLabel, fontSize = 12, fontWeight = "medium", color = "primary" }))
+    if extraLabel then
+        if type(extraLabel) == "string" and extraLabel ~= "" then
+            table.insert(headerItems, ui.label({ text = extraLabel, fontSize = 12, fontWeight = "medium", color = "primary" }))
+        elseif type(extraLabel) == "table" then
+            table.insert(headerItems, extraLabel)
+        end
     end
 
     return ui.column({ gap = 8 }, {
@@ -258,8 +326,8 @@ local function renderSetupView(presets: { any }, processList: { any }, isProcess
     -- 4. Dynamic Target Parameters (Kill Process or Custom Command)
     if uiState.selectedAction == "kill-process" then
         local procCards = {}
-        local rawProc = uiState.selectedProcess or ""
-        local filterText = string.lower(noctalia.string.trim(rawProc))
+        local filterText = string.lower(noctalia.string.trim(uiState.procSearchQuery))
+        local selectedSet = getSelectedProcessSet()
 
         if type(processList) == "table" then
             local limit = 16
@@ -267,17 +335,16 @@ local function renderSetupView(presets: { any }, processList: { any }, isProcess
             for _, proc in ipairs(processList) do
                 if type(proc) == "table" and proc.name and type(proc.name) == "string" then
                     local procName = proc.name
-                    local matches = (filterText == "" or string.find(string.lower(procName), filterText, 1, true) ~= nil or rawProc == procName)
+                    local isSelected = (selectedSet[procName] == true)
+                    local matches = (filterText == "" or string.find(string.lower(procName), filterText, 1, true) ~= nil)
                     if matches then
                         count = count + 1
                         if count <= limit then
-                            local isSelected = (rawProc == procName)
-
                             local iconNode
                             if proc.iconPath and type(proc.iconPath) == "string" and proc.iconPath ~= "" then
                                 iconNode = ui.image({ path = proc.iconPath, width = 18, height = 18 })
                             else
-                                iconNode = ui.glyph({ name = "app-window", size = 18, color = if isSelected then "primary" else "on_surface_variant" })
+                                iconNode = ui.glyph({ name = if isSelected then "check" else "app-window", size = 18, color = if isSelected then "primary" else "on_surface_variant" })
                             end
 
                             table.insert(procCards, ui.row({
@@ -287,9 +354,7 @@ local function renderSetupView(presets: { any }, processList: { any }, isProcess
                                 radius = 10,
                                 fill = if isSelected then "primary/0.2" else "surface_variant/0.3",
                                 onClick = function()
-                                    uiState.selectedProcess = procName
-                                    uiState.inputKey = uiState.inputKey + 1
-                                    renderPanel()
+                                    toggleProcessSelection(procName)
                                 end,
                                 flexGrow = 1,
                             }, {
@@ -305,19 +370,87 @@ local function renderSetupView(presets: { any }, processList: { any }, isProcess
                     end
                 end
             end
+
+            -- Offer to add custom typed process if not already in list
+            if filterText ~= "" and not selectedSet[filterText] then
+                table.insert(procCards, ui.row({
+                    gap = 8,
+                    align = "center",
+                    padding = 8,
+                    radius = 10,
+                    fill = "surface_variant/0.5",
+                    onClick = function()
+                        local cleanCustom = noctalia.string.trim(uiState.procSearchQuery)
+                        if cleanCustom ~= "" then
+                            toggleProcessSelection(cleanCustom)
+                            uiState.procSearchQuery = ""
+                            uiState.inputKey = uiState.inputKey + 1
+                            renderPanel()
+                        end
+                    end,
+                    flexGrow = 1,
+                }, {
+                    ui.glyph({ name = "plus", size = 18, color = "primary" }),
+                    ui.label({
+                        text = "Add '" .. uiState.procSearchQuery .. "'",
+                        fontSize = 12,
+                        fontWeight = "medium",
+                        color = "primary",
+                    }),
+                }))
+            end
+        end
+
+        local selectedChips = {}
+        for _, procName in ipairs(uiState.selectedProcesses) do
+            local shortName = procName
+            if string.len(shortName) > 16 then
+                shortName = string.sub(shortName, 1, 14) .. "…"
+            end
+            table.insert(selectedChips, ui.row({
+                gap = 6,
+                align = "center",
+                padding = 6,
+                radius = 8,
+                fill = "primary/0.2",
+                onClick = function()
+                    toggleProcessSelection(procName)
+                end,
+            }, {
+                ui.label({ text = shortName, fontSize = 11, fontWeight = "medium", color = "primary" }),
+                ui.glyph({ name = "x", size = 11, color = "primary" }),
+            }))
         end
 
         local procControls = {
             ui.input({
                 key = "proc-input-" .. uiState.inputKey,
-                value = uiState.selectedProcess,
-                placeholder = "Search app or type process (e.g. spotify, steam)",
+                value = uiState.procSearchQuery,
+                placeholder = "Search app or type custom process...",
                 onChange = function(val)
-                    uiState.selectedProcess = val or ""
+                    uiState.procSearchQuery = val or ""
                     renderPanel()
                 end,
             }),
         }
+
+        local procTitle = noctalia.tr("panel.process-label")
+        local clearButton = nil
+
+        if #uiState.selectedProcesses > 0 then
+            procTitle = procTitle .. string.format(" (%d)", #uiState.selectedProcesses)
+            clearButton = ui.button({
+                text = "Clear all",
+                variant = "ghost",
+                controlSize = "sm",
+                onClick = function()
+                    uiState.selectedProcesses = {}
+                    renderPanel()
+                end,
+            })
+
+            table.insert(procControls, ui.row({ gap = 6, align = "center" }, selectedChips))
+        end
 
         if #procCards > 0 then
             table.insert(procControls, chunkIntoGrid(procCards, 2))
@@ -327,7 +460,7 @@ local function renderSetupView(presets: { any }, processList: { any }, isProcess
             table.insert(procControls, ui.label({ text = noctalia.tr("panel.process-empty"), fontSize = 11, color = "on_surface_variant" }))
         end
 
-        table.insert(items, section(noctalia.tr("panel.process-label"), ui.column({ gap = 8 }, procControls)))
+        table.insert(items, section(procTitle, ui.column({ gap = 8 }, procControls), clearButton))
 
     elseif uiState.selectedAction == "custom-command" then
         table.insert(items, section(noctalia.tr("settings.custom_command.label"), ui.input({
@@ -349,7 +482,16 @@ local function renderSetupView(presets: { any }, processList: { any }, isProcess
             controlSize = "md",
             onClick = function()
                 local act = uiState.selectedAction
-                local target = if act == "kill-process" then uiState.selectedProcess else uiState.customCmdText
+                local target = ""
+                if act == "kill-process" then
+                    if #uiState.selectedProcesses > 0 then
+                        target = table.concat(uiState.selectedProcesses, ", ")
+                    elseif uiState.procSearchQuery ~= "" then
+                        target = noctalia.string.trim(uiState.procSearchQuery)
+                    end
+                elseif act == "custom-command" then
+                    target = uiState.customCmdText
+                end
 
                 if uiState.mode == "scheduled" then
                     noctalia.state.set("sleepy.cmd", {
@@ -415,11 +557,13 @@ local function renderActiveView(state: any)
     local finishTimeStr = os.date("%H:%M", os.time() + secsLeft)
     local subInfoText = "Ends at " .. finishTimeStr
     if actionTarget ~= "" then
-        local targetShort = actionTarget
-        if string.len(targetShort) > 28 then
-            targetShort = string.sub(targetShort, 1, 26) .. "…"
+        local targetSummary = if state.action == "kill-process"
+            then formatTargetSummary(actionTarget, 2)
+            else actionTarget
+        if string.len(targetSummary) > 28 then
+            targetSummary = string.sub(targetSummary, 1, 26) .. "…"
         end
-        subInfoText = subInfoText .. "  •  " .. targetShort
+        subInfoText = subInfoText .. "  •  " .. targetSummary
     end
 
     -- 1. Status & Target Header (Clean typography & subtle indicator)
@@ -613,7 +757,9 @@ function onOpen(_context)
         uiState.selectedAction = state.action
         if state.actionTarget and state.actionTarget ~= "" then
             if state.action == "kill-process" then
-                uiState.selectedProcess = state.actionTarget
+                local _, list = parseProcessSet(state.actionTarget)
+                uiState.selectedProcesses = list
+                uiState.procSearchQuery = ""
             elseif state.action == "custom-command" then
                 uiState.customCmdText = state.actionTarget
             end

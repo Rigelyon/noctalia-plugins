@@ -22,7 +22,7 @@ Sleepy Time is a timer, scheduler, and system action plugin for Noctalia v5 to m
    - **Shutdown**: Powers off system via `systemctl poweroff` or `loginctl poweroff`.
    - **Reboot**: Reboots system via `systemctl reboot` or `loginctl reboot`.
    - **Log Out**: Terminates session or exits Wayland compositor (Niri, Hyprland, Sway).
-   - **Kill Process**: Terminates a selected running graphical app or user process (`kill -15`).
+   - **Kill Process**: Terminates one or multiple selected running graphical apps or user processes (`kill -15` then `kill -9`).
    - **Custom Command**: Runs any custom shell command.
 4. Click **Start Timer** to begin. The setup panel automatically closes so you can continue your work.
 5. Control running timers anytime from the bar widget, desktop widget, or reopened panel:
@@ -79,4 +79,4 @@ Sleepy Time is a timer, scheduler, and system action plugin for Noctalia v5 to m
 ## Notes
 
 - **Compositor & System Compatibility**: Default action commands are designed with automated fallbacks supporting systemd, elogind/loginctl, Niri, Hyprland, and Sway.
-- **Process Listing**: The "Kill Process" selector scans user graphical processes using `ps` and extracts application icons via Noctalia's XDG icon theme resolver.
+- **Process Listing**: The "Kill Process" selector scans user graphical processes using `ps` and extracts application icons via Noctalia's XDG icon theme resolver. It supports multi-select toggling of multiple processes to terminate concurrently.
