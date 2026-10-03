@@ -297,4 +297,16 @@ function search.performSearch(query: string, config: any, callback: (ok: boolean
   return started == true
 end
 
+function search.isSlashSearch(text: string): (boolean, string)
+  local trimmed = safeTrim(text)
+  if trimmed == "/search" then
+    return true, ""
+  end
+  if trimmed:sub(1, 8) == "/search " or trimmed:sub(1, 8) == "/search\n" then
+    local subQuery = safeTrim(trimmed:sub(9))
+    return true, subQuery
+  end
+  return false, ""
+end
+
 return search
