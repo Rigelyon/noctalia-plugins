@@ -51,6 +51,8 @@
   "code_copied": "Tersalin!",
   "status_retrying": "Menghubungkan kembali... ({attempt}/{max})",
   "prompt_library": "Pustaka Prompt",
+  "metric_messages": "{count} pesan",
+  "metric_message_singular": "1 pesan",
   "export_chat": "Ekspor ke Markdown",
   "export_success_title": "Obrolan Diekspor",
   "action_view": "Lihat",

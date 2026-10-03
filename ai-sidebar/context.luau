@@ -1,6 +1,8 @@
 --!strict
 local context = {}
 
+context.BUDGET_TOKENS = 4096
+
 export type Message = {
   role: string,
   content: string,

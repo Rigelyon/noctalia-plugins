@@ -51,6 +51,8 @@
   "code_copied": "Copied!",
   "status_retrying": "Reconnecting... ({attempt}/{max})",
   "prompt_library": "Prompt Library",
+  "metric_messages": "{count} messages",
+  "metric_message_singular": "1 message",
   "export_chat": "Export to Markdown",
   "export_success_title": "Chat Exported",
   "action_view": "View",

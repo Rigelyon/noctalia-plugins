@@ -698,9 +698,20 @@ local function renderChatView()
     end,
   }))
 
+  local statusText: string
+  if isStreaming then
+    statusText = retryStatus or tr("status_typing")
+  else
+    local msgs = (currentSession and currentSession.messages) or {}
+    local totalTokens = context.estimateTotalTokens(msgs)
+    local msgCount = #msgs
+    local msgLabel = (msgCount == 1) and tr("metric_message_singular") or tr("metric_messages", { count = msgCount })
+    statusText = string.format("~%d / %d tok · %s", totalTokens, context.BUDGET_TOKENS or 4096, msgLabel)
+  end
+
   table.insert(inputChildren, ui.row({ align = "center", justify = "space_between" }, {
     ui.label({
-      text = isStreaming and tr("status_typing") or tr("status_ready"),
+      text = statusText,
       fontSize = 11,
       color = "on_surface_variant",
     }),

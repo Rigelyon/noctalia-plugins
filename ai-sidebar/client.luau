@@ -51,7 +51,7 @@ function client.streamChat(
   local augmentedPrompt = buildEnvironmentPrompt(config.system_prompt)
   
   -- Prepare rolling context to prevent token overflows and context amnesia
-  local contextMessages = context.prepareContext(messages, 4096, augmentedPrompt)
+  local contextMessages = context.prepareContext(messages, context.BUDGET_TOKENS or 4096, augmentedPrompt)
   local req = prov.buildChatRequest(contextMessages, augmentedPrompt, config)
 
   local hasReceivedChunk = false

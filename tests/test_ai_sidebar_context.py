@@ -70,6 +70,21 @@ class TestAiSidebarContext(unittest.TestCase):
         self.assertIn("Previous discussion context", condensed[1]["content"])
         self.assertEqual(condensed[-1]["content"], "Use panel.luau")
 
+    def test_budget_tokens_constant(self):
+        with open(CONTEXT_FILE, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn("context.BUDGET_TOKENS = 4096", content)
+
+    def test_panel_status_context_metrics(self):
+        panel_file = os.path.join(PLUGIN_DIR, "panel.luau")
+        with open(panel_file, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        self.assertIn("context.estimateTotalTokens", content)
+        self.assertIn("metric_messages", content)
+        self.assertIn("context.BUDGET_TOKENS", content)
+        self.assertIn("/ %d tok", content)
+
 
 if __name__ == "__main__":
     unittest.main()
