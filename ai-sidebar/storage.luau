@@ -32,12 +32,14 @@ export type ConfigTable = {
 }
 
 local function getDataDir(): string
-  local dir, _ = noctalia.pluginDataDir()
-  if not dir then
-    dir = noctalia.expandPath("~/.local/share/noctalia/ai-sidebar")
+  local dir = noctalia.pluginDataDir()
+  if dir then
+    noctalia.mkdirAll(dir)
+    return dir
   end
-  noctalia.mkdirAll(dir)
-  return dir
+  local fallback = noctalia.expandPath("~/.local/share/noctalia/ai-sidebar")
+  noctalia.mkdirAll(fallback)
+  return fallback
 end
 
 local function configPath(): string
