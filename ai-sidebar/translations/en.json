@@ -38,12 +38,7 @@
   "show_api_key": "Show API Key",
   "hide_api_key": "Hide API Key",
   "base_url": "Base URL",
-  "presets": "Presets",
   "api_key_optional": "API Key (Optional for local)",
-  "preset_ollama": "Ollama",
-  "preset_deepseek": "DeepSeek",
-  "preset_openrouter": "OpenRouter",
-  "preset_lmstudio": "LM Studio",
   "model": "Model",
   "system_prompt": "System Prompt",
   "settings": {

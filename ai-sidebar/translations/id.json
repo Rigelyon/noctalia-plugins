@@ -38,12 +38,7 @@
   "show_api_key": "Tampilkan API Key",
   "hide_api_key": "Sembunyikan API Key",
   "base_url": "Base URL",
-  "presets": "Preset",
   "api_key_optional": "API Key (Opsional untuk lokal)",
-  "preset_ollama": "Ollama",
-  "preset_deepseek": "DeepSeek",
-  "preset_openrouter": "OpenRouter",
-  "preset_lmstudio": "LM Studio",
   "model": "Model",
   "system_prompt": "System Prompt",
   "settings": {

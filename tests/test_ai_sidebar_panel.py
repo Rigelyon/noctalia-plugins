@@ -108,7 +108,6 @@ class TestAiSidebarPanel(unittest.TestCase):
         self.assertIn("setting-custom-url-", content)
         self.assertIn("setting-custom-key-", content)
         self.assertIn("setting-custom-model-", content)
-        self.assertIn("preset_ollama", content)
         self.assertIn("http://localhost:11434/v1", content)
         self.assertIn("showApiKey", content)
         self.assertIn("password = not showApiKey", content)

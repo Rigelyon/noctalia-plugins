@@ -555,47 +555,6 @@ local function renderSettingView()
       onChange = function(v) config.gemini_model = v or "" end,
     }))
   elseif config.active_provider == "custom" then
-    local presetRow = ui.row({ gap = 4, align = "center" }, {
-      ui.label({ text = tr("presets") .. ":", fontSize = 11, color = "on_surface_variant" }),
-      ui.button({
-        text = tr("preset_ollama"),
-        variant = "ghost",
-        onClick = function()
-          config.custom_base_url = "http://localhost:11434/v1"
-          settingRev += 1
-          render()
-        end,
-      }),
-      ui.button({
-        text = tr("preset_deepseek"),
-        variant = "ghost",
-        onClick = function()
-          config.custom_base_url = "https://api.deepseek.com/v1"
-          settingRev += 1
-          render()
-        end,
-      }),
-      ui.button({
-        text = tr("preset_openrouter"),
-        variant = "ghost",
-        onClick = function()
-          config.custom_base_url = "https://openrouter.ai/api/v1"
-          settingRev += 1
-          render()
-        end,
-      }),
-      ui.button({
-        text = tr("preset_lmstudio"),
-        variant = "ghost",
-        onClick = function()
-          config.custom_base_url = "http://localhost:1234/v1"
-          settingRev += 1
-          render()
-        end,
-      }),
-    })
-
-    table.insert(activeSettings, presetRow)
     table.insert(activeSettings, ui.label({ text = tr("base_url"), fontSize = 12, fontWeight = "bold" }))
     table.insert(activeSettings, ui.input({
       key = "setting-custom-url-" .. tostring(settingRev),

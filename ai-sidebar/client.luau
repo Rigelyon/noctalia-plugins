@@ -20,7 +20,7 @@ end
 
 local function buildEnvironmentPrompt(baseSystemPrompt: string?): string
   local timeStr = noctalia.formatTime("%Y-%m-%d %H:%M:%S")
-  local envInfo = "\n\n[Environment Context: Current system time is " .. timeStr .. ", running on Noctalia Linux Desktop Shell.]"
+  local envInfo = "\n\n[Environment Context: Current system time is " .. timeStr .. ", running on Noctalia Hyprland Shell inside custom Bazzite-DX image.]"
   local base = (baseSystemPrompt and baseSystemPrompt ~= "") and baseSystemPrompt or "You are a helpful and concise AI assistant."
   return base .. envInfo
 end
