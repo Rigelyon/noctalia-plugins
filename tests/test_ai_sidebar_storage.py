@@ -269,6 +269,17 @@ panel_layer = "overlay"
         self.assertIn("search_api_key", content)
         self.assertIn("search_max_results", content)
 
+    def test_search_config_prefer_toml_fallback_to_json(self):
+        with open(STORAGE_FILE, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # In the preferToml 'else' branch, decoded search settings must be checked as fallbacks
+        self.assertIn('elseif type(decoded.enable_web_search) == "boolean" then', content)
+        self.assertIn("cfg.enable_web_search = decoded.enable_web_search", content)
+        self.assertIn("decoded.search_engine", content)
+        self.assertIn("decoded.search_api_key", content)
+        self.assertIn("decoded.search_max_results", content)
+
 
 if __name__ == "__main__":
     unittest.main()

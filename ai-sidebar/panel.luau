@@ -1240,15 +1240,31 @@ local function renderSettingView()
   })
 
   table.insert(scrollItems, ui.separator({}))
-  table.insert(scrollItems, ui.row({ align = "center", justify = "space_between" }, {
+  table.insert(scrollItems, ui.row({
+    align = "center",
+    justify = "space_between",
+  }, {
     ui.row({ gap = 8, align = "center" }, {
-      ui.glyph({ name = "world", size = 16, color = "primary" }),
-      ui.label({ text = tr("web_search_title"), fontSize = 13, fontWeight = "bold" }),
+      ui.glyph({
+        name = "world",
+        size = 16,
+        color = if config.enable_web_search then "primary" else "on_surface_variant",
+      }),
+      ui.column({ gap = 2 }, {
+        ui.label({ text = tr("web_search_title"), fontSize = 13, fontWeight = "bold" }),
+        ui.label({
+          text = if config.enable_web_search then tr("web_search_on_hint") else tr("web_search_off_hint"),
+          fontSize = 11,
+          color = "on_surface_variant",
+        }),
+      }),
     }),
-    ui.toggle({
-      value = config.enable_web_search,
-      onChange = function(val)
-        config.enable_web_search = val
+    ui.button({
+      glyph = if config.enable_web_search then "toggle-right" else "toggle-left",
+      variant = if config.enable_web_search then "primary" else "ghost",
+      text = if config.enable_web_search then tr("enabled") else tr("disabled"),
+      onClick = function()
+        config.enable_web_search = not config.enable_web_search
         render()
       end,
     }),
@@ -1293,7 +1309,7 @@ local function renderSettingView()
     text = tr("save_settings"),
     variant = "primary",
     onClick = function()
-      local ok = storage.saveConfig(config)
+      local ok = storage.saveConfig(config, true)
       if ok then
         noctalia.notify(tr("title"), tr("settings_saved"))
       else
@@ -1438,7 +1454,9 @@ function onClose()
     stopStreaming()
   end
   pcall(function()
-    storage.syncToSettingsToml(config)
+    if config then
+      storage.saveConfig(config, true)
+    end
   end)
 end
 

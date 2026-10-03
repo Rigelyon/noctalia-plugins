@@ -196,6 +196,14 @@ function storage.loadConfig(): ConfigTable
   local geminiKey = (noctalia.getConfig("gemini_api_key") or noctalia.getConfig("api_key") or "") :: string
   local geminiModel = (noctalia.getConfig("gemini_model") or noctalia.getConfig("default_model") or "gemini-1.5-flash") :: string
 
+  local rawWeb = noctalia.getConfig("enable_web_search")
+  local tomlWeb: boolean? = nil
+  if rawWeb == true or rawWeb == "true" or rawWeb == 1 or rawWeb == "1" then
+    tomlWeb = true
+  elseif rawWeb == false or rawWeb == "false" or rawWeb == 0 or rawWeb == "0" then
+    tomlWeb = false
+  end
+
   local cfg: ConfigTable = {
     active_provider = activeProv,
     openai_key = (noctalia.getConfig("openai_api_key") or "") :: string,
@@ -208,7 +216,7 @@ function storage.loadConfig(): ConfigTable
     custom_key = (noctalia.getConfig("custom_api_key") or "") :: string,
     custom_model = (noctalia.getConfig("custom_model") or "llama3.2") :: string,
     system_prompt = (noctalia.getConfig("system_prompt") or "You are a helpful and concise AI assistant.") :: string,
-    enable_web_search = (noctalia.getConfig("enable_web_search") == true) or false,
+    enable_web_search = if tomlWeb ~= nil then tomlWeb else false,
     search_engine = (noctalia.getConfig("search_engine") or "duckduckgo") :: string,
     search_api_key = (noctalia.getConfig("search_api_key") or "") :: string,
     search_max_results = tonumber(noctalia.getConfig("search_max_results")) or 3,
@@ -245,6 +253,33 @@ function storage.loadConfig(): ConfigTable
         if cfg.custom_key == "" and type(decoded.custom_key) == "string" then cfg.custom_key = decoded.custom_key end
         if cfg.system_prompt == "You are a helpful and concise AI assistant." and type(decoded.system_prompt) == "string" and decoded.system_prompt ~= "" then
           cfg.system_prompt = decoded.system_prompt
+        end
+
+        if tomlWeb ~= nil then
+          cfg.enable_web_search = tomlWeb
+        elseif type(decoded.enable_web_search) == "boolean" then
+          cfg.enable_web_search = decoded.enable_web_search
+        end
+
+        local rawEngine = noctalia.getConfig("search_engine")
+        if type(rawEngine) == "string" and rawEngine ~= "" then
+          cfg.search_engine = rawEngine
+        elseif type(decoded.search_engine) == "string" and decoded.search_engine ~= "" then
+          cfg.search_engine = decoded.search_engine
+        end
+
+        local rawSearchKey = noctalia.getConfig("search_api_key")
+        if type(rawSearchKey) == "string" and rawSearchKey ~= "" then
+          cfg.search_api_key = rawSearchKey
+        elseif type(decoded.search_api_key) == "string" and decoded.search_api_key ~= "" then
+          cfg.search_api_key = decoded.search_api_key
+        end
+
+        local rawMaxResults = tonumber(noctalia.getConfig("search_max_results"))
+        if rawMaxResults ~= nil then
+          cfg.search_max_results = rawMaxResults
+        elseif type(decoded.search_max_results) == "number" then
+          cfg.search_max_results = decoded.search_max_results
         end
       end
     end

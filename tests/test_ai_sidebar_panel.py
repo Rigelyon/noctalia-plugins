@@ -254,6 +254,16 @@ class TestAiSidebarPanel(unittest.TestCase):
         self.assertIn("search_max_results", content)
         self.assertIn("status_searching_web", content)
 
+    def test_web_search_toggle_button_and_save(self):
+        with open(PANEL_FILE, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # Toggle must use ui.button with toggle-right/left glyphs for native Noctalia compatibility
+        self.assertIn("toggle-right", content)
+        self.assertIn("toggle-left", content)
+        self.assertIn("config.enable_web_search = not config.enable_web_search", content)
+        self.assertIn("storage.saveConfig(config, true)", content)
+
 
 if __name__ == "__main__":
     unittest.main()
