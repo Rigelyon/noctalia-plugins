@@ -11,7 +11,7 @@
 id = "rigelyon/sleepy-time"
 name = "Sleepy Time"
 version = "1.0.0"
-updated_at = 1787665699
+updated_at = 1787671119
 added_at = 1785000336
 author = "rigelyon"
 license = "MIT"
@@ -34,7 +34,7 @@ rev = "e586a0e57e32d99be138e3874bef6df56d9e4ca5"
 id = "rigelyon/scratchpad"
 name = "Scratchpad"
 version = "1.0.0"
-updated_at = 1790930683
+updated_at = 1790934585
 added_at = 1790930683
 author = "rigelyon"
 license = "MIT"
@@ -42,3 +42,29 @@ icon = "notebook"
 description = "Fast, private Markdown scratchpad with auto-archive, rendered preview, and note library."
 plugin_api = 28
 tags = ["productivity", "utility", "launcher", "panel", "privacy"]
+
+[[plugin]]
+id = "rigelyon/unicode"
+name = "Unicode"
+version = "1.0.0"
+updated_at = 1790918959
+added_at = 1790915071
+author = "rigelyon"
+license = "MIT"
+icon = "typography"
+description = "Fast Unicode character search and picker. Browse symbols, math, arrows, and copy characters or codepoints instantly."
+plugin_api = 28
+tags = ["launcher", "productivity", "utility"]
+
+[[plugin]]
+id = "rigelyon/ai-sidebar"
+name = "AI Sidebar"
+version = "1.0.0"
+updated_at = 1791009381
+added_at = 1791009113
+author = "rigelyon"
+license = "MIT"
+icon = "sparkles"
+description = "Streamlined AI chat sidebar for Noctalia with multi-provider streaming, history, and settings."
+plugin_api = 28
+tags = ["ai", "productivity", "utility", "panel", "bar"]
