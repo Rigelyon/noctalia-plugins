@@ -14,11 +14,20 @@ class TestAiSidebarSlashSearch(unittest.TestCase):
 
     def test_slash_search_parsing_logic(self):
         def is_slash_search(text):
-            t = text.strip()
-            if t == "/search":
+            trimmed = text.strip()
+            if not trimmed:
+                return False, ""
+            if trimmed == "/search":
                 return True, ""
-            if t.startswith("/search ") or t.startswith("/search\n"):
-                return True, t[7:].strip()
+            if trimmed.startswith("/search ") or trimmed.startswith("/search\n"):
+                return True, trimmed[8:].strip()
+            import re
+            if re.search(r"\s/search$", trimmed):
+                cleaned = re.sub(r"\s+/search$", "", trimmed)
+                return True, cleaned.strip()
+            if re.search(r"\s/search\s", trimmed):
+                cleaned = re.sub(r"\s+/search\s+", " ", trimmed)
+                return True, cleaned.strip()
             return False, ""
 
         ok, q = is_slash_search("/search")
@@ -28,6 +37,14 @@ class TestAiSidebarSlashSearch(unittest.TestCase):
         ok, q = is_slash_search("/search who is elon musk")
         self.assertTrue(ok)
         self.assertEqual(q, "who is elon musk")
+
+        ok, q = is_slash_search("who is elon musk /search")
+        self.assertTrue(ok)
+        self.assertEqual(q, "who is elon musk")
+
+        ok, q = is_slash_search("tolong carikan /search laptop gaming")
+        self.assertTrue(ok)
+        self.assertEqual(q, "tolong carikan laptop gaming")
 
         ok, q = is_slash_search("/search   what is linux?  ")
         self.assertTrue(ok)
@@ -40,8 +57,23 @@ class TestAiSidebarSlashSearch(unittest.TestCase):
         ok, q = is_slash_search("/searching something")
         self.assertFalse(ok)
 
+        ok, q = is_slash_search("https://google.com/search?q=123")
+        self.assertFalse(ok)
+        self.assertEqual(q, "")
 
-    def test_client_contains_contextual_search_methods(self):
+    def test_slash_search_in_middle_and_end_in_luau_files(self):
+        with open(SEARCH_FILE, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn("%s/search$", content)
+        self.assertIn("%s/search%s", content)
+
+    def test_slash_popover_in_middle_and_end(self):
+        panel_file = os.path.join(
+            os.path.dirname(__file__), "..", "ai-sidebar", "panel.luau"
+        )
+        with open(panel_file, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn("%s/([%w%-_]*)$", content)
         client_file = os.path.join(
             os.path.dirname(__file__), "..", "ai-sidebar", "client.luau"
         )

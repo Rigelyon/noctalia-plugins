@@ -347,12 +347,23 @@ end
 
 function search.isSlashSearch(text: string): (boolean, string)
   local trimmed = safeTrim(text)
+  if trimmed == "" then
+    return false, ""
+  end
   if trimmed == "/search" then
     return true, ""
   end
   if trimmed:sub(1, 8) == "/search " or trimmed:sub(1, 8) == "/search\n" then
     local subQuery = safeTrim(trimmed:sub(9))
     return true, subQuery
+  end
+  if trimmed:match("%s/search$") then
+    local cleaned = trimmed:gsub("%s+/search$", "")
+    return true, safeTrim(cleaned)
+  end
+  if trimmed:match("%s/search%s") then
+    local cleaned = trimmed:gsub("%s+/search%s+", " ")
+    return true, safeTrim(cleaned)
   end
   return false, ""
 end

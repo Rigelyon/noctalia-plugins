@@ -758,7 +758,7 @@ local function renderChatView()
   end
 
   local inputChildren = {}
-  local slashQuery = inputBuffer:match("^/([%w%-_]*)$")
+  local slashQuery = inputBuffer:match("^/([%w%-_]*)$") or inputBuffer:match("%s/([%w%-_]*)$")
   local isSlashActive = (slashQuery ~= nil)
   local matchingSlashCommands = {}
   if isSlashActive then
@@ -835,7 +835,12 @@ local function renderChatView()
           end
         end,
         onClick = function()
-          inputBuffer = sc.cmd .. " "
+          if slashQuery ~= nil then
+            local pattern = "(/[" .. "%w%-_" .. "]*)$"
+            inputBuffer = inputBuffer:gsub(pattern, sc.cmd .. " ")
+          else
+            inputBuffer = inputBuffer .. " " .. sc.cmd .. " "
+          end
           hoveredSlashCmd = nil
           inputRev += 1
           render()
@@ -892,11 +897,11 @@ local function renderChatView()
     height = 70,
     onChange = function(val)
       local oldHash = (inputBuffer:match("^#([%w%-_]*)$") ~= nil) or (inputBuffer:match("%s#([%w%-_]*)$") ~= nil)
-      local oldSlash = (inputBuffer:match("^/([%w%-_]*)$") ~= nil)
+      local oldSlash = (inputBuffer:match("^/([%w%-_]*)$") ~= nil) or (inputBuffer:match("%s/([%w%-_]*)$") ~= nil)
       local wasActive = showPromptPicker or oldHash or oldSlash
       inputBuffer = val or ""
       local newHash = (inputBuffer:match("^#([%w%-_]*)$") ~= nil) or (inputBuffer:match("%s#([%w%-_]*)$") ~= nil)
-      local newSlash = (inputBuffer:match("^/([%w%-_]*)$") ~= nil)
+      local newSlash = (inputBuffer:match("^/([%w%-_]*)$") ~= nil) or (inputBuffer:match("%s/([%w%-_]*)$") ~= nil)
 
       if oldHash and not newHash then
         showPromptPicker = false
