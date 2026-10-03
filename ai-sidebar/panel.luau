@@ -299,13 +299,17 @@ local function renderChatView()
           radius = 12,
           padding = 8,
           paddingH = 12,
-          gap = 4,
-          minWidth = 72,
+          gap = 6,
+          minWidth = 110,
           maxWidth = 360,
         }, {
-          contentNode,
           ui.row({ align = "center", justify = "space_between", gap = 8 }, {
-            ui.row({ gap = 1, align = "center" }, {
+            ui.label({
+              text = timeStr,
+              fontSize = 10,
+              color = "on_surface_variant",
+            }),
+            ui.row({ gap = 2, align = "center" }, {
               ui.button({
                 glyph = "pencil",
                 variant = "ghost",
@@ -335,12 +339,8 @@ local function renderChatView()
                 end,
               }),
             }),
-            ui.label({
-              text = timeStr,
-              fontSize = 9,
-              color = "on_surface_variant",
-            }),
           }),
+          contentNode,
         })
 
         table.insert(messageNodes, ui.row({ justify = "end", align = "start" }, {
