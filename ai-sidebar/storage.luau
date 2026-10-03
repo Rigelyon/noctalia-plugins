@@ -1,10 +1,17 @@
 --!strict
 local storage = {}
 
+export type MessageMetrics = {
+  tokens: number?,
+  durationMs: number?,
+  tokensPerSec: number?,
+}
+
 export type Message = {
   role: string, -- "user" | "assistant" | "system"
   content: string,
   timestamp: number?,
+  metrics: MessageMetrics?,
 }
 
 export type Session = {
@@ -250,6 +257,28 @@ function storage.loadSessions(): { Session }
     if type(decoded) == "table" then
       for _, item in ipairs(decoded) do
         if type(item) == "table" and type(item.id) == "string" then
+          local messages: { Message } = {}
+          if type(item.messages) == "table" then
+            for _, m in ipairs(item.messages) do
+              if type(m) == "table" and type(m.role) == "string" and type(m.content) == "string" then
+                local metricsObj: MessageMetrics? = nil
+                if type(m.metrics) == "table" then
+                  metricsObj = {
+                    tokens = type(m.metrics.tokens) == "number" and m.metrics.tokens or nil,
+                    durationMs = type(m.metrics.durationMs) == "number" and m.metrics.durationMs or nil,
+                    tokensPerSec = type(m.metrics.tokensPerSec) == "number" and m.metrics.tokensPerSec or nil,
+                  }
+                end
+                table.insert(messages, {
+                  role = m.role,
+                  content = m.content,
+                  timestamp = type(m.timestamp) == "number" and m.timestamp or nil,
+                  metrics = metricsObj,
+                })
+              end
+            end
+          end
+
           table.insert(sessions, {
             id = item.id,
             title = type(item.title) == "string" and item.title or "Conversation",
@@ -257,7 +286,7 @@ function storage.loadSessions(): { Session }
             updated_at = type(item.updated_at) == "number" and item.updated_at or 0,
             provider = type(item.provider) == "string" and item.provider or "openai",
             model = type(item.model) == "string" and item.model or "",
-            messages = type(item.messages) == "table" and item.messages or {},
+            messages = messages,
           })
         end
       end
