@@ -142,4 +142,65 @@ function client.streamChat(
   }
 end
 
+function client.generateTitle(
+  userPrompt: string,
+  assistantReply: string,
+  config: any,
+  onSuccess: (title: string) -> ()
+): ()
+  local titlerMessages = {
+    {
+      role = "system",
+      content = "You are a conversation summarizer. Summarize this conversation in a concise 3-5 word title. Return ONLY the title text, no quotes, no markdown, no punctuation.",
+    },
+    {
+      role = "user",
+      content = userPrompt:sub(1, 300),
+    },
+    {
+      role = "assistant",
+      content = assistantReply:sub(1, 500),
+    },
+  }
+
+  local prov = getProvider(config.active_provider)
+  local req = prov.buildChatRequest(titlerMessages, "You are a conversation summarizer.", config)
+  if type(req.body) == "string" then
+    req.body = req.body:gsub('"stream":%s*true', '"stream": false')
+  end
+
+  noctalia.http(req, function(resp: HttpResponse)
+    if not resp.ok or resp.status < 200 or resp.status >= 300 then
+      return
+    end
+
+    local decoded, err = noctalia.json.decode(resp.body)
+    if err or type(decoded) ~= "table" then
+      return
+    end
+
+    local title: string? = nil
+    if decoded.choices and decoded.choices[1] and decoded.choices[1].message then
+      title = decoded.choices[1].message.content
+    elseif decoded.content and decoded.content[1] and decoded.content[1].text then
+      title = decoded.content[1].text
+    elseif decoded.candidates and decoded.candidates[1] and decoded.candidates[1].content and decoded.candidates[1].content.parts then
+      title = decoded.candidates[1].content.parts[1].text
+    end
+
+    if title and type(title) == "string" then
+      local clean = noctalia.string.trim(title)
+      clean = clean:gsub('^["\']+', ''):gsub('["\']+$', '')
+      clean = clean:gsub("[/\\%%:*?\"<>|]", "")
+      clean = noctalia.string.trim(clean)
+      if #clean > 0 then
+        if #clean > 45 then
+          clean = clean:sub(1, 42) .. "..."
+        end
+        onSuccess(clean)
+      end
+    end
+  end)
+end
+
 return client
