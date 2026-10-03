@@ -444,8 +444,9 @@ local function renderSettingView()
     tr("provider_openai"),
     tr("provider_anthropic"),
     tr("provider_gemini"),
+    tr("provider_custom"),
   }
-  local providerIds = { "openai", "anthropic", "gemini" }
+  local providerIds = { "openai", "anthropic", "gemini", "custom" }
   local selectedProviderIndex = 0
   for i, pid in ipairs(providerIds) do
     if config.active_provider == pid then
@@ -552,6 +553,82 @@ local function renderSettingView()
       value = config.gemini_model,
       placeholder = "gemini-1.5-flash",
       onChange = function(v) config.gemini_model = v or "" end,
+    }))
+  elseif config.active_provider == "custom" then
+    local presetRow = ui.row({ gap = 4, align = "center" }, {
+      ui.label({ text = tr("presets") .. ":", fontSize = 11, color = "on_surface_variant" }),
+      ui.button({
+        text = tr("preset_ollama"),
+        variant = "ghost",
+        onClick = function()
+          config.custom_base_url = "http://localhost:11434/v1"
+          settingRev += 1
+          render()
+        end,
+      }),
+      ui.button({
+        text = tr("preset_deepseek"),
+        variant = "ghost",
+        onClick = function()
+          config.custom_base_url = "https://api.deepseek.com/v1"
+          settingRev += 1
+          render()
+        end,
+      }),
+      ui.button({
+        text = tr("preset_openrouter"),
+        variant = "ghost",
+        onClick = function()
+          config.custom_base_url = "https://openrouter.ai/api/v1"
+          settingRev += 1
+          render()
+        end,
+      }),
+      ui.button({
+        text = tr("preset_lmstudio"),
+        variant = "ghost",
+        onClick = function()
+          config.custom_base_url = "http://localhost:1234/v1"
+          settingRev += 1
+          render()
+        end,
+      }),
+    })
+
+    table.insert(activeSettings, presetRow)
+    table.insert(activeSettings, ui.label({ text = tr("base_url"), fontSize = 12, fontWeight = "bold" }))
+    table.insert(activeSettings, ui.input({
+      key = "setting-custom-url-" .. tostring(settingRev),
+      value = config.custom_base_url,
+      placeholder = "http://localhost:11434/v1",
+      onChange = function(v) config.custom_base_url = v or "" end,
+    }))
+    table.insert(activeSettings, ui.label({ text = tr("api_key_optional"), fontSize = 12, fontWeight = "bold" }))
+    table.insert(activeSettings, ui.row({ gap = 6, align = "center" }, {
+      ui.input({
+        flexGrow = 1,
+        key = "setting-custom-key-" .. tostring(settingRev) .. "-" .. (showApiKey and "vis" or "hid"),
+        value = config.custom_key,
+        placeholder = "sk-...",
+        password = not showApiKey,
+        onChange = function(v) config.custom_key = v or "" end,
+      }),
+      ui.button({
+        glyph = showApiKey and "eye-off" or "eye",
+        variant = "ghost",
+        tooltip = showApiKey and tr("hide_api_key") or tr("show_api_key"),
+        onClick = function()
+          showApiKey = not showApiKey
+          render()
+        end,
+      }),
+    }))
+    table.insert(activeSettings, ui.label({ text = tr("provider_custom") .. " " .. tr("model"), fontSize = 12, fontWeight = "bold" }))
+    table.insert(activeSettings, ui.input({
+      key = "setting-custom-model-" .. tostring(settingRev),
+      value = config.custom_model,
+      placeholder = "llama3.2",
+      onChange = function(v) config.custom_model = v or "" end,
     }))
   end
 
