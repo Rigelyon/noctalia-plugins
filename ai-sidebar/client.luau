@@ -2,6 +2,7 @@
 local openai = require("./providers/openai.luau")
 local anthropic = require("./providers/anthropic.luau")
 local gemini = require("./providers/gemini.luau")
+local custom = require("./providers/custom.luau")
 
 local client = {}
 
@@ -10,6 +11,8 @@ local function getProvider(name: string): any
     return anthropic
   elseif name == "gemini" then
     return gemini
+  elseif name == "custom" then
+    return custom
   else
     return openai
   end

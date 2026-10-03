@@ -60,6 +60,14 @@ class TestAiSidebarCustomProvider(unittest.TestCase):
         self.assertIn('noctalia.setConfig("custom_api_key"', content)
         self.assertIn('noctalia.setConfig("custom_model"', content)
 
+    def test_client_router_includes_custom(self):
+        client_file = os.path.join(PLUGIN_DIR, "client.luau")
+        with open(client_file, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        self.assertIn('require("./providers/custom.luau")', content)
+        self.assertIn('name == "custom"', content)
+
 
 if __name__ == "__main__":
     unittest.main()
