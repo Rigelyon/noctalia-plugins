@@ -49,6 +49,11 @@
   "action_copy_code": "Copy",
   "code_copied": "Copied!",
   "status_retrying": "Reconnecting... ({attempt}/{max})",
+  "prompt_library": "Prompt Library",
+  "export_chat": "Export to Markdown",
+  "export_success_title": "Chat Exported",
+  "export_empty_title": "Export Chat",
+  "export_empty_body": "No messages to export in current conversation.",
   "settings": {
     "default-provider": {
       "label": "Default Provider",

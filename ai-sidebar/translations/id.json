@@ -49,6 +49,11 @@
   "action_copy_code": "Salin",
   "code_copied": "Tersalin!",
   "status_retrying": "Menghubungkan kembali... ({attempt}/{max})",
+  "prompt_library": "Pustaka Prompt",
+  "export_chat": "Ekspor ke Markdown",
+  "export_success_title": "Obrolan Diekspor",
+  "export_empty_title": "Ekspor Obrolan",
+  "export_empty_body": "Tidak ada pesan untuk diekspor pada percakapan ini.",
   "settings": {
     "default-provider": {
       "label": "Provider Bawaan",

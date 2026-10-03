@@ -6,6 +6,7 @@ local client = require("./client.luau")
 local markdown = require("./markdown.luau")
 local export = require("./export.luau")
 local prompts = require("./prompts.luau")
+local context = require("./context.luau")
 
 local activeTab = "chat" -- "chat" | "history" | "setting"
 local sessions = {}
@@ -29,6 +30,7 @@ local pendingClear = false
 local testConnStatus = nil -- nil | "testing" | "success" | "error: <msg>"
 local showApiKey = false
 local startFreshOnOpen = false
+local showPromptPicker = false
 
 local render
 
@@ -90,6 +92,7 @@ local function sendMessage()
   isStreaming = true
   retryStatus = nil
   lastRenderMs = noctalia.nowMs()
+  local streamStartMs = noctalia.nowMs()
   render()
 
   local assistantMsg = currentSession.messages[#currentSession.messages]
@@ -122,9 +125,41 @@ local function sendMessage()
       isStreaming = false
       streamHandle = nil
       retryStatus = nil
+
+      -- Compute telemetry metrics
+      local durationMs = math.max(100, noctalia.nowMs() - streamStartMs)
+      local tokens = context.estimateTokens(assistantMsg.content)
+      local durationSec = durationMs / 1000
+      local tokensPerSec = math.round((tokens / durationSec) * 10) / 10
+      assistantMsg.metrics = {
+        tokens = tokens,
+        durationMs = durationMs,
+        tokensPerSec = tokensPerSec,
+      }
+
       storage.saveSessions(sessions)
       scrollRev += 1
       render()
+
+      -- Background auto-titler trigger on Turn 1 completion
+      if currentSession and #currentSession.messages == 2 then
+        local capturedSessionId = currentSession.id
+        client.generateTitle(text, assistantMsg.content, config, function(autoTitle)
+          if currentSession and currentSession.id == capturedSessionId then
+            currentSession.title = autoTitle
+            storage.saveSessions(sessions)
+            render()
+          else
+            for _, s in ipairs(sessions) do
+              if s.id == capturedSessionId then
+                s.title = autoTitle
+                storage.saveSessions(sessions)
+                break
+              end
+            end
+          end
+        end)
+      end
     end,
     function(status: string, attempt: number, maxRetries: number)
       if status == "retrying" then
@@ -159,6 +194,7 @@ local function regenerateResponse()
   isStreaming = true
   retryStatus = nil
   lastRenderMs = noctalia.nowMs()
+  local streamStartMs = noctalia.nowMs()
   render()
 
   local assistantMsg = currentSession.messages[#currentSession.messages]
@@ -190,6 +226,17 @@ local function regenerateResponse()
       isStreaming = false
       streamHandle = nil
       retryStatus = nil
+
+      local durationMs = math.max(100, noctalia.nowMs() - streamStartMs)
+      local tokens = context.estimateTokens(assistantMsg.content)
+      local durationSec = durationMs / 1000
+      local tokensPerSec = math.round((tokens / durationSec) * 10) / 10
+      assistantMsg.metrics = {
+        tokens = tokens,
+        durationMs = durationMs,
+        tokensPerSec = tokensPerSec,
+      }
+
       storage.saveSessions(sessions)
       scrollRev += 1
       render()
@@ -434,6 +481,17 @@ local function renderChatView()
           }))
         end
 
+        if msg.metrics and msg.metrics.tokens and msg.metrics.durationMs and msg.metrics.tokensPerSec then
+          local metricStr = string.format("~%d tokens · %.1fs · %.1f tok/s", msg.metrics.tokens, msg.metrics.durationMs / 1000, msg.metrics.tokensPerSec)
+          table.insert(assistantChildren, ui.row({ justify = "end", align = "center" }, {
+            ui.label({
+              text = metricStr,
+              fontSize = 10,
+              color = "outline",
+            }),
+          }))
+        end
+
         table.insert(messageNodes, ui.row({ justify = "start", align = "start" }, {
           ui.column({
             fill = "surface_variant/0.25",
@@ -483,6 +541,15 @@ local function renderChatView()
       }))
     else
       table.insert(actionButtons, ui.button({
+        glyph = "hash",
+        variant = showPromptPicker and "primary" or "ghost",
+        tooltip = tr("prompt_library"),
+        onClick = function()
+          showPromptPicker = not showPromptPicker
+          render()
+        end,
+      }))
+      table.insert(actionButtons, ui.button({
         glyph = "eraser",
         variant = "ghost",
         tooltip = tr("clear"),
@@ -500,31 +567,79 @@ local function renderChatView()
     end
   end
 
-  local inputRow = ui.column({ gap = 6, align = "stretch" }, {
-    ui.input({
-      key = "chat-input-" .. inputRev,
-      value = inputBuffer,
-      placeholder = tr("input_placeholder"),
-      multiline = true,
-      submitOnEnter = true,
-      focus = true,
-      height = 70,
-      onChange = function(val)
-        inputBuffer = val or ""
-      end,
-      onSubmit = function()
-        sendMessage()
-      end,
+  local hashPrefix, hashQuery = inputBuffer:match("(^|%s)#([%w%-_]*)$")
+  local isPromptActive = showPromptPicker or (hashPrefix ~= nil)
+  local matchingPrompts = isPromptActive and prompts.filter(hashQuery or "") or {}
+
+  local promptNodes = {}
+  if isPromptActive and #matchingPrompts > 0 then
+    for _, p in ipairs(matchingPrompts) do
+      table.insert(promptNodes, ui.button({
+        variant = "ghost",
+        padding = 4,
+        paddingH = 8,
+        onClick = function()
+          if hashPrefix ~= nil then
+            local pattern = "(#[" .. "%w%-_" .. "]*)$"
+            inputBuffer = inputBuffer:gsub(pattern, p.content)
+          else
+            inputBuffer = inputBuffer .. p.content
+          end
+          showPromptPicker = false
+          inputRev += 1
+          render()
+        end,
+      }, {
+        ui.row({ gap = 8, align = "center" }, {
+          ui.glyph({ name = "hash", size = 12, color = "primary" }),
+          ui.label({ text = "#" .. p.tag, fontWeight = "bold", fontSize = 12 }),
+          ui.label({ text = p.label, fontSize = 11, color = "on_surface_variant" }),
+        })
+      }))
+    end
+  end
+
+  local inputChildren = {}
+  if #promptNodes > 0 then
+    table.insert(inputChildren, ui.column({
+      fill = "surface_variant/0.4",
+      radius = 8,
+      padding = 4,
+      gap = 2,
+      align = "stretch",
+    }, promptNodes))
+  end
+
+  table.insert(inputChildren, ui.input({
+    key = "chat-input-" .. inputRev,
+    value = inputBuffer,
+    placeholder = tr("input_placeholder"),
+    multiline = true,
+    submitOnEnter = true,
+    focus = true,
+    height = 70,
+    onChange = function(val)
+      inputBuffer = val or ""
+      local hasHash = inputBuffer:match("(^|%s)#([%w%-_]*)$") ~= nil
+      if hasHash or showPromptPicker then
+        render()
+      end
+    end,
+    onSubmit = function()
+      sendMessage()
+    end,
+  }))
+
+  table.insert(inputChildren, ui.row({ align = "center", justify = "space_between" }, {
+    ui.label({
+      text = isStreaming and tr("status_typing") or tr("status_ready"),
+      fontSize = 11,
+      color = "on_surface_variant",
     }),
-    ui.row({ align = "center", justify = "space_between" }, {
-      ui.label({
-        text = isStreaming and tr("status_typing") or tr("status_ready"),
-        fontSize = 11,
-        color = "on_surface_variant",
-      }),
-      ui.row({ gap = 4, align = "center" }, actionButtons),
-    }),
-  })
+    ui.row({ gap = 4, align = "center" }, actionButtons),
+  }))
+
+  local inputRow = ui.column({ gap = 6, align = "stretch" }, inputChildren)
 
   return ui.column({ flexGrow = 1, gap = 8, align = "stretch" }, {
     ui.scroll({
@@ -944,6 +1059,18 @@ render = function()
       }),
     }),
     ui.row({ gap = 4, align = "center" }, {
+      ui.button({
+        glyph = "download",
+        variant = "ghost",
+        tooltip = tr("export_chat"),
+        onClick = function()
+          if currentSession and #currentSession.messages > 0 then
+            export.saveSession(currentSession)
+          else
+            noctalia.notify(tr("export_empty_title"), tr("export_empty_body"))
+          end
+        end,
+      }),
       ui.button({
         glyph = "plus",
         variant = "ghost",

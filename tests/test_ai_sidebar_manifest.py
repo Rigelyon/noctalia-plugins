@@ -38,7 +38,7 @@ class TestAiSidebarManifest(unittest.TestCase):
 
         self.assertEqual(manifest.get("id"), "rigelyon/ai-sidebar")
         self.assertEqual(manifest.get("name"), "AI Sidebar")
-        self.assertEqual(manifest.get("version"), "1.1.0")
+        self.assertEqual(manifest.get("version"), "1.2.0")
         self.assertEqual(manifest.get("plugin_api"), 28)
         self.assertEqual(manifest.get("author"), "rigelyon")
         self.assertEqual(manifest.get("license"), "MIT")
@@ -95,16 +95,16 @@ class TestAiSidebarManifest(unittest.TestCase):
             header = f.read(30)
             self.assertTrue(header.startswith(b"RIFF") and b"WEBP" in header)
 
-    def test_version_1_1_0(self):
+    def test_version_1_2_0(self):
         plugin_toml = os.path.join(PLUGIN_DIR, "plugin.toml")
         with open(plugin_toml, "r", encoding="utf-8") as f:
             content = f.read()
-        self.assertIn('version = "1.1.0"', content)
+        self.assertIn('version = "1.2.0"', content)
 
         catalog_path = os.path.join(os.path.dirname(__file__), "..", "catalog.toml")
         with open(catalog_path, "r", encoding="utf-8") as f:
             c_content = f.read()
-        self.assertIn('version = "1.1.0"', c_content)
+        self.assertIn('version = "1.2.0"', c_content)
 
     def test_new_action_translations_exist(self):
         required_keys = [
@@ -113,6 +113,9 @@ class TestAiSidebarManifest(unittest.TestCase):
             "action_rewind",
             "action_copy_code",
             "code_copied",
+            "prompt_library",
+            "export_chat",
+            "export_success_title",
             "status_retrying",
         ]
         en_path = os.path.join(PLUGIN_DIR, "translations", "en.json")
