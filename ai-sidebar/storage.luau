@@ -165,14 +165,24 @@ end
 -- Sliding window for context: retain only the last maxCount (default 20) messages for API payload
 function storage.capMessages(messages: { Message }, maxCount: number?): { Message }
   local limit = maxCount or 20
-  if #messages <= limit then
-    return messages
-  end
   local capped: { Message } = {}
-  local startIdx = #messages - limit + 1
-  for i = startIdx, #messages do
-    table.insert(capped, messages[i])
+
+  if #messages <= limit then
+    for _, m in ipairs(messages) do
+      table.insert(capped, m)
+    end
+  else
+    local startIdx = #messages - limit + 1
+    for i = startIdx, #messages do
+      table.insert(capped, messages[i])
+    end
   end
+
+  -- Ensure context window always starts with a user message for provider schema compatibility
+  while #capped > 0 and capped[1].role ~= "user" do
+    table.remove(capped, 1)
+  end
+
   return capped
 end
 

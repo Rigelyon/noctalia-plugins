@@ -37,6 +37,7 @@ class TestAiSidebarPanel(unittest.TestCase):
         self.assertIn("lastRenderMs", content)
         self.assertIn("80", content, "Throttle limit must be at least 80ms")
         self.assertIn("capMessages", content)
+        self.assertIn("table.sort(sessions", content, "sessions must be re-sorted on message send")
 
     def test_chat_view_components(self):
         self.assertTrue(os.path.isfile(PANEL_FILE), "Missing panel.luau")
@@ -64,6 +65,8 @@ class TestAiSidebarPanel(unittest.TestCase):
         self.assertIn("provider_openai", content)
         self.assertIn("provider_anthropic", content)
         self.assertIn("provider_gemini", content)
+        self.assertIn('tr("api_key")', content)
+        self.assertIn('tr("model")', content)
         self.assertIn("testConnStatus", content)
         self.assertIn("saveConfig", content)
         self.assertIn("notify", content)

@@ -70,9 +70,17 @@ class TestAiSidebarStorage(unittest.TestCase):
     def test_sliding_window_cap_messages_simulation(self):
         def cap_messages(messages, max_count=20):
             limit = max_count or 20
+            capped = []
             if len(messages) <= limit:
-                return messages
-            return messages[-limit:]
+                for m in messages:
+                    capped.append(m)
+            else:
+                start_idx = len(messages) - limit
+                for i in range(start_idx, len(messages)):
+                    capped.append(messages[i])
+            while len(capped) > 0 and capped[0]["role"] != "user":
+                capped.pop(0)
+            return capped
 
         msgs = [{"role": "user", "content": f"msg {i}"} for i in range(25)]
         capped = cap_messages(msgs, 20)
@@ -82,6 +90,45 @@ class TestAiSidebarStorage(unittest.TestCase):
 
         small_msgs = [{"role": "user", "content": "hello"}]
         self.assertEqual(cap_messages(small_msgs), small_msgs)
+
+    def test_cap_messages_role_parity_alternating(self):
+        with open(STORAGE_FILE, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn('capped[1].role ~= "user"', content)
+
+        def cap_messages(messages, max_count=20):
+            limit = max_count or 20
+            capped = []
+            if len(messages) <= limit:
+                for m in messages:
+                    capped.append(m)
+            else:
+                start_idx = len(messages) - limit
+                for i in range(start_idx, len(messages)):
+                    capped.append(messages[i])
+            while len(capped) > 0 and capped[0]["role"] != "user":
+                capped.pop(0)
+            return capped
+
+        # 21 alternating messages: 0:user, 1:assistant, ..., 20:user
+        messages = [
+            {"role": "user" if i % 2 == 0 else "assistant", "content": f"msg {i}"}
+            for i in range(21)
+        ]
+        self.assertEqual(len(messages), 21)
+        self.assertEqual(messages[0]["role"], "user")
+        self.assertEqual(messages[1]["role"], "assistant")
+        self.assertEqual(messages[-1]["role"], "user")
+
+        # Capping with limit=20 takes last 20 messages (messages[1:21]).
+        # The first message in that window is an assistant turn, which must be stripped
+        # so that the window starts on a user message (role == "user").
+        capped = cap_messages(messages, 20)
+        self.assertEqual(len(capped), 19)
+        self.assertEqual(capped[0]["role"], "user")
+        self.assertEqual(capped[0]["content"], "msg 2")
+        self.assertEqual(capped[-1]["role"], "user")
+        self.assertEqual(capped[-1]["content"], "msg 20")
 
     def test_session_sorting_simulation(self):
         sessions = [

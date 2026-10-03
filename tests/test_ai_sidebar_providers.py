@@ -27,13 +27,28 @@ class TestAiSidebarProviders(unittest.TestCase):
                 self.assertIn(exp, content, f"{name} missing export {exp}")
 
     def test_openai_sse_parsing(self):
+        with open(os.path.join(PROVIDERS_DIR, "openai.luau"), "r", encoding="utf-8") as f:
+            openai_src = f.read()
+        self.assertIn('type(choice.delta.content) == "string"', openai_src)
+
         # Simulate OpenAI SSE line
         sample_line = 'data: {"choices":[{"delta":{"content":"Hello"}}]}'
         prefix = "data: "
         if sample_line.startswith(prefix) and not sample_line.startswith("data: [DONE]"):
             payload = json.loads(sample_line[len(prefix) :])
-            delta = payload["choices"][0]["delta"].get("content")
-            self.assertEqual(delta, "Hello")
+            choice = payload["choices"][0]
+            delta_content = choice.get("delta", {}).get("content")
+            if isinstance(delta_content, str):
+                self.assertEqual(delta_content, "Hello")
+            else:
+                self.fail("Expected string delta content")
+
+        # Non-string delta (e.g. role-only or finish chunk)
+        role_only_line = 'data: {"choices":[{"delta":{"role":"assistant"}}]}'
+        payload = json.loads(role_only_line[len(prefix) :])
+        choice = payload["choices"][0]
+        delta_content = choice.get("delta", {}).get("content")
+        self.assertFalse(isinstance(delta_content, str))
 
         # Test [DONE] termination marker
         done_line = "data: [DONE]"

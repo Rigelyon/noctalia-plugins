@@ -59,7 +59,7 @@ function openai.parseStreamLine(line: string): string?
   local decoded, _ = noctalia.json.decode(jsonStr)
   if type(decoded) == "table" and type(decoded.choices) == "table" then
     local choice = decoded.choices[1]
-    if type(choice) == "table" and type(choice.delta) == "table" then
+    if type(choice) == "table" and type(choice.delta) == "table" and type(choice.delta.content) == "string" then
       return choice.delta.content
     end
   end

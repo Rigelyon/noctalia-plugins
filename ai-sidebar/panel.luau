@@ -61,6 +61,7 @@ local function sendMessage()
     currentSession.title = storage.generateTitle(text)
   end
   currentSession.updated_at = math.floor(noctalia.nowMs() / 1000)
+  table.sort(sessions, function(a, b) return a.updated_at > b.updated_at end)
 
   local capped = storage.capMessages(currentSession.messages)
   capped = table.clone(capped)
@@ -388,39 +389,39 @@ local function renderSettingView()
 
   local activeSettings = {}
   if config.active_provider == "openai" then
-    table.insert(activeSettings, ui.label({ text = "OpenAI API Key", fontSize = 12, fontWeight = "bold" }))
+    table.insert(activeSettings, ui.label({ text = tr("provider_openai") .. " " .. tr("api_key"), fontSize = 12, fontWeight = "bold" }))
     table.insert(activeSettings, ui.input({
       value = config.openai_key,
       placeholder = "sk-...",
       onChange = function(v) config.openai_key = v end,
     }))
-    table.insert(activeSettings, ui.label({ text = "OpenAI Model", fontSize = 12, fontWeight = "bold" }))
+    table.insert(activeSettings, ui.label({ text = tr("provider_openai") .. " " .. tr("model"), fontSize = 12, fontWeight = "bold" }))
     table.insert(activeSettings, ui.input({
       value = config.openai_model,
       placeholder = "gpt-4o-mini",
       onChange = function(v) config.openai_model = v end,
     }))
   elseif config.active_provider == "anthropic" then
-    table.insert(activeSettings, ui.label({ text = "Anthropic API Key", fontSize = 12, fontWeight = "bold" }))
+    table.insert(activeSettings, ui.label({ text = tr("provider_anthropic") .. " " .. tr("api_key"), fontSize = 12, fontWeight = "bold" }))
     table.insert(activeSettings, ui.input({
       value = config.anthropic_key,
       placeholder = "sk-ant-...",
       onChange = function(v) config.anthropic_key = v end,
     }))
-    table.insert(activeSettings, ui.label({ text = "Anthropic Model", fontSize = 12, fontWeight = "bold" }))
+    table.insert(activeSettings, ui.label({ text = tr("provider_anthropic") .. " " .. tr("model"), fontSize = 12, fontWeight = "bold" }))
     table.insert(activeSettings, ui.input({
       value = config.anthropic_model,
       placeholder = "claude-3-5-haiku-20241022",
       onChange = function(v) config.anthropic_model = v end,
     }))
   elseif config.active_provider == "gemini" then
-    table.insert(activeSettings, ui.label({ text = "Gemini API Key", fontSize = 12, fontWeight = "bold" }))
+    table.insert(activeSettings, ui.label({ text = tr("provider_gemini") .. " " .. tr("api_key"), fontSize = 12, fontWeight = "bold" }))
     table.insert(activeSettings, ui.input({
       value = config.gemini_key,
       placeholder = "AIzaSy...",
       onChange = function(v) config.gemini_key = v end,
     }))
-    table.insert(activeSettings, ui.label({ text = "Gemini Model", fontSize = 12, fontWeight = "bold" }))
+    table.insert(activeSettings, ui.label({ text = tr("provider_gemini") .. " " .. tr("model"), fontSize = 12, fontWeight = "bold" }))
     table.insert(activeSettings, ui.input({
       value = config.gemini_model,
       placeholder = "gemini-1.5-flash",
