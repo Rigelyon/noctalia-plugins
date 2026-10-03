@@ -81,7 +81,7 @@ default = "You are a helpful and concise AI assistant."
 id = "panel"
 entry = "panel.luau"
 placement = "attached"
-position = "right"
+position = "center_right"
 width = 440
 height = 760
 

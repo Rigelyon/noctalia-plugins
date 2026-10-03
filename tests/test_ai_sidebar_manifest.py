@@ -52,7 +52,7 @@ class TestAiSidebarManifest(unittest.TestCase):
         self.assertEqual(panels[0].get("id"), "panel")
         self.assertEqual(panels[0].get("entry"), "panel.luau")
         self.assertEqual(panels[0].get("placement"), "attached")
-        self.assertEqual(panels[0].get("position"), "right")
+        self.assertEqual(panels[0].get("position"), "center_right")
         self.assertEqual(panels[0].get("width"), 440)
         self.assertEqual(panels[0].get("height"), 760)
 
