@@ -367,19 +367,6 @@ local function renderChatView()
           }))
         end
         table.insert(actionButtons, ui.button({
-          glyph = "arrow-back-up",
-          variant = "ghost",
-          padding = 2,
-          paddingH = 4,
-          tooltip = tr("action_rewind"),
-          onClick = function()
-            if not isStreaming then
-              storage.rewindSession(sessions, currentSession.id, idx)
-              render()
-            end
-          end,
-        }))
-        table.insert(actionButtons, ui.button({
           glyph = "copy",
           variant = "ghost",
           padding = 2,
@@ -389,6 +376,19 @@ local function renderChatView()
             if content ~= "" then
               noctalia.copyToClipboard(msg.content, "text/plain")
               noctalia.notify(tr("copied_to_clipboard"), "sparkles")
+            end
+          end,
+        }))
+        table.insert(actionButtons, ui.button({
+          glyph = "arrow-back-up",
+          variant = "ghost",
+          padding = 2,
+          paddingH = 4,
+          tooltip = tr("action_rewind"),
+          onClick = function()
+            if not isStreaming then
+              storage.rewindSession(sessions, currentSession.id, idx)
+              render()
             end
           end,
         }))
