@@ -301,7 +301,7 @@ local function renderChatView()
           paddingH = 12,
           gap = 6,
           minWidth = 110,
-          maxWidth = 360,
+          flexGrow = if isLong then 4 else nil,
         }, {
           ui.row({ align = "center", justify = "space_between", gap = 8 }, {
             ui.label({
@@ -343,9 +343,16 @@ local function renderChatView()
           contentNode,
         })
 
-        table.insert(messageNodes, ui.row({ justify = "end", align = "start" }, {
-          bubbleNode,
-        }))
+        if isLong then
+          table.insert(messageNodes, ui.row({ align = "start" }, {
+            ui.spacer({ flexGrow = 1 }),
+            bubbleNode,
+          }))
+        else
+          table.insert(messageNodes, ui.row({ justify = "end", align = "start" }, {
+            bubbleNode,
+          }))
+        end
       elseif msg.role == "assistant" then
         local content = msg.content
         if content == "" and isStreaming then
