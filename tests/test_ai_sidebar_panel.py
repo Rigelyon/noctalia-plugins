@@ -26,6 +26,25 @@ class TestAiSidebarPanel(unittest.TestCase):
         # Verify 80ms throttle logic presence
         self.assertIn("nowMs", content)
 
+    def test_luau_require_paths_valid(self):
+        plugin_dir = os.path.join(os.path.dirname(__file__), "..", "ai-sidebar")
+        require_pattern = re.compile(r'require\(["\']([^"\']+)["\']\)')
+        found_requires = []
+        for root, _, files in os.walk(plugin_dir):
+            for file in files:
+                if file.endswith(".luau"):
+                    filepath = os.path.join(root, file)
+                    with open(filepath, "r", encoding="utf-8") as f:
+                        for line_no, line in enumerate(f, 1):
+                            for match in require_pattern.finditer(line):
+                                req_path = match.group(1)
+                                found_requires.append((file, line_no, req_path))
+                                self.assertTrue(
+                                    req_path.startswith("./") and req_path.endswith(".luau"),
+                                    f"{file}:{line_no} invalid require path '{req_path}'; must start with './' and end with '.luau'",
+                                )
+        self.assertGreater(len(found_requires), 0, "Expected at least one require() in plugin")
+
     def test_streaming_and_throttling_logic(self):
         self.assertTrue(os.path.isfile(PANEL_FILE), "Missing panel.luau")
         with open(PANEL_FILE, "r", encoding="utf-8") as f:

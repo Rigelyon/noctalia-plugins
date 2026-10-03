@@ -1,7 +1,7 @@
 --!strict
-local openai = require("providers/openai")
-local anthropic = require("providers/anthropic")
-local gemini = require("providers/gemini")
+local openai = require("./providers/openai.luau")
+local anthropic = require("./providers/anthropic.luau")
+local gemini = require("./providers/gemini.luau")
 
 local client = {}
 

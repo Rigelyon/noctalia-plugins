@@ -1,8 +1,8 @@
 --!nonstrict
 -- AI Sidebar panel implementation with streaming chat, session history, and provider settings.
 
-local storage = require("storage")
-local client = require("client")
+local storage = require("./storage.luau")
+local client = require("./client.luau")
 
 local activeTab = "chat" -- "chat" | "history" | "setting"
 local sessions = {}
