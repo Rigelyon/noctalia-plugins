@@ -69,7 +69,14 @@ noctalia msg plugin rigelyon/ai-sidebar:panel all toggle
 | `custom_api_key` | `string` | `""` | API key for custom endpoint (optional for local models). |
 | `custom_model` | `string` | `llama3.2` | Model identifier for custom provider. |
 | `system_prompt` | `string` | `You are a helpful and concise AI assistant.` | Base instruction given to the AI assistant. |
-| `enable_web_search` | `bool` | `false` | Enable live internet search context before responding. |
-| `search_engine` | `select` | `duckduckgo` | Search engine (`duckduckgo`, `gemini_native`, `tavily`, `brave`). |
+| `search_engine` | `select` | `duckduckgo` | Search engine for `/search` (`duckduckgo`, `gemini_native`, `tavily`, `brave`). |
 | `search_api_key` | `string` | `""` | API key for Tavily or Brave Search. |
 | `search_max_results` | `select` | `3` | Max search snippets included in context (`3`, `5`, `7`). |
+
+### Web Search (`/search` Slash Command)
+
+Live internet search is triggered on-demand using the `/search` slash command:
+- `/search`: The AI automatically synthesizes a concise search query based on the ongoing conversation context.
+- `/search <question>`: The AI searches for information based on the specified question and context.
+- Regular messages sent without `/search` stream immediately from the AI model with zero search overhead.
+
