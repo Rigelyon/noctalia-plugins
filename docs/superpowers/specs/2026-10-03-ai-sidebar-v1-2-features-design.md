@@ -80,7 +80,7 @@ When `~/.local/share/noctalia/ai-sidebar/prompts.json` does not exist, initializ
 2. `code-review`: "Review & Optimize" -> "Please review the following code for bugs, edge cases, and performance optimizations:\n\n"
 3. `summarize`: "Summarize Key Points" -> "Summarize the key takeaways and actionable points from the text below:\n\n"
 4. `fix-grammar`: "Fix Grammar & Tone" -> "Please fix grammar, spelling, and enhance clarity and professional tone:\n\n"
-5. `translate-id`: "Translate to Indonesian" -> "Terjemahkan teks berikut ke dalam Bahasa Indonesia yang alami dan formal:\n\n"
+5. `translate`: "Translate Language" -> "Please translate the following text into [target language]:\n\n"
 6. `write-test`: "Generate Unit Tests" -> "Generate comprehensive unit tests covering happy paths and edge cases for:\n\n"
 
 #### Core Functions
