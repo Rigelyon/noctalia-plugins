@@ -109,7 +109,12 @@ local function sendMessage()
   )
 end
 
--- ── View: Chat ───────────────────────────────────────────────────────────────
+local function getInputHeight(text: string): number
+  local clean = text or ""
+  local _, newlines = clean:gsub("\n", "")
+  local lines = math.clamp(math.max(newlines + 1, math.ceil(#clean / 45)), 1, 6)
+  return 20 + (lines * 20)
+end
 
 local function renderChatView()
   local messageNodes = {}
@@ -216,13 +221,19 @@ local function renderChatView()
 
   local inputRow = ui.column({ gap = 6, align = "stretch" }, {
     ui.input({
+      key = "chat-input",
       value = inputBuffer,
       placeholder = tr("input_placeholder"),
       multiline = true,
       focus = true,
-      flexGrow = 1,
+      height = getInputHeight(inputBuffer),
       onChange = function(val)
-        inputBuffer = val
+        local prevH = getInputHeight(inputBuffer)
+        inputBuffer = val or ""
+        local newH = getInputHeight(inputBuffer)
+        if newH ~= prevH then
+          render()
+        end
       end,
       onSubmit = function()
         sendMessage()
@@ -463,9 +474,11 @@ local function renderSettingView()
     ui.separator({}),
     ui.label({ text = tr("system_prompt"), fontSize = 12, fontWeight = "bold" }),
     ui.input({
+      key = "setting-system-prompt",
       value = config.system_prompt,
       multiline = true,
-      onChange = function(v) config.system_prompt = v end,
+      height = 90,
+      onChange = function(v) config.system_prompt = v or "" end,
     }),
     testConnRow,
     ui.separator({}),
