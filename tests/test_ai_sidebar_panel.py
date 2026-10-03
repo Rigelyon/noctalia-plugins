@@ -86,5 +86,104 @@ class TestAiSidebarPanel(unittest.TestCase):
             self.assertIn(key, id_data, f"Key '{key}' missing from id.json")
 
 
+    def test_payload_capped_before_assistant_placeholder(self):
+        self.assertTrue(os.path.isfile(PANEL_FILE), "Missing panel.luau")
+        with open(PANEL_FILE, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # Verify capMessages is called before assistant placeholder insertion
+        cap_pos = content.find("storage.capMessages(currentSession.messages)")
+        placeholder_pos = content.find('role = "assistant"')
+        self.assertNotEqual(cap_pos, -1, "Missing storage.capMessages in panel.luau")
+        self.assertNotEqual(placeholder_pos, -1, "Missing assistant placeholder in panel.luau")
+        self.assertLess(
+            cap_pos,
+            placeholder_pos,
+            "storage.capMessages must be captured BEFORE inserting assistant placeholder",
+        )
+
+        # Simulation: payload should end on user prompt, not empty assistant placeholder
+        session_messages = [
+            {"role": "user", "content": "Hello", "timestamp": 100},
+        ]
+        capped_payload = list(session_messages)  # captured before placeholder
+        session_messages.append({"role": "assistant", "content": "", "timestamp": 101})
+
+        self.assertEqual(capped_payload[-1]["role"], "user")
+        self.assertNotEqual(capped_payload[-1]["role"], "assistant")
+        self.assertNotIn("", [m["content"] for m in capped_payload])
+
+    def test_on_open_resyncs_current_session(self):
+        self.assertTrue(os.path.isfile(PANEL_FILE), "Missing panel.luau")
+        with open(PANEL_FILE, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # Check onOpen re-sync pattern by session ID
+        self.assertIn("sess.id == currentSession.id", content)
+        self.assertIn("currentSession = matched or sessions[1] or nil", content)
+
+        # Simulation: onOpen re-sync logic
+        sessions = [
+            {"id": "s1", "title": "First", "messages": []},
+            {"id": "s2", "title": "Updated Second", "messages": [{"role": "user", "content": "hi"}]},
+        ]
+        # Case 1: currentSession exists with matching id in reloaded sessions
+        current_session = {"id": "s2", "title": "Old Second", "messages": []}
+        matched = None
+        for s in sessions:
+            if s["id"] == current_session["id"]:
+                matched = s
+                break
+        resynced = matched or (sessions[0] if sessions else None)
+        self.assertEqual(resynced["title"], "Updated Second")
+        self.assertEqual(len(resynced["messages"]), 1)
+
+        # Case 2: currentSession was deleted or not found
+        current_session = {"id": "s_deleted", "title": "Deleted"}
+        matched = None
+        for s in sessions:
+            if s["id"] == current_session["id"]:
+                matched = s
+                break
+        resynced = matched or (sessions[0] if sessions else None)
+        self.assertEqual(resynced["id"], "s1")
+
+        # Case 3: no sessions exist
+        empty_sessions = []
+        matched = None
+        for s in empty_sessions:
+            if s["id"] == current_session["id"]:
+                matched = s
+                break
+        resynced = matched or (empty_sessions[0] if empty_sessions else None)
+        self.assertIsNone(resynced)
+
+    def test_cancelled_stream_error_guard(self):
+        self.assertTrue(os.path.isfile(PANEL_FILE), "Missing panel.luau")
+        with open(PANEL_FILE, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # Verify guard in error handler
+        self.assertIn("if not isStreaming then return end", content)
+
+        # Simulation: onError behavior when streaming was cancelled (isStreaming == False)
+        is_streaming = False
+        assistant_msg = {"role": "assistant", "content": "Partial response"}
+
+        def on_error(err):
+            nonlocal assistant_msg
+            if not is_streaming:
+                return
+            assistant_msg["content"] += f"\n\n**[Error: {err}]**"
+
+        on_error("Stream connection aborted")
+        self.assertEqual(
+            assistant_msg["content"],
+            "Partial response",
+            "Error handler should not mutate content if streaming was cancelled",
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
+

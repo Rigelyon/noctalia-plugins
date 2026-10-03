@@ -62,6 +62,9 @@ local function sendMessage()
   end
   currentSession.updated_at = math.floor(noctalia.nowMs() / 1000)
 
+  local capped = storage.capMessages(currentSession.messages)
+  capped = table.clone(capped)
+
   -- Create placeholder for assistant response
   table.insert(currentSession.messages, {
     role = "assistant",
@@ -75,7 +78,6 @@ local function sendMessage()
   render()
 
   local assistantMsg = currentSession.messages[#currentSession.messages]
-  local capped = storage.capMessages(currentSession.messages)
 
   streamHandle = client.streamChat(
     capped,
@@ -90,6 +92,7 @@ local function sendMessage()
       end
     end,
     function(err: string)
+      if not isStreaming then return end
       isStreaming = false
       streamHandle = nil
       assistantMsg.content = assistantMsg.content .. "\n\n**[" .. tr("error_title") .. ": " .. err .. "]**"
@@ -562,7 +565,16 @@ end
 function onOpen(_context)
   config = storage.loadConfig()
   sessions = storage.loadSessions()
-  if not currentSession then
+  if currentSession then
+    local matched = nil
+    for _, sess in ipairs(sessions) do
+      if sess.id == currentSession.id then
+        matched = sess
+        break
+      end
+    end
+    currentSession = matched or sessions[1] or nil
+  else
     currentSession = sessions[1] or nil
   end
 
