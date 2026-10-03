@@ -109,13 +109,6 @@ local function sendMessage()
   )
 end
 
-local function getInputHeight(text: string): number
-  local clean = text or ""
-  local _, newlines = clean:gsub("\n", "")
-  local lines = math.clamp(math.max(newlines + 1, math.ceil(#clean / 45)), 1, 6)
-  return 20 + (lines * 20)
-end
-
 local function renderChatView()
   local messageNodes = {}
 
@@ -133,14 +126,13 @@ local function renderChatView()
         text = tr("welcome_subtitle"),
         fontSize = 12,
         color = "on_surface_variant",
-        align = "center",
       }),
     }))
   else
     for _, msg in ipairs(currentSession.messages) do
       if msg.role == "user" then
         table.insert(messageNodes, ui.row({ justify = "end" }, {
-          ui.box({
+          ui.column({
             fill = "surface_variant",
             radius = 12,
             padding = 10,
@@ -155,7 +147,7 @@ local function renderChatView()
           content = "_" .. tr("status_typing") .. "_"
         end
         table.insert(messageNodes, ui.row({ justify = "start" }, {
-          ui.box({
+          ui.column({
             fill = "surface",
             radius = 12,
             padding = 10,
@@ -226,14 +218,9 @@ local function renderChatView()
       placeholder = tr("input_placeholder"),
       multiline = true,
       focus = true,
-      height = getInputHeight(inputBuffer),
+      height = 70,
       onChange = function(val)
-        local prevH = getInputHeight(inputBuffer)
         inputBuffer = val or ""
-        local newH = getInputHeight(inputBuffer)
-        if newH ~= prevH then
-          render()
-        end
       end,
       onSubmit = function()
         sendMessage()

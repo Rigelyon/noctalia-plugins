@@ -67,6 +67,9 @@ class TestAiSidebarPanel(unittest.TestCase):
         self.assertIn("player-stop", content)
         self.assertIn("eraser", content)
         self.assertIn("send", content)
+        self.assertNotIn("ui.box", content, "ui.box cannot have children in Noctalia, must use ui.column")
+        self.assertIn("surface_variant", content)
+        self.assertIn("chat-input", content)
 
     def test_history_view_components(self):
         self.assertTrue(os.path.isfile(PANEL_FILE), "Missing panel.luau")
