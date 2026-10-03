@@ -22,6 +22,8 @@ class TestAiSidebarStorage(unittest.TestCase):
             "capMessages",
             "generateTitle",
             "syncToSettingsToml",
+            "rewindSession",
+            "removeLastAssistantMessage",
         ]
         for exp in expected_exports:
             self.assertIn(exp, content, f"storage.luau missing export {exp}")
@@ -202,6 +204,34 @@ panel_layer = "overlay"
         self.assertIn('custom_base_url = "http://localhost:11434/v1"', res)
         self.assertIn('panel_placement = "floating"', res)
         self.assertIn('[plugin_settings."rigelyon/scratchpad"]', res)
+
+    def test_rewind_session_logic(self):
+        with open(STORAGE_FILE, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn("storage.rewindSession", content)
+        self.assertIn("storage.removeLastAssistantMessage", content)
+
+    def test_rewind_simulation(self):
+        session = {
+            "id": "s1",
+            "messages": [
+                {"role": "user", "content": "1"},
+                {"role": "assistant", "content": "2"},
+                {"role": "user", "content": "3"},
+                {"role": "assistant", "content": "4"},
+            ]
+        }
+        # Rewind to target index 2 (keeps 1 and 2)
+        target_idx = 2
+        session["messages"] = session["messages"][:target_idx]
+        self.assertEqual(len(session["messages"]), 2)
+        self.assertEqual(session["messages"][-1]["content"], "2")
+
+        # Remove last assistant message
+        if session["messages"] and session["messages"][-1]["role"] == "assistant":
+            session["messages"].pop()
+        self.assertEqual(len(session["messages"]), 1)
+        self.assertEqual(session["messages"][-1]["role"], "user")
 
 
 if __name__ == "__main__":

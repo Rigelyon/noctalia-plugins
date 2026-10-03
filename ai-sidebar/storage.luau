@@ -328,4 +328,43 @@ function storage.capMessages(messages: { Message }, maxCount: number?): { Messag
   return capped
 end
 
+function storage.rewindSession(sessions: { Session }, sessionId: string, targetIndex: number): boolean
+  for _, s in ipairs(sessions) do
+    if s.id == sessionId then
+      local idx = targetIndex
+      if idx < 0 then
+        idx = 0
+      end
+      if idx > #s.messages then
+        idx = #s.messages
+      end
+
+      local truncated: { Message } = {}
+      for i = 1, idx do
+        table.insert(truncated, s.messages[i])
+      end
+      s.messages = truncated
+      s.updated_at = math.floor(noctalia.nowMs() / 1000)
+      storage.saveSessions(sessions)
+      return true
+    end
+  end
+  return false
+end
+
+function storage.removeLastAssistantMessage(sessions: { Session }, sessionId: string): boolean
+  for _, s in ipairs(sessions) do
+    if s.id == sessionId then
+      if #s.messages > 0 and s.messages[#s.messages].role == "assistant" then
+        table.remove(s.messages, #s.messages)
+        s.updated_at = math.floor(noctalia.nowMs() / 1000)
+        storage.saveSessions(sessions)
+        return true
+      end
+      return false
+    end
+  end
+  return false
+end
+
 return storage
