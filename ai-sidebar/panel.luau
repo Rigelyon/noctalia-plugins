@@ -193,8 +193,26 @@ local function sendMessage()
   if config and config.enable_web_search == true and not (config.active_provider == "gemini" and config.search_engine == "gemini_native") then
     isSearching = true
     render()
+    local searchCompleted = false
+    local function finishSearch(ctx: string?)
+      if searchCompleted then return end
+      searchCompleted = true
+      beginStream(ctx)
+    end
+
+    pcall(function()
+      local ran = noctalia.runAsync({ "sleep", "4" }, function()
+        finishSearch(nil)
+      end)
+      if not ran then
+        noctalia.runAsync("sleep 4", function()
+          finishSearch(nil)
+        end)
+      end
+    end)
+
     client.prepareSearchContext(text, config, function(searchCtx)
-      beginStream(searchCtx)
+      finishSearch(searchCtx)
     end)
   else
     beginStream(nil)
@@ -289,8 +307,26 @@ local function regenerateResponse()
   if config and config.enable_web_search == true and not (config.active_provider == "gemini" and config.search_engine == "gemini_native") then
     isSearching = true
     render()
+    local searchCompleted = false
+    local function finishSearch(ctx: string?)
+      if searchCompleted then return end
+      searchCompleted = true
+      beginStream(ctx)
+    end
+
+    pcall(function()
+      local ran = noctalia.runAsync({ "sleep", "4" }, function()
+        finishSearch(nil)
+      end)
+      if not ran then
+        noctalia.runAsync("sleep 4", function()
+          finishSearch(nil)
+        end)
+      end
+    end)
+
     client.prepareSearchContext(lastUserMsg.content, config, function(searchCtx)
-      beginStream(searchCtx)
+      finishSearch(searchCtx)
     end)
   else
     beginStream(nil)

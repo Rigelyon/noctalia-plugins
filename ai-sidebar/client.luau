@@ -37,24 +37,53 @@ local function buildEnvironmentPrompt(baseSystemPrompt: string?, searchContext: 
 end
 
 function client.prepareSearchContext(query: string, config: any, callback: (searchContext: string?) -> ()): ()
-  if not (config and config.enable_web_search == true) then
-    callback(nil)
-    return
+  local hasCalled = false
+  local function safeDone(searchCtx: string?)
+    if hasCalled then return end
+    hasCalled = true
+    callback(searchCtx)
   end
 
-  if config.active_provider == "gemini" and config.search_engine == "gemini_native" then
-    -- Native grounding handles retrieval directly
-    callback(nil)
-    return
-  end
+  local ok, _ = (pcall :: any)(function()
+    if not (config and config.enable_web_search == true) then
+      safeDone(nil)
+      return
+    end
 
-  search.performSearch(query, config, function(ok, contextBlock, _err)
-    if ok and contextBlock and contextBlock ~= "" then
-      callback(contextBlock)
-    else
-      callback(nil)
+    if config.active_provider == "gemini" and config.search_engine == "gemini_native" then
+      -- Native grounding handles retrieval directly
+      safeDone(nil)
+      return
+    end
+
+    -- 3.5s safety watchdog: ensures search never hangs or locks the UI
+    pcall(function()
+      local ran = noctalia.runAsync({ "sleep", "3.5" }, function()
+        safeDone(nil)
+      end)
+      if not ran then
+        noctalia.runAsync("sleep 3.5", function()
+          safeDone(nil)
+        end)
+      end
+    end)
+
+    local started = search.performSearch(query, config, function(ok, contextBlock, _err)
+      if ok and contextBlock and contextBlock ~= "" then
+        safeDone(contextBlock)
+      else
+        safeDone(nil)
+      end
+    end)
+
+    if not started then
+      safeDone(nil)
     end
   end)
+
+  if not ok then
+    safeDone(nil)
+  end
 end
 
 function client.testConnection(providerName: string, config: any, callback: (ok: boolean, msg: string) -> ())

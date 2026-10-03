@@ -61,14 +61,38 @@ local function safeUrlDecode(s: string?): string
   if not s then return "" end
   local n = noctalia :: any
   if n and n.string and type(n.string.urlDecode) == "function" then
-    return n.string.urlDecode(s)
+    local ok, res = pcall(n.string.urlDecode, s)
+    if ok and type(res) == "string" then
+      return res
+    end
   end
-  return s
+  local decoded = s:gsub("+", " ")
+                   :gsub("%%(%x%x)", function(h)
+                     return string.char(tonumber(h, 16) or 0)
+                   end)
+  return decoded
 end
 
-function search.buildSearchRequest(engine: string, query: string, apiKey: string?, maxResults: number?): { url: string, method: string, headers: { string }?, body: string? }
+local function safeUrlEncode(s: string?): string
+  if not s then return "" end
+  local n = noctalia :: any
+  if n and n.string and type(n.string.urlEncode) == "function" then
+    local ok, res = pcall(n.string.urlEncode, s)
+    if ok and type(res) == "string" then
+      return res
+    end
+  end
+  local encoded = s:gsub("\n", "\r\n")
+                   :gsub("([^%w _%%%-%.~])", function(c)
+                     return string.format("%%%02X", string.byte(c))
+                   end)
+                   :gsub(" ", "+")
+  return encoded
+end
+
+function search.buildSearchRequest(engine: string, query: string, apiKey: string?, maxResults: number?): { url: string, method: string, headers: { string }?, body: string?, follow_redirects: boolean? }
   local limit = maxResults or 3
-  local encQuery = noctalia.string.urlEncode(query)
+  local encQuery = safeUrlEncode(query)
 
   if engine == "tavily" then
     local bodyObj = {
@@ -85,6 +109,7 @@ function search.buildSearchRequest(engine: string, query: string, apiKey: string
         "Content-Type: application/json",
       },
       body = encoded or "{}",
+      follow_redirects = true,
     }
   elseif engine == "brave" then
     return {
@@ -94,17 +119,18 @@ function search.buildSearchRequest(engine: string, query: string, apiKey: string
         "Accept: application/json",
         "X-Subscription-Token: " .. (apiKey or ""),
       },
+      follow_redirects = true,
     }
   else
-    -- Default: DuckDuckGo Lite search
+    -- Default: DuckDuckGo Instant Answer API
     return {
-      url = "https://lite.duckduckgo.com/lite/",
-      method = "POST",
+      url = "https://api.duckduckgo.com/?q=" .. encQuery .. "&format=json&no_html=1&skip_disambig=0",
+      method = "GET",
       headers = {
-        "Content-Type: application/x-www-form-urlencoded",
+        "Accept: application/json",
         "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
       },
-      body = "q=" .. encQuery,
+      follow_redirects = true,
     }
   end
 end
@@ -143,7 +169,7 @@ function search.parseSearchResponse(engine: string, body: string, maxResults: nu
     end
     return items
   else
-    -- DuckDuckGo: check JSON structure first (for mocks/instant answers)
+    -- DuckDuckGo: check JSON structure first (for instant answers & topics)
     if type(decoded) == "table" then
       if type(decoded.AbstractText) == "string" and decoded.AbstractText ~= "" then
         table.insert(items, {
@@ -155,13 +181,27 @@ function search.parseSearchResponse(engine: string, body: string, maxResults: nu
       if type(decoded.RelatedTopics) == "table" then
         for _, topic in ipairs(decoded.RelatedTopics) do
           if #items >= limit then break end
-          if type(topic) == "table" and type(topic.Text) == "string" and type(topic.FirstURL) == "string" then
-            local tTitle = topic.Text:match("^([^%-]+)%s*%-%s*") or topic.Text:sub(1, 40)
-            table.insert(items, {
-              title = safeTrim(tTitle),
-              url = topic.FirstURL,
-              snippet = topic.Text,
-            })
+          if type(topic) == "table" then
+            if type(topic.Text) == "string" and type(topic.FirstURL) == "string" and topic.Text ~= "" then
+              local tTitle = topic.Text:match("^([^%-]+)%s*%-%s*") or topic.Text:sub(1, 40)
+              table.insert(items, {
+                title = safeTrim(tTitle),
+                url = topic.FirstURL,
+                snippet = topic.Text,
+              })
+            elseif type(topic.Topics) == "table" then
+              for _, subTopic in ipairs(topic.Topics) do
+                if #items >= limit then break end
+                if type(subTopic) == "table" and type(subTopic.Text) == "string" and type(subTopic.FirstURL) == "string" and subTopic.Text ~= "" then
+                  local sTitle = subTopic.Text:match("^([^%-]+)%s*%-%s*") or subTopic.Text:sub(1, 40)
+                  table.insert(items, {
+                    title = safeTrim(sTitle),
+                    url = subTopic.FirstURL,
+                    snippet = subTopic.Text,
+                  })
+                end
+              end
+            end
           end
         end
       end
@@ -208,27 +248,53 @@ function search.parseSearchResponse(engine: string, body: string, maxResults: nu
   end
 end
 
-function search.performSearch(query: string, config: any, callback: (ok: boolean, contextText: string?, err: string?) -> ()): ()
-  local engine = (config and config.search_engine) or "duckduckgo"
-  local apiKey = (config and config.search_api_key) or ""
-  local maxResults = (config and tonumber(config.search_max_results)) or 3
+function search.performSearch(query: string, config: any, callback: (ok: boolean, contextText: string?, err: string?) -> ()): boolean
+  local hasCalled = false
+  local function safeCallback(ok: boolean, ctx: string?, err: string?)
+    if hasCalled then return end
+    hasCalled = true
+    callback(ok, ctx, err)
+  end
 
-  local req = search.buildSearchRequest(engine, query, apiKey, maxResults)
+  local ok, started = (pcall :: any)(function()
+    local engine = (config and config.search_engine) or "duckduckgo"
+    local apiKey = (config and config.search_api_key) or ""
+    local maxResults = (config and tonumber(config.search_max_results)) or 3
 
-  noctalia.http(req :: any, function(resp)
-    if not resp.ok or resp.status < 200 or resp.status >= 300 then
-      callback(false, nil, "Search request failed with status " .. tostring(resp.status))
-      return
+    local req = search.buildSearchRequest(engine, query, apiKey, maxResults)
+
+    local httpStarted = noctalia.http(req :: any, function(resp)
+      local parseOk, parseErr = (pcall :: any)(function()
+        if not resp.ok or resp.status < 200 or resp.status >= 300 then
+          safeCallback(false, nil, "Search request failed with status " .. tostring(resp.status))
+          return
+        end
+
+        local items = search.parseSearchResponse(engine, resp.body, maxResults)
+        if #items == 0 then
+          safeCallback(true, nil, nil)
+        else
+          local contextBlock = search.formatSearchContext(items, query)
+          safeCallback(true, contextBlock, nil)
+        end
+      end)
+
+      if not parseOk then
+        safeCallback(false, nil, tostring(parseErr))
+      end
+    end)
+
+    if not httpStarted then
+      safeCallback(false, nil, "Failed to start search HTTP request")
     end
-
-    local items = search.parseSearchResponse(engine, resp.body, maxResults)
-    if #items == 0 then
-      callback(true, nil, nil)
-    else
-      local contextBlock = search.formatSearchContext(items, query)
-      callback(true, contextBlock, nil)
-    end
+    return httpStarted
   end)
+
+  if not ok then
+    safeCallback(false, nil, tostring(started))
+    return false
+  end
+  return started == true
 end
 
 return search
