@@ -31,6 +31,7 @@ local testConnStatus = nil -- nil | "testing" | "success" | "error: <msg>"
 local showApiKey = false
 local startFreshOnOpen = false
 local showPromptPicker = false
+local hoveredPromptTag: string? = nil
 
 local render
 
@@ -574,19 +575,20 @@ local function renderChatView()
 
   local promptNodes = {}
   if isPromptActive and #matchingPrompts > 0 then
-    table.insert(promptNodes, ui.row({ align = "center", justify = "space_between", paddingH = 8, padding = 4 }, {
-      ui.row({ gap = 6, align = "center" }, {
-        ui.glyph({ name = "sparkles", size = 12, color = "primary" }),
-        ui.label({ text = tr("prompt_library"), fontSize = 11, fontWeight = "bold", color = "primary" }),
+    table.insert(promptNodes, ui.row({ align = "center", justify = "space_between", paddingH = 6, padding = 2 }, {
+      ui.row({ gap = 5, align = "center" }, {
+        ui.glyph({ name = "sparkles", size = 11, color = "primary" }),
+        ui.label({ text = tr("prompt_library"), fontSize = 10, fontWeight = "bold", color = "primary" }),
       }),
       ui.button({
         glyph = "x",
         variant = "ghost",
-        padding = 2,
-        paddingH = 4,
+        padding = 1,
+        paddingH = 3,
         tooltip = tr("close"),
         onClick = function()
           showPromptPicker = false
+          hoveredPromptTag = nil
           render()
         end,
       }),
@@ -594,11 +596,25 @@ local function renderChatView()
     table.insert(promptNodes, ui.separator({}))
 
     for _, p in ipairs(matchingPrompts) do
-      table.insert(promptNodes, ui.button({
-        glyph = "hash",
-        text = "#" .. p.tag .. "  —  " .. p.label,
+      local isHovered = hoveredPromptTag == p.tag
+      table.insert(promptNodes, ui.row({
+        key = "prompt-" .. p.tag,
+        align = "center",
+        justify = "start",
+        gap = 6,
+        padding = 3,
+        paddingH = 6,
+        radius = 4,
+        fill = isHovered and "surface_variant" or nil,
         tooltip = p.description,
-        variant = "ghost",
+        onHover = function(state)
+          if state == "true" then
+            hoveredPromptTag = p.tag
+          elseif hoveredPromptTag == p.tag then
+            hoveredPromptTag = nil
+          end
+          render()
+        end,
         onClick = function()
           if hashQuery ~= nil then
             local pattern = "(#[" .. "%w%-_" .. "]*)$"
@@ -607,9 +623,15 @@ local function renderChatView()
             inputBuffer = inputBuffer .. p.content
           end
           showPromptPicker = false
+          hoveredPromptTag = nil
           inputRev += 1
           render()
         end,
+      }, {
+        ui.glyph({ name = "hash", size = 11, color = "primary" }),
+        ui.label({ text = p.tag, fontWeight = "bold", fontSize = 11, color = "primary" }),
+        ui.label({ text = "—", fontSize = 10, color = "on_surface_variant" }),
+        ui.label({ text = p.label, fontSize = 11, color = "on_surface", flexGrow = 1 }),
       }))
     end
   end
@@ -618,7 +640,7 @@ local function renderChatView()
   if #promptNodes > 0 then
     table.insert(inputChildren, ui.column({
       fill = "surface_variant/0.4",
-      radius = 8,
+      radius = 6,
       padding = 4,
       gap = 2,
       align = "stretch",
@@ -634,9 +656,18 @@ local function renderChatView()
     focus = true,
     height = 70,
     onChange = function(val)
+      local oldHash = (inputBuffer:match("^#([%w%-_]*)$") ~= nil) or (inputBuffer:match("%s#([%w%-_]*)$") ~= nil)
+      local wasActive = showPromptPicker or oldHash
       inputBuffer = val or ""
-      local hasHash = (inputBuffer:match("^#([%w%-_]*)$") ~= nil) or (inputBuffer:match("%s#([%w%-_]*)$") ~= nil)
-      if hasHash or showPromptPicker then
+      local newHash = (inputBuffer:match("^#([%w%-_]*)$") ~= nil) or (inputBuffer:match("%s#([%w%-_]*)$") ~= nil)
+
+      if oldHash and not newHash then
+        showPromptPicker = false
+        hoveredPromptTag = nil
+      end
+
+      local isActive = showPromptPicker or newHash
+      if wasActive or isActive then
         render()
       end
     end,

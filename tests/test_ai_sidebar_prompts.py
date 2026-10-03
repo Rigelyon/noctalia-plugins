@@ -93,6 +93,23 @@ class TestAiSidebarPrompts(unittest.TestCase):
         self.assertIsNone(match_lua_hash("https://example.com#section"))
         self.assertIsNone(match_lua_hash("word#tag"))
 
+    def test_popover_dismiss_on_hash_delete(self):
+        panel_file = os.path.join(
+            os.path.dirname(__file__), "..", "ai-sidebar", "panel.luau"
+        )
+        self.assertTrue(os.path.isfile(panel_file))
+        with open(panel_file, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # Check dismissal logic on backspace/deletion of hash
+        self.assertIn("oldHash and not newHash", content)
+        self.assertIn("showPromptPicker = false", content)
+        self.assertIn("hoveredPromptTag = nil", content)
+
+        # Check compact left-aligned row structure
+        self.assertIn('justify = "start"', content)
+        self.assertIn("hoveredPromptTag", content)
+
 
 if __name__ == "__main__":
     unittest.main()
