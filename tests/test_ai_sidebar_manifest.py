@@ -38,7 +38,7 @@ class TestAiSidebarManifest(unittest.TestCase):
 
         self.assertEqual(manifest.get("id"), "rigelyon/ai-sidebar")
         self.assertEqual(manifest.get("name"), "AI Sidebar")
-        self.assertEqual(manifest.get("version"), "1.0.0")
+        self.assertEqual(manifest.get("version"), "1.1.0")
         self.assertEqual(manifest.get("plugin_api"), 28)
         self.assertEqual(manifest.get("author"), "rigelyon")
         self.assertEqual(manifest.get("license"), "MIT")
@@ -94,6 +94,37 @@ class TestAiSidebarManifest(unittest.TestCase):
         with open(thumb_path, "rb") as f:
             header = f.read(30)
             self.assertTrue(header.startswith(b"RIFF") and b"WEBP" in header)
+
+    def test_version_1_1_0(self):
+        plugin_toml = os.path.join(PLUGIN_DIR, "plugin.toml")
+        with open(plugin_toml, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn('version = "1.1.0"', content)
+
+        catalog_path = os.path.join(os.path.dirname(__file__), "..", "catalog.toml")
+        with open(catalog_path, "r", encoding="utf-8") as f:
+            c_content = f.read()
+        self.assertIn('version = "1.1.0"', c_content)
+
+    def test_new_action_translations_exist(self):
+        required_keys = [
+            "action_regenerate",
+            "action_edit",
+            "action_rewind",
+            "action_copy_code",
+            "code_copied",
+            "status_retrying",
+        ]
+        en_path = os.path.join(PLUGIN_DIR, "translations", "en.json")
+        id_path = os.path.join(PLUGIN_DIR, "translations", "id.json")
+        with open(en_path, "r", encoding="utf-8") as f:
+            en_data = json.load(f)
+        with open(id_path, "r", encoding="utf-8") as f:
+            id_data = json.load(f)
+
+        for k in required_keys:
+            self.assertIn(k, en_data, f"Missing en translation key: {k}")
+            self.assertIn(k, id_data, f"Missing id translation key: {k}")
 
 
 if __name__ == "__main__":

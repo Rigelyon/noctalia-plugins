@@ -43,6 +43,12 @@
   "api_key_optional": "API Key (Optional for local)",
   "model": "Model",
   "system_prompt": "System Prompt",
+  "action_regenerate": "Regenerate",
+  "action_edit": "Edit",
+  "action_rewind": "Rewind to here",
+  "action_copy_code": "Copy",
+  "code_copied": "Copied!",
+  "status_retrying": "Reconnecting... ({attempt}/{max})",
   "settings": {
     "default-provider": {
       "label": "Default Provider",

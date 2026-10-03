@@ -1,6 +1,6 @@
 id = "rigelyon/ai-sidebar"
 name = "AI Sidebar"
-version = "1.0.0"
+version = "1.1.0"
 plugin_api = 28
 author = "rigelyon"
 license = "MIT"
