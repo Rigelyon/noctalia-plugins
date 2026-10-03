@@ -838,6 +838,7 @@ local function renderHistoryView()
         }),
         ui.row({ gap = 4, align = "center" }, itemActions),
       }))
+      end
     end
   end
 
