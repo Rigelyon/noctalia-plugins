@@ -32,10 +32,18 @@
   "provider_openai": "OpenAI",
   "provider_anthropic": "Anthropic Claude",
   "provider_gemini": "Google Gemini",
+  "provider_custom": "Custom / Local (OpenAI-compatible)",
   "active_provider": "Active Provider",
   "api_key": "API Key",
   "show_api_key": "Show API Key",
   "hide_api_key": "Hide API Key",
+  "base_url": "Base URL",
+  "presets": "Presets",
+  "api_key_optional": "API Key (Optional for local)",
+  "preset_ollama": "Ollama",
+  "preset_deepseek": "DeepSeek",
+  "preset_openrouter": "OpenRouter",
+  "preset_lmstudio": "LM Studio",
   "model": "Model",
   "system_prompt": "System Prompt",
   "settings": {
@@ -45,7 +53,8 @@
       "options": {
         "openai": "OpenAI",
         "anthropic": "Anthropic Claude",
-        "gemini": "Google Gemini"
+        "gemini": "Google Gemini",
+        "custom": "Custom / Local (OpenAI-compatible)"
       }
     },
     "openai-api-key": {
@@ -71,6 +80,18 @@
     "gemini-model": {
       "label": "Gemini Model",
       "description": "Default Google Gemini model (e.g. gemini-1.5-flash)"
+    },
+    "custom-base-url": {
+      "label": "Custom Base URL",
+      "description": "Base URL for OpenAI-compatible endpoint or local LLM"
+    },
+    "custom-api-key": {
+      "label": "Custom API Key",
+      "description": "API Key for custom provider (optional for local models like Ollama)"
+    },
+    "custom-model": {
+      "label": "Custom Model",
+      "description": "Model identifier (e.g., llama3.2, deepseek-chat)"
     },
     "system-prompt": {
       "label": "Default System Prompt",

@@ -19,6 +19,7 @@ options = [
   { value = "openai", label_key = "settings.default-provider.options.openai" },
   { value = "anthropic", label_key = "settings.default-provider.options.anthropic" },
   { value = "gemini", label_key = "settings.default-provider.options.gemini" },
+  { value = "custom", label_key = "settings.default-provider.options.custom" },
 ]
 
 [[setting]]
@@ -62,6 +63,27 @@ type = "string"
 label_key = "settings.gemini-model.label"
 description_key = "settings.gemini-model.description"
 default = "gemini-1.5-flash"
+
+[[setting]]
+key = "custom_base_url"
+type = "string"
+label_key = "settings.custom-base-url.label"
+description_key = "settings.custom-base-url.description"
+default = "http://localhost:11434/v1"
+
+[[setting]]
+key = "custom_api_key"
+type = "string"
+label_key = "settings.custom-api-key.label"
+description_key = "settings.custom-api-key.description"
+default = ""
+
+[[setting]]
+key = "custom_model"
+type = "string"
+label_key = "settings.custom-model.label"
+description_key = "settings.custom-model.description"
+default = "llama3.2"
 
 [[setting]]
 key = "system_prompt"

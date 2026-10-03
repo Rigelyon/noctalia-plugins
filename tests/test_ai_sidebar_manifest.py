@@ -78,6 +78,17 @@ class TestAiSidebarManifest(unittest.TestCase):
                     self.assertTrue(has_key_path(en, opt["label_key"]), f"en missing {opt['label_key']}")
                     self.assertTrue(has_key_path(id_lang, opt["label_key"]), f"id missing {opt['label_key']}")
 
+        provider_setting = next(
+            s for s in settings if s.get("key") == "default_provider"
+        )
+        provider_options = [opt["value"] for opt in provider_setting.get("options", [])]
+        self.assertIn("custom", provider_options)
+
+        setting_keys = [s.get("key") for s in settings]
+        self.assertIn("custom_base_url", setting_keys)
+        self.assertIn("custom_api_key", setting_keys)
+        self.assertIn("custom_model", setting_keys)
+
         # Thumbnail dimension & size check
         self.assertLessEqual(os.path.getsize(thumb_path), 512 * 1024)
         with open(thumb_path, "rb") as f:
