@@ -231,6 +231,17 @@ class TestAiSidebarPanel(unittest.TestCase):
             "Error handler should not mutate content if streaming was cancelled",
         )
 
+    def test_panel_actions_and_code_blocks(self):
+        with open(PANEL_FILE, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn('require("./markdown.luau")', content)
+        self.assertIn("action_regenerate", content)
+        self.assertIn("action_edit", content)
+        self.assertIn("action_rewind", content)
+        self.assertIn("action_copy_code", content)
+        self.assertIn("storage.rewindSession", content)
+        self.assertIn("storage.removeLastAssistantMessage", content)
+
 
 if __name__ == "__main__":
     unittest.main()

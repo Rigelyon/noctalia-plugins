@@ -3,6 +3,7 @@
 
 local storage = require("./storage.luau")
 local client = require("./client.luau")
+local markdown = require("./markdown.luau")
 
 local activeTab = "chat" -- "chat" | "history" | "setting"
 local sessions = {}
@@ -17,6 +18,8 @@ local historySearch = ""
 local isStreaming = false
 local streamHandle = nil
 local lastRenderMs = 0
+local retryStatus = nil
+local copiedCodeKey = nil
 
 -- UI transient states
 local pendingDeleteSessionId = nil
@@ -38,6 +41,7 @@ local function stopStreaming()
     streamHandle = nil
   end
   isStreaming = false
+  retryStatus = nil
   if currentSession and #currentSession.messages > 0 then
     storage.saveSessions(sessions)
   end
@@ -81,6 +85,7 @@ local function sendMessage()
   inputRev += 1
   scrollRev += 1
   isStreaming = true
+  retryStatus = nil
   lastRenderMs = noctalia.nowMs()
   render()
 
@@ -90,6 +95,7 @@ local function sendMessage()
     capped,
     config,
     function(chunk: string)
+      retryStatus = nil
       assistantMsg.content = assistantMsg.content .. chunk
       local now = noctalia.nowMs()
       -- Throttled UI update (>= 80ms) for CPU budget compliance
@@ -103,6 +109,7 @@ local function sendMessage()
       if not isStreaming then return end
       isStreaming = false
       streamHandle = nil
+      retryStatus = nil
       assistantMsg.content = assistantMsg.content .. "\n\n**[" .. tr("error_title") .. ": " .. err .. "]**"
       storage.saveSessions(sessions)
       scrollRev += 1
@@ -111,11 +118,148 @@ local function sendMessage()
     function()
       isStreaming = false
       streamHandle = nil
+      retryStatus = nil
       storage.saveSessions(sessions)
       scrollRev += 1
       render()
+    end,
+    function(status: string, attempt: number, maxRetries: number)
+      if status == "retrying" then
+        retryStatus = tr("status_retrying", { attempt = tostring(attempt), max = tostring(maxRetries) })
+        render()
+      end
     end
   )
+end
+
+local function regenerateResponse()
+  if isStreaming or not currentSession or #currentSession.messages == 0 then return end
+  local removed = storage.removeLastAssistantMessage(sessions, currentSession.id)
+  if not removed then return end
+  if #currentSession.messages == 0 then return end
+  local lastUserMsg = currentSession.messages[#currentSession.messages]
+  if lastUserMsg.role ~= "user" then return end
+
+  currentSession.updated_at = math.floor(noctalia.nowMs() / 1000)
+  table.sort(sessions, function(a, b) return a.updated_at > b.updated_at end)
+
+  local capped = storage.capMessages(currentSession.messages)
+  capped = table.clone(capped)
+
+  table.insert(currentSession.messages, {
+    role = "assistant",
+    content = "",
+    timestamp = math.floor(noctalia.nowMs() / 1000),
+  })
+
+  scrollRev += 1
+  isStreaming = true
+  retryStatus = nil
+  lastRenderMs = noctalia.nowMs()
+  render()
+
+  local assistantMsg = currentSession.messages[#currentSession.messages]
+
+  streamHandle = client.streamChat(
+    capped,
+    config,
+    function(chunk: string)
+      retryStatus = nil
+      assistantMsg.content = assistantMsg.content .. chunk
+      local now = noctalia.nowMs()
+      if now - lastRenderMs >= 80 then
+        lastRenderMs = now
+        scrollRev += 1
+        render()
+      end
+    end,
+    function(err: string)
+      if not isStreaming then return end
+      isStreaming = false
+      streamHandle = nil
+      retryStatus = nil
+      assistantMsg.content = assistantMsg.content .. "\n\n**[" .. tr("error_title") .. ": " .. err .. "]**"
+      storage.saveSessions(sessions)
+      scrollRev += 1
+      render()
+    end,
+    function()
+      isStreaming = false
+      streamHandle = nil
+      retryStatus = nil
+      storage.saveSessions(sessions)
+      scrollRev += 1
+      render()
+    end,
+    function(status: string, attempt: number, maxRetries: number)
+      if status == "retrying" then
+        retryStatus = tr("status_retrying", { attempt = tostring(attempt), max = tostring(maxRetries) })
+        render()
+      end
+    end
+  )
+end
+
+local function renderAssistantContent(content: string, msgIndex: number): { any }
+  local segments = markdown.parseSegments(content)
+  local nodes = {}
+  for segIdx, seg in ipairs(segments) do
+    if seg.type == "code" then
+      local codeKey = tostring(msgIndex) .. "_" .. tostring(segIdx)
+      local isCopied = (copiedCodeKey == codeKey)
+      local langLabel = (seg.language and seg.language ~= "") and seg.language or "text"
+      local codeText = seg.code or ""
+
+      table.insert(nodes, ui.column({
+        fill = "surface_variant/0.35",
+        radius = 8,
+        padding = 8,
+        gap = 4,
+        flexGrow = 1,
+      }, {
+        ui.row({ align = "center", justify = "space_between" }, {
+          ui.label({
+            text = langLabel,
+            fontSize = 10,
+            color = "primary",
+            fontWeight = "bold",
+          }),
+          ui.button({
+            glyph = isCopied and "check" or "copy",
+            text = isCopied and tr("code_copied") or tr("action_copy_code"),
+            variant = isCopied and "secondary" or "ghost",
+            fontSize = 10,
+            onClick = function()
+              if codeText ~= "" then
+                noctalia.copyToClipboard(codeText, "text/plain")
+                copiedCodeKey = codeKey
+                render()
+                noctalia.runAsync({ "sleep", "2" }, function()
+                  if copiedCodeKey == codeKey then
+                    copiedCodeKey = nil
+                    render()
+                  end
+                end)
+              end
+            end,
+          }),
+        }),
+        ui.label({
+          text = codeText,
+          fontSize = 11,
+          color = "on_surface",
+        }),
+      }))
+    else
+      if seg.content and seg.content ~= "" then
+        table.insert(nodes, ui.markdown({ text = seg.content }))
+      end
+    end
+  end
+  if #nodes == 0 then
+    table.insert(nodes, ui.markdown({ text = content }))
+  end
+  return nodes
 end
 
 local function renderChatView()
@@ -138,7 +282,7 @@ local function renderChatView()
       }),
     }))
   else
-    for _, msg in ipairs(currentSession.messages) do
+    for idx, msg in ipairs(currentSession.messages) do
       if msg.role == "user" then
         local timeStr = msg.timestamp and noctalia.formatTime("%H:%M", msg.timestamp) or ""
         local hasNewline = msg.content:find("\n") ~= nil
@@ -157,12 +301,38 @@ local function renderChatView()
           radius = 12,
           padding = 10,
           paddingH = 14,
-          gap = 2,
-          minWidth = 72,
+          gap = 4,
+          minWidth = 80,
           flexGrow = if isLong then 4 else nil,
         }, {
           contentNode,
-          ui.row({ justify = "end" }, {
+          ui.row({ align = "center", justify = "space_between", gap = 8 }, {
+            ui.row({ gap = 2, align = "center" }, {
+              ui.button({
+                glyph = "pencil",
+                variant = "ghost",
+                tooltip = tr("action_edit"),
+                onClick = function()
+                  if not isStreaming then
+                    inputBuffer = msg.content
+                    inputRev += 1
+                    storage.rewindSession(sessions, currentSession.id, idx - 1)
+                    render()
+                  end
+                end,
+              }),
+              ui.button({
+                glyph = "arrow-back-up",
+                variant = "ghost",
+                tooltip = tr("action_rewind"),
+                onClick = function()
+                  if not isStreaming then
+                    storage.rewindSession(sessions, currentSession.id, idx)
+                    render()
+                  end
+                end,
+              }),
+            }),
             ui.label({
               text = timeStr,
               fontSize = 9,
@@ -188,29 +358,35 @@ local function renderChatView()
         end
         local providerTitle = config.active_provider:sub(1, 1):upper() .. config.active_provider:sub(2)
         local timeStr = msg.timestamp and noctalia.formatTime("%H:%M", msg.timestamp) or ""
-        table.insert(messageNodes, ui.row({ justify = "start", align = "start" }, {
-          ui.column({
-            fill = "surface_variant/0.25",
-            radius = 12,
-            padding = 10,
-            paddingH = 14,
-            flexGrow = 1,
-            gap = 6,
-          }, {
-            ui.row({ gap = 6, align = "center", justify = "space_between" }, {
-              ui.row({ gap = 6, align = "center" }, {
-                ui.glyph({ name = "sparkles", size = 13, color = "primary" }),
-                ui.label({
-                  text = providerTitle,
-                  fontSize = 11,
-                  fontWeight = "bold",
-                  color = "primary",
-                }),
-                ui.label({
-                  text = "·  " .. timeStr,
-                  fontSize = 10,
-                  color = "on_surface_variant",
-                }),
+        local isLastAssistant = (idx == #currentSession.messages)
+
+        local assistantChildren = {
+          ui.row({ gap = 6, align = "center", justify = "space_between" }, {
+            ui.row({ gap = 6, align = "center" }, {
+              ui.glyph({ name = "sparkles", size = 13, color = "primary" }),
+              ui.label({
+                text = providerTitle,
+                fontSize = 11,
+                fontWeight = "bold",
+                color = "primary",
+              }),
+              ui.label({
+                text = "·  " .. timeStr,
+                fontSize = 10,
+                color = "on_surface_variant",
+              }),
+            }),
+            ui.row({ gap = 2, align = "center" }, {
+              ui.button({
+                glyph = "arrow-back-up",
+                variant = "ghost",
+                tooltip = tr("action_rewind"),
+                onClick = function()
+                  if not isStreaming then
+                    storage.rewindSession(sessions, currentSession.id, idx)
+                    render()
+                  end
+                end,
               }),
               ui.button({
                 glyph = "copy",
@@ -224,8 +400,41 @@ local function renderChatView()
                 end,
               }),
             }),
-            ui.markdown({ text = content }),
           }),
+        }
+
+        for _, cNode in ipairs(renderAssistantContent(content, idx)) do
+          table.insert(assistantChildren, cNode)
+        end
+
+        if retryStatus and isStreaming and isLastAssistant then
+          table.insert(assistantChildren, ui.row({ align = "center", gap = 6 }, {
+            ui.glyph({ name = "loader-2", size = 12, color = "secondary" }),
+            ui.label({ text = retryStatus, fontSize = 10, color = "secondary" }),
+          }))
+        end
+
+        if isLastAssistant and not isStreaming and content ~= "" and not content:find(tr("error_title")) then
+          table.insert(assistantChildren, ui.row({ justify = "start" }, {
+            ui.button({
+              glyph = "refresh",
+              variant = "ghost",
+              text = tr("action_regenerate"),
+              fontSize = 11,
+              onClick = regenerateResponse,
+            }),
+          }))
+        end
+
+        table.insert(messageNodes, ui.row({ justify = "start", align = "start" }, {
+          ui.column({
+            fill = "surface_variant/0.25",
+            radius = 12,
+            padding = 10,
+            paddingH = 14,
+            flexGrow = 1,
+            gap = 6,
+          }, assistantChildren),
         }))
       end
     end
