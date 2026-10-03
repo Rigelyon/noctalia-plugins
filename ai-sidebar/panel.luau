@@ -4,6 +4,8 @@
 local storage = require("./storage.luau")
 local client = require("./client.luau")
 local markdown = require("./markdown.luau")
+local export = require("./export.luau")
+local prompts = require("./prompts.luau")
 
 local activeTab = "chat" -- "chat" | "history" | "setting"
 local sessions = {}
@@ -26,6 +28,7 @@ local pendingDeleteSessionId = nil
 local pendingClear = false
 local testConnStatus = nil -- nil | "testing" | "success" | "error: <msg>"
 local showApiKey = false
+local startFreshOnOpen = false
 
 local render
 
@@ -1014,7 +1017,10 @@ end
 function onOpen(_context)
   config = storage.loadConfig()
   sessions = storage.loadSessions()
-  if currentSession then
+  if startFreshOnOpen then
+    startFreshOnOpen = false
+    currentSession = nil
+  elseif currentSession then
     local matched = nil
     for _, sess in ipairs(sessions) do
       if sess.id == currentSession.id then
@@ -1047,4 +1053,40 @@ function onConfigChanged()
   config = storage.loadConfig()
   settingRev += 1
   render()
+end
+
+function onIpc(event: string, payload: string?)
+  if event == "clear" or event == "new_session" then
+    if isStreaming then
+      stopStreaming()
+    end
+    if currentSession and #currentSession.messages > 0 then
+      storage.saveSessions(sessions)
+    end
+    currentSession = nil
+    startFreshOnOpen = true
+    inputBuffer = ""
+    inputRev += 1
+    render()
+  elseif event == "ask" then
+    if payload and noctalia.string.trim(payload) ~= "" then
+      if isStreaming then
+        stopStreaming()
+      end
+      inputBuffer = noctalia.string.trim(payload)
+      inputRev += 1
+      activeTab = "chat"
+      sendMessage()
+    end
+  elseif event == "export" then
+    if currentSession and #currentSession.messages > 0 then
+      export.saveSession(currentSession)
+    else
+      noctalia.notify(tr("export_empty_title"), tr("export_empty_body"))
+    end
+  elseif event == "toggle" then
+    noctalia.togglePanel("rigelyon/ai-sidebar:panel")
+  else
+    noctalia.log("AI Sidebar: Unhandled IPC event " .. tostring(event))
+  end
 end
