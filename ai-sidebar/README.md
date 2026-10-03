@@ -20,6 +20,7 @@ A sleek, robust AI chat sidebar panel for the Noctalia desktop shell. Connect di
 - **Interactive Chat Actions**: Regenerate responses, edit user prompts, rewind to any turn, and copy individual code blocks with syntax badges.
 - **Multi-Session History**: Conversations are organized by session, searchable, and stored locally for privacy.
 - **In-Panel Settings & Connection Testing**: Easily configure API keys, switch models, adjust system prompts, and test connection directly within the panel.
+- **Live Web Search**: Fetch real-time internet context before generating answers using DuckDuckGo (free, no key required), Gemini Native Google Search grounding, Tavily Search, or Brave Search.
 - **Low CPU Footprint**: Throttled UI rendering and in-memory caching engineered specifically for Noctalia's Luau instruction budget.
 
 ## Usage
@@ -32,7 +33,7 @@ A sleek, robust AI chat sidebar panel for the Noctalia desktop shell. Connect di
    ```bash
    noctalia msg panel-toggle rigelyon/ai-sidebar:panel
    ```
-3. Navigate to the **Setting** tab, choose your provider, enter your API key, and click **Test Connection**.
+3. Navigate to the **Setting** tab, choose your provider, enter your API key, optionally toggle **Enable Web Search**, and click **Test Connection**.
 
 ## IPC Commands
 
@@ -68,3 +69,7 @@ noctalia msg plugin rigelyon/ai-sidebar:panel all toggle
 | `custom_api_key` | `string` | `""` | API key for custom endpoint (optional for local models). |
 | `custom_model` | `string` | `llama3.2` | Model identifier for custom provider. |
 | `system_prompt` | `string` | `You are a helpful and concise AI assistant.` | Base instruction given to the AI assistant. |
+| `enable_web_search` | `bool` | `false` | Enable live internet search context before responding. |
+| `search_engine` | `select` | `duckduckgo` | Search engine (`duckduckgo`, `gemini_native`, `tavily`, `brave`). |
+| `search_api_key` | `string` | `""` | API key for Tavily or Brave Search. |
+| `search_max_results` | `select` | `3` | Max search snippets included in context (`3`, `5`, `7`). |
