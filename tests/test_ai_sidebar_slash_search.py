@@ -90,5 +90,15 @@ class TestAiSidebarSlashSearch(unittest.TestCase):
         self.assertEqual(items[0]["url"], "https://id.wikipedia.org/wiki/Presiden_Indonesia")
 
 
+    def test_query_synthesis_prompt_and_tokens(self):
+        client_file = os.path.join(
+            os.path.dirname(__file__), "..", "ai-sidebar", "client.luau"
+        )
+        with open(client_file, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn("max_tokens", content)
+        self.assertIn("resolve pronouns and references", content.lower())
+
+
 if __name__ == "__main__":
     unittest.main()

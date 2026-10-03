@@ -80,7 +80,7 @@ function client.synthesizeSearchQuery(
     local synthMessages = {
       {
         role = "system",
-        content = "You are a web search query generator. Based on the conversation context and latest user request, output ONLY a concise, high-yield web search query (3 to 6 keywords). Return ONLY the query in plain text, with no quotes, no markdown, and no explanation.",
+        content = "You are an expert search engine query optimizer. Based on the conversation context and latest user request, extract ONLY the most effective search keywords (3 to 6 words) optimized for search engines. Eliminate conversational filler, resolve pronouns and references (e.g. 'it', 'dia', 'mereka' -> actual subject), and add relevant domain context. Output ONLY the plain search keywords with no quotes, no markdown, and no explanation.",
       },
     }
 
@@ -109,6 +109,10 @@ function client.synthesizeSearchQuery(
     local req = prov.buildChatRequest(synthMessages, "You are a web search query generator.", config)
     if type(req.body) == "string" then
       req.body = req.body:gsub('"stream":%s*true', '"stream": false')
+      -- Ensure low token cap and deterministic temperature for sub-350ms generation
+      if not req.body:find('"max_tokens"') and not req.body:find('"max_completion_tokens"') then
+        req.body = req.body:gsub('}%s*$', ', "max_tokens": 35, "temperature": 0.0}')
+      end
     end
 
     local httpStarted = noctalia.http(req, function(resp: HttpResponse)
@@ -192,24 +196,7 @@ function client.prepareContextualSearch(
   end)
 
   local ok, _ = (pcall :: any)(function()
-    -- Fast path: if the user provided an explicit prompt after /search,
-    -- search it directly without waiting for extra LLM synthesis roundtrip!
-    if searchPrompt and searchPrompt ~= "" then
-      local started = search.performSearch(searchPrompt, config, function(okSearch, contextBlock, _err)
-        if okSearch and contextBlock and contextBlock ~= "" then
-          safeDone(contextBlock)
-        else
-          safeDone(nil)
-        end
-      end)
-      if not started then
-        safeDone(nil)
-      end
-      return
-    end
-
-    -- Bare /search: synthesize query from previous conversation history
-    client.synthesizeSearchQuery(messages, "", config, function(synthesizedQuery)
+    client.synthesizeSearchQuery(messages, searchPrompt or "", config, function(synthesizedQuery)
       local started = search.performSearch(synthesizedQuery, config, function(okSearch, contextBlock, _err)
         if okSearch and contextBlock and contextBlock ~= "" then
           safeDone(contextBlock)
