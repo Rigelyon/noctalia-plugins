@@ -25,6 +25,9 @@ export type ConfigTable = {
   anthropic_model: string,
   gemini_key: string,
   gemini_model: string,
+  custom_base_url: string,
+  custom_key: string,
+  custom_model: string,
   system_prompt: string,
 }
 
@@ -73,6 +76,9 @@ function storage.loadConfig(): ConfigTable
     anthropic_model = (noctalia.getConfig("anthropic_model") or "claude-3-5-haiku-20241022") :: string,
     gemini_key = geminiKey,
     gemini_model = geminiModel,
+    custom_base_url = (noctalia.getConfig("custom_base_url") or "http://localhost:11434/v1") :: string,
+    custom_key = (noctalia.getConfig("custom_api_key") or "") :: string,
+    custom_model = (noctalia.getConfig("custom_model") or "llama3.2") :: string,
     system_prompt = (noctalia.getConfig("system_prompt") or "You are a helpful and concise AI assistant.") :: string,
   }
 
@@ -89,6 +95,9 @@ function storage.loadConfig(): ConfigTable
       if type(decoded.anthropic_model) == "string" and decoded.anthropic_model ~= "" then cfg.anthropic_model = decoded.anthropic_model end
       if type(decoded.gemini_key) == "string" then cfg.gemini_key = decoded.gemini_key end
       if type(decoded.gemini_model) == "string" and decoded.gemini_model ~= "" then cfg.gemini_model = decoded.gemini_model end
+      if type(decoded.custom_base_url) == "string" and decoded.custom_base_url ~= "" then cfg.custom_base_url = decoded.custom_base_url end
+      if type(decoded.custom_key) == "string" then cfg.custom_key = decoded.custom_key end
+      if type(decoded.custom_model) == "string" and decoded.custom_model ~= "" then cfg.custom_model = decoded.custom_model end
       if type(decoded.system_prompt) == "string" and decoded.system_prompt ~= "" then cfg.system_prompt = decoded.system_prompt end
     end
   end
@@ -96,6 +105,18 @@ function storage.loadConfig(): ConfigTable
 end
 
 function storage.saveConfig(cfg: ConfigTable): boolean
+  noctalia.setConfig("default_provider", cfg.active_provider)
+  noctalia.setConfig("openai_api_key", cfg.openai_key)
+  noctalia.setConfig("openai_model", cfg.openai_model)
+  noctalia.setConfig("anthropic_api_key", cfg.anthropic_key)
+  noctalia.setConfig("anthropic_model", cfg.anthropic_model)
+  noctalia.setConfig("gemini_api_key", cfg.gemini_key)
+  noctalia.setConfig("gemini_model", cfg.gemini_model)
+  noctalia.setConfig("custom_base_url", cfg.custom_base_url)
+  noctalia.setConfig("custom_api_key", cfg.custom_key)
+  noctalia.setConfig("custom_model", cfg.custom_model)
+  noctalia.setConfig("system_prompt", cfg.system_prompt)
+
   local encoded, _ = noctalia.json.encode(cfg, true)
   if encoded then
     local ok, _ = noctalia.writeFile(configPath(), encoded)

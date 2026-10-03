@@ -45,6 +45,21 @@ class TestAiSidebarCustomProvider(unittest.TestCase):
         data = json.loads(resp_err["body"])
         self.assertEqual(data["error"]["message"], "Invalid API key")
 
+    def test_storage_custom_config_structure(self):
+        storage_file = os.path.join(PLUGIN_DIR, "storage.luau")
+        with open(storage_file, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        self.assertIn("custom_base_url: string", content)
+        self.assertIn("custom_key: string", content)
+        self.assertIn("custom_model: string", content)
+        self.assertIn('noctalia.getConfig("custom_base_url")', content)
+        self.assertIn('noctalia.getConfig("custom_api_key")', content)
+        self.assertIn('noctalia.getConfig("custom_model")', content)
+        self.assertIn('noctalia.setConfig("custom_base_url"', content)
+        self.assertIn('noctalia.setConfig("custom_api_key"', content)
+        self.assertIn('noctalia.setConfig("custom_model"', content)
+
 
 if __name__ == "__main__":
     unittest.main()
