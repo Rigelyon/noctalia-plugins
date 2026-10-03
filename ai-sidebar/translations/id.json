@@ -52,6 +52,10 @@
   "prompt_library": "Pustaka Prompt",
   "export_chat": "Ekspor ke Markdown",
   "export_success_title": "Obrolan Diekspor",
+  "action_view": "Lihat",
+  "action_open_folder": "Buka Folder",
+  "action_delete": "Hapus",
+  "export_deleted": "Berkas ekspor berhasil dihapus",
   "export_empty_title": "Ekspor Obrolan",
   "export_empty_body": "Tidak ada pesan untuk diekspor pada percakapan ini.",
   "settings": {

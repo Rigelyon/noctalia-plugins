@@ -77,22 +77,21 @@ class TestAiSidebarPrompts(unittest.TestCase):
         self.assertEqual(len(res_opt), 1)
         self.assertEqual(res_opt[0]["tag"], "code-review")
 
-    def test_hash_trigger_regex_simulation(self):
-        # Match pattern: (^|%s)#([%w%-_]*)$
-        pattern = re.compile(r"(?:^|\s)#([\w\-_]*)$")
+    def test_lua_hash_pattern_matching(self):
+        def match_lua_hash(text: str):
+            m1 = re.match(r"^#([\w\-_]*)$", text)
+            if m1:
+                return m1.group(1)
+            m2 = re.search(r"\s#([\w\-_]*)$", text)
+            if m2:
+                return m2.group(1)
+            return None
 
-        self.assertIsNotNone(pattern.search("#"))
-        self.assertEqual(pattern.search("#").group(1), "")
-
-        self.assertIsNotNone(pattern.search("#explain"))
-        self.assertEqual(pattern.search("#explain").group(1), "explain")
-
-        self.assertIsNotNone(pattern.search("hello #code-review"))
-        self.assertEqual(pattern.search("hello #code-review").group(1), "code-review")
-
-        # URL hashtags should NOT trigger if not preceded by whitespace
-        self.assertIsNone(pattern.search("https://site.com#section"))
-        self.assertIsNone(pattern.search("foo#bar"))
+        self.assertEqual(match_lua_hash("#"), "")
+        self.assertEqual(match_lua_hash("#explain"), "explain")
+        self.assertEqual(match_lua_hash("hi #code-review"), "code-review")
+        self.assertIsNone(match_lua_hash("https://example.com#section"))
+        self.assertIsNone(match_lua_hash("word#tag"))
 
 
 if __name__ == "__main__":

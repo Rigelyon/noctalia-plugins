@@ -79,6 +79,37 @@ class TestAiSidebarExport(unittest.TestCase):
             "20261003_conversation_1727961000.md",
         )
 
+    def test_notify_export_with_actions(self):
+        with open(EXPORT_FILE, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        self.assertIn("export.notifyExport", content)
+        self.assertIn('"notify-send"', content)
+        self.assertIn('"view="', content)
+        self.assertIn('"folder="', content)
+        self.assertIn('"delete="', content)
+        self.assertIn('"xdg-open"', content)
+        self.assertIn("noctalia.removeFile", content)
+
+    def test_export_action_translations(self):
+        import json
+
+        en_path = os.path.join(
+            os.path.dirname(__file__), "..", "ai-sidebar", "translations", "en.json"
+        )
+        id_path = os.path.join(
+            os.path.dirname(__file__), "..", "ai-sidebar", "translations", "id.json"
+        )
+
+        with open(en_path, "r", encoding="utf-8") as f:
+            en = json.load(f)
+        with open(id_path, "r", encoding="utf-8") as f:
+            id_data = json.load(f)
+
+        for key in ["action_view", "action_open_folder", "action_delete", "export_deleted"]:
+            self.assertIn(key, en, f"Missing {key} in en.json")
+            self.assertIn(key, id_data, f"Missing {key} in id.json")
+
 
 if __name__ == "__main__":
     unittest.main()

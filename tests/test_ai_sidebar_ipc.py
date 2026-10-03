@@ -76,6 +76,21 @@ class TestAiSidebarIpc(unittest.TestCase):
         handle_ipc("toggle")
         self.assertTrue(state["toggled"])
 
+    def test_readme_ipc_syntax(self):
+        readme_file = os.path.join(
+            os.path.dirname(__file__), "..", "ai-sidebar", "README.md"
+        )
+        self.assertTrue(os.path.isfile(readme_file))
+        with open(readme_file, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # Must not contain obsolete or invalid "noctalia msg ipc"
+        self.assertNotIn("noctalia msg ipc", content)
+        # Must contain valid Noctalia plugin dispatch format
+        self.assertIn("noctalia msg plugin rigelyon/ai-sidebar:panel all clear", content)
+        self.assertIn("noctalia msg plugin rigelyon/ai-sidebar:panel all ask", content)
+        self.assertIn("noctalia msg plugin rigelyon/ai-sidebar:panel all export", content)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -259,14 +259,14 @@ local function renderAssistantContent(content: string, msgIndex: number): { any 
       local isCopied = (copiedCodeKey == codeKey)
       local langLabel = (seg.language and seg.language ~= "") and seg.language or "text"
       local codeText = seg.code or ""
+      local cleanCode = codeText:gsub("%s+$", "")
 
       table.insert(nodes, ui.column({
         fill = "surface_variant/0.3",
         radius = 8,
-        padding = 6,
-        paddingH = 10,
-        gap = 2,
-        flexGrow = 1,
+        padding = 8,
+        paddingH = 12,
+        gap = 4,
       }, {
         ui.row({ align = "center", justify = "space_between" }, {
           ui.label({
@@ -296,7 +296,8 @@ local function renderAssistantContent(content: string, msgIndex: number): { any 
             end,
           }),
         }),
-        ui.markdown({ text = "```" .. langLabel .. "\n" .. codeText .. (codeText:sub(-1) == "\n" and "" or "\n") .. "```" }),
+        ui.markdown({ text = "```" .. langLabel .. "\n" .. cleanCode .. "\n```" }),
+        ui.spacer({ height = 12 }),
       }))
     else
       if seg.content and seg.content ~= "" then
@@ -567,19 +568,39 @@ local function renderChatView()
     end
   end
 
-  local hashPrefix, hashQuery = inputBuffer:match("(^|%s)#([%w%-_]*)$")
-  local isPromptActive = showPromptPicker or (hashPrefix ~= nil)
+  local hashQuery = inputBuffer:match("^#([%w%-_]*)$") or inputBuffer:match("%s#([%w%-_]*)$")
+  local isPromptActive = showPromptPicker or (hashQuery ~= nil)
   local matchingPrompts = isPromptActive and prompts.filter(hashQuery or "") or {}
 
   local promptNodes = {}
   if isPromptActive and #matchingPrompts > 0 then
+    table.insert(promptNodes, ui.row({ align = "center", justify = "space_between", paddingH = 8, padding = 4 }, {
+      ui.row({ gap = 6, align = "center" }, {
+        ui.glyph({ name = "sparkles", size = 12, color = "primary" }),
+        ui.label({ text = tr("prompt_library"), fontSize = 11, fontWeight = "bold", color = "primary" }),
+      }),
+      ui.button({
+        glyph = "x",
+        variant = "ghost",
+        padding = 2,
+        paddingH = 4,
+        tooltip = tr("close"),
+        onClick = function()
+          showPromptPicker = false
+          render()
+        end,
+      }),
+    }))
+    table.insert(promptNodes, ui.separator({}))
+
     for _, p in ipairs(matchingPrompts) do
       table.insert(promptNodes, ui.button({
+        glyph = "hash",
+        text = "#" .. p.tag .. "  —  " .. p.label,
+        tooltip = p.description,
         variant = "ghost",
-        padding = 4,
-        paddingH = 8,
         onClick = function()
-          if hashPrefix ~= nil then
+          if hashQuery ~= nil then
             local pattern = "(#[" .. "%w%-_" .. "]*)$"
             inputBuffer = inputBuffer:gsub(pattern, p.content)
           else
@@ -589,12 +610,6 @@ local function renderChatView()
           inputRev += 1
           render()
         end,
-      }, {
-        ui.row({ gap = 8, align = "center" }, {
-          ui.glyph({ name = "hash", size = 12, color = "primary" }),
-          ui.label({ text = "#" .. p.tag, fontWeight = "bold", fontSize = 12 }),
-          ui.label({ text = p.label, fontSize = 11, color = "on_surface_variant" }),
-        })
       }))
     end
   end
@@ -620,7 +635,7 @@ local function renderChatView()
     height = 70,
     onChange = function(val)
       inputBuffer = val or ""
-      local hasHash = inputBuffer:match("(^|%s)#([%w%-_]*)$") ~= nil
+      local hasHash = (inputBuffer:match("^#([%w%-_]*)$") ~= nil) or (inputBuffer:match("%s#([%w%-_]*)$") ~= nil)
       if hasHash or showPromptPicker then
         render()
       end

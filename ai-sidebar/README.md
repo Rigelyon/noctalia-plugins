@@ -40,16 +40,17 @@ Interact with AI Sidebar from terminal scripts or window manager shortcuts:
 
 ```bash
 # Clear active chat and prepare a clean session (even in the background)
-noctalia msg ipc rigelyon/ai-sidebar:panel clear
+noctalia msg plugin rigelyon/ai-sidebar:panel all clear
 
 # Send a prompt directly from the shell or hotkey
-noctalia msg ipc rigelyon/ai-sidebar:panel ask "Explain how to write Luau plugins"
+noctalia msg plugin rigelyon/ai-sidebar:panel all ask "Explain how to write Luau plugins"
 
 # Export the active conversation to a Markdown file
-noctalia msg ipc rigelyon/ai-sidebar:panel export
+noctalia msg plugin rigelyon/ai-sidebar:panel all export
 
-# Toggle panel visibility
-noctalia msg ipc rigelyon/ai-sidebar:panel toggle
+# Toggle panel visibility (direct toggle or via plugin event)
+noctalia msg panel-toggle rigelyon/ai-sidebar:panel
+noctalia msg plugin rigelyon/ai-sidebar:panel all toggle
 ```
 
 ## Settings
