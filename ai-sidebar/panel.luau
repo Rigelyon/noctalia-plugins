@@ -211,10 +211,11 @@ local function renderAssistantContent(content: string, msgIndex: number): { any 
       local codeText = seg.code or ""
 
       table.insert(nodes, ui.column({
-        fill = "surface_variant/0.35",
+        fill = "surface_variant/0.3",
         radius = 8,
-        padding = 8,
-        gap = 4,
+        padding = 6,
+        paddingH = 10,
+        gap = 2,
         flexGrow = 1,
       }, {
         ui.row({ align = "center", justify = "space_between" }, {
@@ -226,9 +227,10 @@ local function renderAssistantContent(content: string, msgIndex: number): { any 
           }),
           ui.button({
             glyph = isCopied and "check" or "copy",
-            text = isCopied and tr("code_copied") or tr("action_copy_code"),
-            variant = isCopied and "secondary" or "ghost",
-            fontSize = 10,
+            variant = "ghost",
+            padding = 2,
+            paddingH = 4,
+            tooltip = isCopied and tr("code_copied") or tr("action_copy_code"),
             onClick = function()
               if codeText ~= "" then
                 noctalia.copyToClipboard(codeText, "text/plain")
@@ -244,11 +246,7 @@ local function renderAssistantContent(content: string, msgIndex: number): { any 
             end,
           }),
         }),
-        ui.label({
-          text = codeText,
-          fontSize = 11,
-          color = "on_surface",
-        }),
+        ui.markdown({ text = "```" .. langLabel .. "\n" .. codeText .. (codeText:sub(-1) == "\n" and "" or "\n") .. "```" }),
       }))
     else
       if seg.content and seg.content ~= "" then
@@ -299,18 +297,20 @@ local function renderChatView()
         local bubbleNode = ui.column({
           fill = "primary/0.2",
           radius = 12,
-          padding = 10,
-          paddingH = 14,
+          padding = 8,
+          paddingH = 12,
           gap = 4,
-          minWidth = 80,
-          flexGrow = if isLong then 4 else nil,
+          minWidth = 72,
+          maxWidth = 360,
         }, {
           contentNode,
           ui.row({ align = "center", justify = "space_between", gap = 8 }, {
-            ui.row({ gap = 2, align = "center" }, {
+            ui.row({ gap = 1, align = "center" }, {
               ui.button({
                 glyph = "pencil",
                 variant = "ghost",
+                padding = 2,
+                paddingH = 4,
                 tooltip = tr("action_edit"),
                 onClick = function()
                   if not isStreaming then
@@ -324,6 +324,8 @@ local function renderChatView()
               ui.button({
                 glyph = "arrow-back-up",
                 variant = "ghost",
+                padding = 2,
+                paddingH = 4,
                 tooltip = tr("action_rewind"),
                 onClick = function()
                   if not isStreaming then
@@ -341,16 +343,9 @@ local function renderChatView()
           }),
         })
 
-        if isLong then
-          table.insert(messageNodes, ui.row({ align = "start" }, {
-            ui.spacer({}),
-            bubbleNode,
-          }))
-        else
-          table.insert(messageNodes, ui.row({ justify = "end", align = "start" }, {
-            bubbleNode,
-          }))
-        end
+        table.insert(messageNodes, ui.row({ justify = "end", align = "start" }, {
+          bubbleNode,
+        }))
       elseif msg.role == "assistant" then
         local content = msg.content
         if content == "" and isStreaming then
@@ -359,6 +354,44 @@ local function renderChatView()
         local providerTitle = config.active_provider:sub(1, 1):upper() .. config.active_provider:sub(2)
         local timeStr = msg.timestamp and noctalia.formatTime("%H:%M", msg.timestamp) or ""
         local isLastAssistant = (idx == #currentSession.messages)
+
+        local actionButtons = {}
+        if isLastAssistant and not isStreaming and content ~= "" and not content:find(tr("error_title")) then
+          table.insert(actionButtons, ui.button({
+            glyph = "refresh",
+            variant = "ghost",
+            padding = 2,
+            paddingH = 4,
+            tooltip = tr("action_regenerate"),
+            onClick = regenerateResponse,
+          }))
+        end
+        table.insert(actionButtons, ui.button({
+          glyph = "arrow-back-up",
+          variant = "ghost",
+          padding = 2,
+          paddingH = 4,
+          tooltip = tr("action_rewind"),
+          onClick = function()
+            if not isStreaming then
+              storage.rewindSession(sessions, currentSession.id, idx)
+              render()
+            end
+          end,
+        }))
+        table.insert(actionButtons, ui.button({
+          glyph = "copy",
+          variant = "ghost",
+          padding = 2,
+          paddingH = 4,
+          tooltip = tr("copy"),
+          onClick = function()
+            if content ~= "" then
+              noctalia.copyToClipboard(msg.content, "text/plain")
+              noctalia.notify(tr("copied_to_clipboard"), "sparkles")
+            end
+          end,
+        }))
 
         local assistantChildren = {
           ui.row({ gap = 6, align = "center", justify = "space_between" }, {
@@ -376,30 +409,7 @@ local function renderChatView()
                 color = "on_surface_variant",
               }),
             }),
-            ui.row({ gap = 2, align = "center" }, {
-              ui.button({
-                glyph = "arrow-back-up",
-                variant = "ghost",
-                tooltip = tr("action_rewind"),
-                onClick = function()
-                  if not isStreaming then
-                    storage.rewindSession(sessions, currentSession.id, idx)
-                    render()
-                  end
-                end,
-              }),
-              ui.button({
-                glyph = "copy",
-                variant = "ghost",
-                tooltip = tr("copy"),
-                onClick = function()
-                  if content ~= "" then
-                    noctalia.copyToClipboard(msg.content, "text/plain")
-                    noctalia.notify(tr("copied_to_clipboard"), "sparkles")
-                  end
-                end,
-              }),
-            }),
+            ui.row({ gap = 2, align = "center" }, actionButtons),
           }),
         }
 
@@ -414,24 +424,12 @@ local function renderChatView()
           }))
         end
 
-        if isLastAssistant and not isStreaming and content ~= "" and not content:find(tr("error_title")) then
-          table.insert(assistantChildren, ui.row({ justify = "start" }, {
-            ui.button({
-              glyph = "refresh",
-              variant = "ghost",
-              text = tr("action_regenerate"),
-              fontSize = 11,
-              onClick = regenerateResponse,
-            }),
-          }))
-        end
-
         table.insert(messageNodes, ui.row({ justify = "start", align = "start" }, {
           ui.column({
             fill = "surface_variant/0.25",
             radius = 12,
-            padding = 10,
-            paddingH = 14,
+            padding = 8,
+            paddingH = 12,
             flexGrow = 1,
             gap = 6,
           }, assistantChildren),
