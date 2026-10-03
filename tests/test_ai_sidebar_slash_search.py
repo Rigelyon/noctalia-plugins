@@ -100,5 +100,15 @@ class TestAiSidebarSlashSearch(unittest.TestCase):
         self.assertIn("resolve pronouns and references", content.lower())
 
 
+    def test_slash_search_message_stripping_logic(self):
+        panel_file = os.path.join(
+            os.path.dirname(__file__), "..", "ai-sidebar", "panel.luau"
+        )
+        with open(panel_file, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn("slash_search_default_prompt", content)
+        self.assertIn("strippedText", content)
+
+
 if __name__ == "__main__":
     unittest.main()

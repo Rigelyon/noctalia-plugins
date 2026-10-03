@@ -77,6 +77,7 @@
   "search_engine_brave": "Brave Search (API Key)",
   "slash_cmd_search_label": "Pencarian Web",
   "slash_cmd_search_desc": "Cari informasi real-time di internet",
+  "slash_search_default_prompt": "Tolong carikan informasi terbaru dari web terkait topik ini.",
   "search_api_key": "Search API Key",
   "search_max_results": "Maksimal Hasil Pencarian",
   "search_results_3": "3 Hasil (Hemat)",

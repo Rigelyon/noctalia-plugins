@@ -63,8 +63,18 @@ local function sendMessage()
   local text = noctalia.string.trim(inputBuffer)
   if text == "" or isStreaming then return end
 
+  local isSearch, strippedText = search.isSlashSearch(text)
+  local messageText = text
+  if isSearch then
+    if strippedText == "" then
+      messageText = tr("slash_search_default_prompt")
+    else
+      messageText = strippedText
+    end
+  end
+
   if not currentSession then
-    currentSession = storage.createSession(text, config.active_provider, config[config.active_provider .. "_model"])
+    currentSession = storage.createSession(messageText, config.active_provider, config[config.active_provider .. "_model"])
     table.insert(sessions, 1, currentSession)
   else
     local exists = false
@@ -82,13 +92,14 @@ local function sendMessage()
   -- Add user message
   table.insert(currentSession.messages, {
     role = "user",
-    content = text,
+    content = messageText,
     timestamp = math.floor(noctalia.nowMs() / 1000),
+    is_search = if isSearch then true else nil,
   })
 
   -- Set session title from first message if default
   if currentSession.title == "New Conversation" then
-    currentSession.title = storage.generateTitle(text)
+    currentSession.title = storage.generateTitle(messageText)
   end
   currentSession.updated_at = math.floor(noctalia.nowMs() / 1000)
   table.sort(sessions, function(a, b) return a.updated_at > b.updated_at end)
@@ -193,7 +204,6 @@ local function sendMessage()
     )
   end
 
-  local isSearch, _ = search.isSlashSearch(text)
   if isSearch then
     isSearching = true
     render()
@@ -215,9 +225,9 @@ local function sendMessage()
       end
     end)
 
-    client.prepareContextualSearch(text, capped, config, function(searchCtx)
+    client.prepareContextualSearch(messageText, capped, config, function(searchCtx)
       finishSearch(searchCtx)
-    end)
+    end, true)
   else
     beginStream(nil, false)
   end
@@ -309,7 +319,7 @@ local function regenerateResponse()
     )
   end
 
-  local isSearch, _ = search.isSlashSearch(lastUserMsg.content)
+  local isSearch = (lastUserMsg.is_search == true) or select(1, search.isSlashSearch(lastUserMsg.content))
   if isSearch then
     isSearching = true
     render()
@@ -333,7 +343,7 @@ local function regenerateResponse()
 
     client.prepareContextualSearch(lastUserMsg.content, capped, config, function(searchCtx)
       finishSearch(searchCtx)
-    end)
+    end, true)
   else
     beginStream(nil, false)
   end

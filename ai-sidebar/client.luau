@@ -162,7 +162,8 @@ function client.prepareContextualSearch(
   text: string,
   messages: { any },
   config: any,
-  callback: (searchContext: string?) -> ()
+  callback: (searchContext: string?) -> (),
+  forceSearch: boolean?
 ): ()
   local hasCalled = false
   local function safeDone(searchCtx: string?)
@@ -172,10 +173,11 @@ function client.prepareContextualSearch(
   end
 
   local isSearch, searchPrompt = search.isSlashSearch(text)
-  if not isSearch then
+  if not isSearch and forceSearch ~= true then
     safeDone(nil)
     return
   end
+  local queryPrompt = if isSearch then searchPrompt else text
 
   if config.active_provider == "gemini" and config.search_engine == "gemini_native" then
     -- Native grounding handles retrieval directly
@@ -196,7 +198,7 @@ function client.prepareContextualSearch(
   end)
 
   local ok, _ = (pcall :: any)(function()
-    client.synthesizeSearchQuery(messages, searchPrompt or "", config, function(synthesizedQuery)
+    client.synthesizeSearchQuery(messages, queryPrompt or "", config, function(synthesizedQuery)
       local started = search.performSearch(synthesizedQuery, config, function(okSearch, contextBlock, _err)
         if okSearch and contextBlock and contextBlock ~= "" then
           safeDone(contextBlock)

@@ -77,6 +77,7 @@
   "search_engine_brave": "Brave Search (API Key)",
   "slash_cmd_search_label": "Web Search",
   "slash_cmd_search_desc": "Search live web for real-time information",
+  "slash_search_default_prompt": "Please look up the latest information regarding this topic.",
   "search_api_key": "Search API Key",
   "search_max_results": "Max Search Results",
   "search_results_3": "3 Results (Compact)",
