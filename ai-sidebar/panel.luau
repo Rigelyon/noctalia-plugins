@@ -416,7 +416,6 @@ local function renderChatView()
         if content == "" and isStreaming then
           content = "_" .. tr("status_typing") .. "_"
         end
-        local providerTitle = config.active_provider:sub(1, 1):upper() .. config.active_provider:sub(2)
         local timeStr = msg.timestamp and noctalia.formatTime("%H:%M", msg.timestamp) or ""
         local isLastAssistant = (idx == #currentSession.messages)
 
@@ -457,7 +456,7 @@ local function renderChatView()
             ui.row({ gap = 6, align = "center" }, {
               ui.glyph({ name = "sparkles", size = 13, color = "primary" }),
               ui.label({
-                text = providerTitle,
+                text = tr("role_assistant"),
                 fontSize = 11,
                 fontWeight = "bold",
                 color = "primary",
@@ -1131,11 +1130,6 @@ render = function()
     ui.row({ gap = 8, align = "center" }, {
       ui.glyph({ name = "sparkles", size = 18, color = "primary" }),
       ui.label({ text = tr("title"), fontWeight = "bold" }),
-      ui.label({
-        text = "· " .. config.active_provider,
-        fontSize = 11,
-        color = "on_surface_variant",
-      }),
     }),
     ui.row({ gap = 4, align = "center" }, {
       ui.button({

@@ -44,6 +44,7 @@
   "model": "Model",
   "system_prompt": "System Prompt",
   "role_user": "You",
+  "role_assistant": "Assistant",
   "action_regenerate": "Regenerate",
   "action_edit": "Edit",
   "action_rewind": "Rewind to here",

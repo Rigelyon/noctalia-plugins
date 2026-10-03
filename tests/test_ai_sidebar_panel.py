@@ -242,6 +242,7 @@ class TestAiSidebarPanel(unittest.TestCase):
         self.assertIn("storage.rewindSession", content)
         self.assertIn("storage.removeLastAssistantMessage", content)
         self.assertIn("role_user", content)
+        self.assertIn("role_assistant", content)
         self.assertIn('name = "user"', content)
 
 
