@@ -1,0 +1,76 @@
+{
+  "title": "AI Sidebar",
+  "tab_chat": "Chat",
+  "tab_history": "Riwayat",
+  "tab_setting": "Pengaturan",
+  "new_chat": "Chat Baru",
+  "close": "Tutup",
+  "clear": "Kosongkan Sesi",
+  "clear_confirm": "Hapus percakapan?",
+  "send": "Kirim",
+  "stop": "Berhenti",
+  "input_placeholder": "Tanyakan apa saja ke AI... (Enter untuk kirim, Shift+Enter untuk baris baru)",
+  "welcome_title": "AI Assistant Siap",
+  "welcome_subtitle": "Pilih provider, isi API Key di Pengaturan, dan mulai percakapan.",
+  "status_typing": "Sedang mengetik...",
+  "status_ready": "Siap",
+  "error_title": "Permintaan Gagal",
+  "retry": "Coba Lagi",
+  "search_history": "Cari riwayat percakapan...",
+  "no_history": "Belum ada riwayat percakapan",
+  "no_search_results": "Sesi tidak ditemukan",
+  "delete_session": "Hapus",
+  "delete_confirm": "Hapus sesi ini?",
+  "save_settings": "Simpan Pengaturan",
+  "settings_saved": "Pengaturan berhasil disimpan",
+  "test_connection": "Uji Koneksi",
+  "testing": "Menguji koneksi...",
+  "test_success": "Koneksi berhasil! Model merespons.",
+  "test_error": "Koneksi gagal",
+  "provider_openai": "OpenAI",
+  "provider_anthropic": "Anthropic Claude",
+  "provider_gemini": "Google Gemini",
+  "active_provider": "Provider Aktif",
+  "api_key": "API Key",
+  "model": "Model",
+  "system_prompt": "System Prompt",
+  "settings": {
+    "default-provider": {
+      "label": "Provider Bawaan",
+      "description": "Pilih provider AI utama untuk permintaan obrolan",
+      "options": {
+        "openai": "OpenAI",
+        "anthropic": "Anthropic Claude",
+        "gemini": "Google Gemini"
+      }
+    },
+    "openai-api-key": {
+      "label": "OpenAI API Key",
+      "description": "API Key untuk request ke OpenAI"
+    },
+    "openai-model": {
+      "label": "OpenAI Model",
+      "description": "Model default OpenAI (misal: gpt-4o-mini)"
+    },
+    "anthropic-api-key": {
+      "label": "Anthropic API Key",
+      "description": "API Key untuk request ke Anthropic Claude"
+    },
+    "anthropic-model": {
+      "label": "Anthropic Model",
+      "description": "Model default Anthropic (misal: claude-3-5-haiku-20241022)"
+    },
+    "gemini-api-key": {
+      "label": "Gemini API Key",
+      "description": "API Key untuk request ke Google Gemini"
+    },
+    "gemini-model": {
+      "label": "Gemini Model",
+      "description": "Model default Google Gemini (misal: gemini-1.5-flash)"
+    },
+    "system-prompt": {
+      "label": "System Prompt Bawaan",
+      "description": "Instruksi dasar yang diberikan kepada AI"
+    }
+  }
+}

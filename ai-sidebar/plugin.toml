@@ -1,0 +1,90 @@
+id = "rigelyon/ai-sidebar"
+name = "AI Sidebar"
+version = "1.0.0"
+plugin_api = 28
+author = "rigelyon"
+license = "MIT"
+dependencies = []
+tags = ["ai", "productivity", "utility", "panel", "bar"]
+icon = "sparkles"
+description = "Streamlined AI chat sidebar for Noctalia with multi-provider streaming, history, and settings."
+
+[[setting]]
+key = "default_provider"
+type = "select"
+label_key = "settings.default-provider.label"
+description_key = "settings.default-provider.description"
+default = "openai"
+
+  [[setting.options]]
+  value = "openai"
+  label_key = "settings.default-provider.options.openai"
+
+  [[setting.options]]
+  value = "anthropic"
+  label_key = "settings.default-provider.options.anthropic"
+
+  [[setting.options]]
+  value = "gemini"
+  label_key = "settings.default-provider.options.gemini"
+
+[[setting]]
+key = "openai_api_key"
+type = "string"
+label_key = "settings.openai-api-key.label"
+description_key = "settings.openai-api-key.description"
+default = ""
+
+[[setting]]
+key = "openai_model"
+type = "string"
+label_key = "settings.openai-model.label"
+description_key = "settings.openai-model.description"
+default = "gpt-4o-mini"
+
+[[setting]]
+key = "anthropic_api_key"
+type = "string"
+label_key = "settings.anthropic-api-key.label"
+description_key = "settings.anthropic-api-key.description"
+default = ""
+
+[[setting]]
+key = "anthropic_model"
+type = "string"
+label_key = "settings.anthropic-model.label"
+description_key = "settings.anthropic-model.description"
+default = "claude-3-5-haiku-20241022"
+
+[[setting]]
+key = "gemini_api_key"
+type = "string"
+label_key = "settings.gemini-api-key.label"
+description_key = "settings.gemini-api-key.description"
+default = ""
+
+[[setting]]
+key = "gemini_model"
+type = "string"
+label_key = "settings.gemini-model.label"
+description_key = "settings.gemini-model.description"
+default = "gemini-1.5-flash"
+
+[[setting]]
+key = "system_prompt"
+type = "string"
+label_key = "settings.system-prompt.label"
+description_key = "settings.system-prompt.description"
+default = "You are a helpful and concise AI assistant."
+
+[[panel]]
+id = "panel"
+entry = "panel.luau"
+placement = "attached"
+position = "right"
+width = 440
+height = 760
+
+[[widget]]
+id = "ai-sidebar"
+entry = "widget.luau"

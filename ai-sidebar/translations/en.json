@@ -1,0 +1,76 @@
+{
+  "title": "AI Sidebar",
+  "tab_chat": "Chat",
+  "tab_history": "History",
+  "tab_setting": "Setting",
+  "new_chat": "New Chat",
+  "close": "Close",
+  "clear": "Clear Session",
+  "clear_confirm": "Clear messages?",
+  "send": "Send",
+  "stop": "Stop",
+  "input_placeholder": "Ask AI anything... (Enter to send, Shift+Enter for new line)",
+  "welcome_title": "AI Assistant Ready",
+  "welcome_subtitle": "Select a provider, enter your API key in Settings, and start chatting.",
+  "status_typing": "Thinking...",
+  "status_ready": "Ready",
+  "error_title": "Request Failed",
+  "retry": "Retry",
+  "search_history": "Search past sessions...",
+  "no_history": "No conversation history yet",
+  "no_search_results": "No sessions found",
+  "delete_session": "Delete",
+  "delete_confirm": "Delete this session?",
+  "save_settings": "Save Settings",
+  "settings_saved": "Settings successfully saved",
+  "test_connection": "Test Connection",
+  "testing": "Testing connection...",
+  "test_success": "Connection successful! Model responded.",
+  "test_error": "Connection failed",
+  "provider_openai": "OpenAI",
+  "provider_anthropic": "Anthropic Claude",
+  "provider_gemini": "Google Gemini",
+  "active_provider": "Active Provider",
+  "api_key": "API Key",
+  "model": "Model",
+  "system_prompt": "System Prompt",
+  "settings": {
+    "default-provider": {
+      "label": "Default Provider",
+      "description": "Select primary AI provider to use for chat requests",
+      "options": {
+        "openai": "OpenAI",
+        "anthropic": "Anthropic Claude",
+        "gemini": "Google Gemini"
+      }
+    },
+    "openai-api-key": {
+      "label": "OpenAI API Key",
+      "description": "API key for OpenAI API requests"
+    },
+    "openai-model": {
+      "label": "OpenAI Model",
+      "description": "Default OpenAI model (e.g. gpt-4o-mini)"
+    },
+    "anthropic-api-key": {
+      "label": "Anthropic API Key",
+      "description": "API key for Anthropic Claude requests"
+    },
+    "anthropic-model": {
+      "label": "Anthropic Model",
+      "description": "Default Anthropic model (e.g. claude-3-5-haiku-20241022)"
+    },
+    "gemini-api-key": {
+      "label": "Gemini API Key",
+      "description": "API key for Google Gemini requests"
+    },
+    "gemini-model": {
+      "label": "Gemini Model",
+      "description": "Default Google Gemini model (e.g. gemini-1.5-flash)"
+    },
+    "system-prompt": {
+      "label": "Default System Prompt",
+      "description": "Base instruction given to the AI assistant"
+    }
+  }
+}
