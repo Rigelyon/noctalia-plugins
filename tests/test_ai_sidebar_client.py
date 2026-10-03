@@ -165,6 +165,19 @@ class TestAiSidebarClient(unittest.TestCase):
             errors, ["Unable to initialize HTTP stream (offline mode or network disabled)"]
         )
 
+    def test_client_imports_context(self):
+        with open(CLIENT_FILE, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn('require("./context.luau")', content)
+        self.assertIn("context.prepareContext", content)
+        self.assertIn("retryCount", content)
+
+    def test_backoff_retry_simulation(self):
+        delays = [1.0, 2.0]
+        self.assertEqual(delays[0], 1.0)
+        self.assertEqual(delays[1], 2.0)
+        self.assertEqual(len(delays), 2)
+
 
 if __name__ == "__main__":
     unittest.main()

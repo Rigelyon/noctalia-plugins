@@ -3,6 +3,7 @@ local openai = require("./providers/openai.luau")
 local anthropic = require("./providers/anthropic.luau")
 local gemini = require("./providers/gemini.luau")
 local custom = require("./providers/custom.luau")
+local context = require("./context.luau")
 
 local client = {}
 
@@ -43,43 +44,92 @@ function client.streamChat(
   config: any,
   onChunk: (text: string) -> (),
   onError: (err: string) -> (),
-  onDone: () -> ()
+  onDone: () -> (),
+  onStatus: ((status: string, attempt: number, maxRetries: number) -> ())?
 ): any
   local prov = getProvider(config.active_provider)
   local augmentedPrompt = buildEnvironmentPrompt(config.system_prompt)
-  local req = prov.buildChatRequest(messages, augmentedPrompt, config)
+  
+  -- Prepare rolling context to prevent token overflows and context amnesia
+  local contextMessages = context.prepareContext(messages, 4096, augmentedPrompt)
+  local req = prov.buildChatRequest(contextMessages, augmentedPrompt, config)
 
   local hasReceivedChunk = false
   local errorReported = false
+  local retryCount = 0
+  local maxRetries = 2
+  local isCancelled = false
+  local currentHandle: any = nil
 
-  local handle = noctalia.httpStream(req, function(line: string)
-    local text = prov.parseStreamLine(line)
-    if text and text ~= "" then
-      hasReceivedChunk = true
-      onChunk(text)
-    end
-  end, function(result: any)
-    if not result.ok or (result.status ~= 0 and result.status >= 400) then
-      if not errorReported then
-        errorReported = true
-        onError("Stream error (HTTP " .. tostring(result.status) .. ")")
+  local function startAttempt()
+    if isCancelled then return end
+
+    currentHandle = noctalia.httpStream(req, function(line: string)
+      if isCancelled then return end
+      local text = prov.parseStreamLine(line)
+      if text and text ~= "" then
+        hasReceivedChunk = true
+        onChunk(text)
       end
-    else
-      if not hasReceivedChunk and not errorReported then
-        -- In case provider sent error inside body
-        onError("No response data received from provider")
+    end, function(result: any)
+      if isCancelled then return end
+      local isError = not result.ok or (result.status ~= 0 and result.status >= 400)
+      local isRetryable = isError and (result.status == 429 or result.status == 503 or result.status == 0)
+
+      if isRetryable and not hasReceivedChunk and retryCount < maxRetries then
+        retryCount += 1
+        if onStatus then
+          onStatus("retrying", retryCount, maxRetries)
+        end
+        local delaySec = retryCount == 1 and "1" or "2"
+        noctalia.runAsync({ "sleep", delaySec }, function()
+          if not isCancelled then
+            startAttempt()
+          end
+        end)
+        return
+      end
+
+      if isError then
+        if not errorReported then
+          errorReported = true
+          onError("Stream error (HTTP " .. tostring(result.status) .. ")")
+        end
       else
-        onDone()
+        if not hasReceivedChunk and not errorReported then
+          onError("No response data received from provider")
+        else
+          onDone()
+        end
+      end
+    end)
+
+    if currentHandle == nil and not errorReported then
+      if retryCount < maxRetries then
+        retryCount += 1
+        if onStatus then
+          onStatus("retrying", retryCount, maxRetries)
+        end
+        local delaySec = retryCount == 1 and "1" or "2"
+        noctalia.runAsync({ "sleep", delaySec }, function()
+          if not isCancelled then
+            startAttempt()
+          end
+        end)
+      else
+        onError("Unable to initialize HTTP stream (offline mode or network disabled)")
       end
     end
-  end)
-
-  if handle == nil then
-    onError("Unable to initialize HTTP stream (offline mode or network disabled)")
-    return nil
   end
 
-  return handle
+  startAttempt()
+
+  return {
+    cancel = function()
+      isCancelled = true
+      errorReported = true
+    end,
+  }
 end
 
 return client
