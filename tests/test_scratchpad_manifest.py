@@ -41,6 +41,12 @@ class TestScratchpadManifest(unittest.TestCase):
         self.assertEqual(len(panels), 1)
         self.assertEqual(panels[0].get("id"), "panel")
         self.assertEqual(panels[0].get("entry"), "panel.luau")
+        self.assertEqual(panels[0].get("placement"), "attached")
+        self.assertEqual(panels[0].get("open_near_click"), True)
+        self.assertIsInstance(panels[0].get("width"), int)
+        self.assertGreater(panels[0].get("width"), 0)
+        self.assertIsInstance(panels[0].get("height"), int)
+        self.assertGreater(panels[0].get("height"), 0)
 
         widgets = manifest.get("widget", [])
         self.assertEqual(len(widgets), 1)

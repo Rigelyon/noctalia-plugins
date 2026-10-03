@@ -40,10 +40,11 @@ default = true
 [[panel]]
 id = "panel"
 entry = "panel.luau"
+placement = "attached"
+position = "auto"
+open_near_click = true
 width = 460
-height = "fill"
-placement = "floating"
-position = "center_right"
+height = 580
 
 [[launcher_provider]]
 id = "launcher"
