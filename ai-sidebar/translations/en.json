@@ -34,6 +34,8 @@
   "provider_gemini": "Google Gemini",
   "active_provider": "Active Provider",
   "api_key": "API Key",
+  "show_api_key": "Show API Key",
+  "hide_api_key": "Hide API Key",
   "model": "Model",
   "system_prompt": "System Prompt",
   "settings": {

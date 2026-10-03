@@ -61,14 +61,18 @@ function storage.generateTitle(firstMessage: string): string
 end
 
 function storage.loadConfig(): ConfigTable
+  local activeProv = (noctalia.getConfig("default_provider") or noctalia.getConfig("provider") or "openai") :: string
+  local geminiKey = (noctalia.getConfig("gemini_api_key") or noctalia.getConfig("api_key") or "") :: string
+  local geminiModel = (noctalia.getConfig("gemini_model") or noctalia.getConfig("default_model") or "gemini-1.5-flash") :: string
+
   local cfg: ConfigTable = {
-    active_provider = (noctalia.getConfig("default_provider") or "openai") :: string,
+    active_provider = activeProv,
     openai_key = (noctalia.getConfig("openai_api_key") or "") :: string,
     openai_model = (noctalia.getConfig("openai_model") or "gpt-4o-mini") :: string,
     anthropic_key = (noctalia.getConfig("anthropic_api_key") or "") :: string,
     anthropic_model = (noctalia.getConfig("anthropic_model") or "claude-3-5-haiku-20241022") :: string,
-    gemini_key = (noctalia.getConfig("gemini_api_key") or "") :: string,
-    gemini_model = (noctalia.getConfig("gemini_model") or "gemini-1.5-flash") :: string,
+    gemini_key = geminiKey,
+    gemini_model = geminiModel,
     system_prompt = (noctalia.getConfig("system_prompt") or "You are a helpful and concise AI assistant.") :: string,
   }
 

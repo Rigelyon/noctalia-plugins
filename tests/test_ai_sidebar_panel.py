@@ -88,6 +88,7 @@ class TestAiSidebarPanel(unittest.TestCase):
         self.assertTrue(os.path.isfile(PANEL_FILE), "Missing panel.luau")
         with open(PANEL_FILE, "r", encoding="utf-8") as f:
             content = f.read()
+        self.assertIn("ui.select", content, "Provider selector must use ui.select dropdown")
         self.assertIn("provider_openai", content)
         self.assertIn("provider_anthropic", content)
         self.assertIn("provider_gemini", content)
@@ -96,6 +97,16 @@ class TestAiSidebarPanel(unittest.TestCase):
         self.assertIn("testConnStatus", content)
         self.assertIn("saveConfig", content)
         self.assertIn("notify", content)
+        self.assertIn("settingRev", content, "Setting inputs must use revision keying")
+        self.assertIn("setting-openai-key-", content)
+        self.assertIn("setting-openai-model-", content)
+        self.assertIn("setting-anthropic-key-", content)
+        self.assertIn("setting-anthropic-model-", content)
+        self.assertIn("setting-gemini-key-", content)
+        self.assertIn("setting-gemini-model-", content)
+        self.assertIn("showApiKey", content)
+        self.assertIn("password = not showApiKey", content)
+        self.assertIn("testConnBanner", content)
 
     def test_all_tr_keys_exist_in_translations(self):
         self.assertTrue(os.path.isfile(PANEL_FILE), "Missing panel.luau")

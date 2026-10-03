@@ -11,6 +11,7 @@ local config = nil
 
 local inputBuffer = ""
 local inputRev = 0
+local settingRev = 0
 local scrollRev = 0
 local historySearch = ""
 local isStreaming = false
@@ -21,6 +22,7 @@ local lastRenderMs = 0
 local pendingDeleteSessionId = nil
 local pendingClear = false
 local testConnStatus = nil -- nil | "testing" | "success" | "error: <msg>"
+local showApiKey = false
 
 local render
 
@@ -139,7 +141,16 @@ local function renderChatView()
     for _, msg in ipairs(currentSession.messages) do
       if msg.role == "user" then
         local timeStr = msg.timestamp and noctalia.formatTime("%H:%M", msg.timestamp) or ""
-        local isLong = (#msg.content > 32) or (msg.content:find("\n") ~= nil)
+        local hasNewline = msg.content:find("\n") ~= nil
+        local hasMarkdown = msg.content:find("[%*_`~]") ~= nil
+        local isLong = (#msg.content > 32) or hasNewline or hasMarkdown
+
+        local contentNode
+        if not isLong then
+          contentNode = ui.label({ text = msg.content })
+        else
+          contentNode = ui.markdown({ text = msg.content })
+        end
 
         local bubbleNode = ui.column({
           fill = "primary/0.2",
@@ -147,9 +158,10 @@ local function renderChatView()
           padding = 10,
           paddingH = 14,
           gap = 2,
+          minWidth = 72,
           flexGrow = if isLong then 4 else nil,
         }, {
-          ui.markdown({ text = msg.content }),
+          contentNode,
           ui.row({ justify = "end" }, {
             ui.label({
               text = timeStr,
@@ -428,104 +440,186 @@ end
 -- ── View: Setting ────────────────────────────────────────────────────────────
 
 local function renderSettingView()
-  local providerPills = ui.row({ gap = 4, align = "center" }, {
-    ui.button({
-      text = tr("provider_openai"),
-      variant = config.active_provider == "openai" and "primary" or "ghost",
-      onClick = function()
-        config.active_provider = "openai"
+  local providerOptions = {
+    tr("provider_openai"),
+    tr("provider_anthropic"),
+    tr("provider_gemini"),
+  }
+  local providerIds = { "openai", "anthropic", "gemini" }
+  local selectedProviderIndex = 0
+  for i, pid in ipairs(providerIds) do
+    if config.active_provider == pid then
+      selectedProviderIndex = i - 1
+      break
+    end
+  end
+
+  local providerDropdown = ui.select({
+    options = providerOptions,
+    selectedIndex = selectedProviderIndex,
+    onChange = function(index)
+      local idx = (tonumber(index) or 0) + 1
+      if providerIds[idx] and providerIds[idx] ~= config.active_provider then
+        config.active_provider = providerIds[idx]
+        settingRev += 1
+        testConnStatus = nil
         render()
-      end,
-    }),
-    ui.button({
-      text = tr("provider_anthropic"),
-      variant = config.active_provider == "anthropic" and "primary" or "ghost",
-      onClick = function()
-        config.active_provider = "anthropic"
-        render()
-      end,
-    }),
-    ui.button({
-      text = tr("provider_gemini"),
-      variant = config.active_provider == "gemini" and "primary" or "ghost",
-      onClick = function()
-        config.active_provider = "gemini"
-        render()
-      end,
-    }),
+      end
+    end,
   })
 
   local activeSettings = {}
   if config.active_provider == "openai" then
     table.insert(activeSettings, ui.label({ text = tr("provider_openai") .. " " .. tr("api_key"), fontSize = 12, fontWeight = "bold" }))
-    table.insert(activeSettings, ui.input({
-      value = config.openai_key,
-      placeholder = "sk-...",
-      onChange = function(v) config.openai_key = v end,
+    table.insert(activeSettings, ui.row({ gap = 6, align = "center" }, {
+      ui.input({
+        flexGrow = 1,
+        key = "setting-openai-key-" .. tostring(settingRev) .. "-" .. (showApiKey and "vis" or "hid"),
+        value = config.openai_key,
+        placeholder = "sk-...",
+        password = not showApiKey,
+        onChange = function(v) config.openai_key = v or "" end,
+      }),
+      ui.button({
+        glyph = showApiKey and "eye-off" or "eye",
+        variant = "ghost",
+        tooltip = showApiKey and tr("hide_api_key") or tr("show_api_key"),
+        onClick = function()
+          showApiKey = not showApiKey
+          render()
+        end,
+      }),
     }))
     table.insert(activeSettings, ui.label({ text = tr("provider_openai") .. " " .. tr("model"), fontSize = 12, fontWeight = "bold" }))
     table.insert(activeSettings, ui.input({
+      key = "setting-openai-model-" .. tostring(settingRev),
       value = config.openai_model,
       placeholder = "gpt-4o-mini",
-      onChange = function(v) config.openai_model = v end,
+      onChange = function(v) config.openai_model = v or "" end,
     }))
   elseif config.active_provider == "anthropic" then
     table.insert(activeSettings, ui.label({ text = tr("provider_anthropic") .. " " .. tr("api_key"), fontSize = 12, fontWeight = "bold" }))
-    table.insert(activeSettings, ui.input({
-      value = config.anthropic_key,
-      placeholder = "sk-ant-...",
-      onChange = function(v) config.anthropic_key = v end,
+    table.insert(activeSettings, ui.row({ gap = 6, align = "center" }, {
+      ui.input({
+        flexGrow = 1,
+        key = "setting-anthropic-key-" .. tostring(settingRev) .. "-" .. (showApiKey and "vis" or "hid"),
+        value = config.anthropic_key,
+        placeholder = "sk-ant-...",
+        password = not showApiKey,
+        onChange = function(v) config.anthropic_key = v or "" end,
+      }),
+      ui.button({
+        glyph = showApiKey and "eye-off" or "eye",
+        variant = "ghost",
+        tooltip = showApiKey and tr("hide_api_key") or tr("show_api_key"),
+        onClick = function()
+          showApiKey = not showApiKey
+          render()
+        end,
+      }),
     }))
     table.insert(activeSettings, ui.label({ text = tr("provider_anthropic") .. " " .. tr("model"), fontSize = 12, fontWeight = "bold" }))
     table.insert(activeSettings, ui.input({
+      key = "setting-anthropic-model-" .. tostring(settingRev),
       value = config.anthropic_model,
       placeholder = "claude-3-5-haiku-20241022",
-      onChange = function(v) config.anthropic_model = v end,
+      onChange = function(v) config.anthropic_model = v or "" end,
     }))
   elseif config.active_provider == "gemini" then
     table.insert(activeSettings, ui.label({ text = tr("provider_gemini") .. " " .. tr("api_key"), fontSize = 12, fontWeight = "bold" }))
-    table.insert(activeSettings, ui.input({
-      value = config.gemini_key,
-      placeholder = "AIzaSy...",
-      onChange = function(v) config.gemini_key = v end,
+    table.insert(activeSettings, ui.row({ gap = 6, align = "center" }, {
+      ui.input({
+        flexGrow = 1,
+        key = "setting-gemini-key-" .. tostring(settingRev) .. "-" .. (showApiKey and "vis" or "hid"),
+        value = config.gemini_key,
+        placeholder = "AIzaSy...",
+        password = not showApiKey,
+        onChange = function(v) config.gemini_key = v or "" end,
+      }),
+      ui.button({
+        glyph = showApiKey and "eye-off" or "eye",
+        variant = "ghost",
+        tooltip = showApiKey and tr("hide_api_key") or tr("show_api_key"),
+        onClick = function()
+          showApiKey = not showApiKey
+          render()
+        end,
+      }),
     }))
     table.insert(activeSettings, ui.label({ text = tr("provider_gemini") .. " " .. tr("model"), fontSize = 12, fontWeight = "bold" }))
     table.insert(activeSettings, ui.input({
+      key = "setting-gemini-model-" .. tostring(settingRev),
       value = config.gemini_model,
       placeholder = "gemini-1.5-flash",
-      onChange = function(v) config.gemini_model = v end,
+      onChange = function(v) config.gemini_model = v or "" end,
     }))
   end
 
-  local testConnLabel = nil
+  local testConnBanner = nil
   if testConnStatus == "testing" then
-    testConnLabel = ui.label({ text = tr("testing"), color = "on_surface_variant" })
+    testConnBanner = ui.row({
+      align = "center",
+      gap = 8,
+      padding = 8,
+      paddingH = 12,
+      radius = 8,
+      fill = "surface_variant/0.5",
+    }, {
+      ui.glyph({ name = "rotate", size = 14, color = "on_surface_variant" }),
+      ui.label({ text = tr("testing"), color = "on_surface_variant", fontSize = 12 }),
+    })
   elseif testConnStatus == "success" then
-    testConnLabel = ui.label({ text = tr("test_success"), color = "primary" })
+    testConnBanner = ui.row({
+      align = "center",
+      gap = 8,
+      padding = 8,
+      paddingH = 12,
+      radius = 8,
+      fill = "primary/0.15",
+    }, {
+      ui.glyph({ name = "check", size = 14, color = "primary" }),
+      ui.label({ text = tr("test_success"), color = "primary", fontSize = 12, fontWeight = "bold" }),
+    })
   elseif type(testConnStatus) == "string" and testConnStatus:find("^error:") then
-    testConnLabel = ui.label({ text = tr("test_error") .. " (" .. testConnStatus:sub(8) .. ")", color = "error" })
+    local errMsg = testConnStatus:sub(8)
+    testConnBanner = ui.column({
+      gap = 4,
+      padding = 10,
+      paddingH = 12,
+      radius = 8,
+      fill = "error/0.15",
+      align = "stretch",
+    }, {
+      ui.row({ align = "center", gap = 6 }, {
+        ui.glyph({ name = "alert-triangle", size = 14, color = "error" }),
+        ui.label({ text = tr("test_error"), color = "error", fontSize = 12, fontWeight = "bold" }),
+      }),
+      ui.label({
+        text = errMsg,
+        color = "error",
+        fontSize = 11,
+        multiline = true,
+      }),
+    })
   end
 
-  local testConnRow = ui.row({ align = "center", justify = "space_between" }, {
-    ui.button({
-      glyph = "plug-connected",
-      text = tr("test_connection"),
-      variant = "ghost",
-      onClick = function()
-        testConnStatus = "testing"
+  local testConnButton = ui.button({
+    glyph = "plug-connected",
+    text = tr("test_connection"),
+    variant = "ghost",
+    onClick = function()
+      testConnStatus = "testing"
+      render()
+      client.testConnection(config.active_provider, config, function(ok, msg)
+        testConnStatus = ok and "success" or ("error: " .. msg)
         render()
-        client.testConnection(config.active_provider, config, function(ok, msg)
-          testConnStatus = ok and "success" or ("error: " .. msg)
-          render()
-        end)
-      end,
-    }),
-    testConnLabel or ui.spacer({}),
+      end)
+    end,
   })
 
-  return ui.scroll({ flexGrow = 1, gap = 12, padding = 4 }, {
+  local scrollItems = {
     ui.label({ text = tr("active_provider"), fontSize = 13, fontWeight = "bold" }),
-    providerPills,
+    providerDropdown,
     ui.separator({}),
     ui.column({ gap = 8, align = "stretch" }, activeSettings),
     ui.separator({}),
@@ -537,18 +631,25 @@ local function renderSettingView()
       height = 90,
       onChange = function(v) config.system_prompt = v or "" end,
     }),
-    testConnRow,
-    ui.separator({}),
-    ui.button({
-      glyph = "device-floppy",
-      text = tr("save_settings"),
-      variant = "primary",
-      onClick = function()
-        storage.saveConfig(config)
-        noctalia.notify(tr("title"), tr("settings_saved"))
-      end,
-    }),
-  })
+    testConnButton,
+  }
+
+  if testConnBanner ~= nil then
+    table.insert(scrollItems, testConnBanner)
+  end
+
+  table.insert(scrollItems, ui.separator({}))
+  table.insert(scrollItems, ui.button({
+    glyph = "device-floppy",
+    text = tr("save_settings"),
+    variant = "primary",
+    onClick = function()
+      storage.saveConfig(config)
+      noctalia.notify(tr("title"), tr("settings_saved"))
+    end,
+  }))
+
+  return ui.scroll({ flexGrow = 1, gap = 12, padding = 4 }, scrollItems)
 end
 
 -- ── Render Root ──────────────────────────────────────────────────────────────
@@ -656,6 +757,8 @@ function onOpen(_context)
   pendingClear = false
   testConnStatus = nil
   historySearch = ""
+  showApiKey = false
+  settingRev += 1
   render()
 end
 

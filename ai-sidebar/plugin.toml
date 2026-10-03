@@ -15,18 +15,11 @@ type = "select"
 label_key = "settings.default-provider.label"
 description_key = "settings.default-provider.description"
 default = "openai"
-
-  [[setting.options]]
-  value = "openai"
-  label_key = "settings.default-provider.options.openai"
-
-  [[setting.options]]
-  value = "anthropic"
-  label_key = "settings.default-provider.options.anthropic"
-
-  [[setting.options]]
-  value = "gemini"
-  label_key = "settings.default-provider.options.gemini"
+options = [
+  { value = "openai", label_key = "settings.default-provider.options.openai" },
+  { value = "anthropic", label_key = "settings.default-provider.options.anthropic" },
+  { value = "gemini", label_key = "settings.default-provider.options.gemini" },
+]
 
 [[setting]]
 key = "openai_api_key"
@@ -80,10 +73,10 @@ default = "You are a helpful and concise AI assistant."
 [[panel]]
 id = "panel"
 entry = "panel.luau"
-placement = "attached"
+placement = "floating"
 position = "center_right"
 width = 440
-height = 760
+height = "fill"
 
 [[widget]]
 id = "ai-sidebar"
