@@ -107,8 +107,6 @@ function export.notifyExport(fullPath: string, dir: string)
     elseif action == "delete" then
       if noctalia.removeFile then
         noctalia.removeFile(fullPath)
-      else
-        os.remove(fullPath)
       end
       local deletedMsg = noctalia.tr("export_deleted")
       if deletedMsg == "export_deleted" or deletedMsg == "" then
