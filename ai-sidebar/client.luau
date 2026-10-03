@@ -125,9 +125,19 @@ function client.streamChat(
   startAttempt()
 
   return {
+    stop = function()
+      isCancelled = true
+      errorReported = true
+      if currentHandle and currentHandle.stop then
+        currentHandle.stop()
+      end
+    end,
     cancel = function()
       isCancelled = true
       errorReported = true
+      if currentHandle and currentHandle.stop then
+        currentHandle.stop()
+      end
     end,
   }
 end
