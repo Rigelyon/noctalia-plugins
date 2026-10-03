@@ -37,12 +37,13 @@ The goal is to make web search a **silent, natural grounding assistant** behind 
   * Runs with `max_tokens = 35` and `temperature = 0.0` for sub-350ms execution speed.
   * Safety fallback: If synthesis times out or errors, gracefully extracts significant words locally without blocking.
 
-### 2.3 Conversational Grounding Prompting (Natural Voice)
+### 2.3 Conversational Grounding Prompting (Persona-Preserving Knowledge Grounding)
+* **Zero Persona Hijacking**: The search guidance must NEVER dictate a specific personality (e.g., do not hardcode "friendly", "cheerful", or "formal"). The user's custom `system_prompt` (persona, role, tone, character) is strictly prioritized.
 * Update `search.formatSearchContext` and `buildEnvironmentPrompt`:
-  * Rename the block from `[Web Search Results for: "..."]` to `[Web Context & Current Information: "..."]`.
-  * Replace the rigid instruction with natural conversational guidance:
-    > *"Instructions: Use the above web information as your up-to-date factual background. Maintain a natural, friendly, and engaging conversational flow. Do not act like a search engine or output raw link lists; instead, discuss and explain the findings organically as part of your conversation, referencing sources smoothly only when relevant."*
-* When Gemini Native Grounding is used (`tools = { { googleSearch = {} } }`), provide similar system prompt guidance so Gemini synthesizes responses conversationally rather than mechanically dumping search chips.
+  * Rename the block from `[Web Search Results for: "..."]` to `[Web Context & Factual Background: "..."]`.
+  * Replace the rigid instruction with persona-preserving grounding guidance:
+    > *"Instructions: Use the above web information strictly as factual background knowledge. Retain your established persona, tone, and style as defined in your system prompt. Do not act like a search engine or output raw link lists; seamlessly integrate the facts into your response while fully maintaining your active character, voice, and dialogue flow."*
+* When Gemini Native Grounding is used (`tools = { { googleSearch = {} } }`), inject complementary guidance so Gemini preserves the user's persona rather than reverting to default search chip summarization.
 
 ---
 
