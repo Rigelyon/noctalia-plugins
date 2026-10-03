@@ -41,5 +41,15 @@ class TestAiSidebarSlashSearch(unittest.TestCase):
         self.assertFalse(ok)
 
 
+    def test_client_contains_contextual_search_methods(self):
+        client_file = os.path.join(
+            os.path.dirname(__file__), "..", "ai-sidebar", "client.luau"
+        )
+        with open(client_file, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn("client.synthesizeSearchQuery", content)
+        self.assertIn("client.prepareContextualSearch", content)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -36,6 +36,181 @@ local function buildEnvironmentPrompt(baseSystemPrompt: string?, searchContext: 
   return prompt
 end
 
+function client.synthesizeSearchQuery(
+  messages: { any },
+  userPrompt: string,
+  config: any,
+  callback: (query: string) -> ()
+): ()
+  local hasCalled = false
+  local function safeDone(q: string)
+    if hasCalled then return end
+    hasCalled = true
+    callback(q)
+  end
+
+  -- Fallback query from user prompt or conversation context
+  local fallbackQuery = userPrompt
+  if fallbackQuery == "" then
+    for i = #messages, 1, -1 do
+      local m = messages[i]
+      if m.content and m.content ~= "" and m.content:sub(1, 7) ~= "/search" then
+        fallbackQuery = m.content:sub(1, 100)
+        break
+      end
+    end
+  end
+  if fallbackQuery == "" then
+    fallbackQuery = "general information"
+  end
+
+  -- 2.5s safety watchdog: ensures synthesis never delays search
+  pcall(function()
+    local ran = noctalia.runAsync({ "sleep", "2.5" }, function()
+      safeDone(fallbackQuery)
+    end)
+    if not ran then
+      noctalia.runAsync("sleep 2.5", function()
+        safeDone(fallbackQuery)
+      end)
+    end
+  end)
+
+  local ok, _ = (pcall :: any)(function()
+    local synthMessages = {
+      {
+        role = "system",
+        content = "You are a web search query generator. Based on the conversation context and latest user request, output ONLY a concise, high-yield web search query (3 to 6 keywords). Return ONLY the query in plain text, with no quotes, no markdown, and no explanation.",
+      },
+    }
+
+    local startIdx = math.max(1, #messages - 3)
+    for i = startIdx, #messages do
+      local m = messages[i]
+      table.insert(synthMessages, {
+        role = m.role,
+        content = m.content:sub(1, 300),
+      })
+    end
+
+    if userPrompt ~= "" then
+      table.insert(synthMessages, {
+        role = "user",
+        content = "Generate search query for: " .. userPrompt:sub(1, 200),
+      })
+    else
+      table.insert(synthMessages, {
+        role = "user",
+        content = "Generate search query for the previous topic.",
+      })
+    end
+
+    local prov = getProvider(config.active_provider)
+    local req = prov.buildChatRequest(synthMessages, "You are a web search query generator.", config)
+    if type(req.body) == "string" then
+      req.body = req.body:gsub('"stream":%s*true', '"stream": false')
+    end
+
+    local httpStarted = noctalia.http(req, function(resp: HttpResponse)
+      if not resp.ok or resp.status < 200 or resp.status >= 300 then
+        safeDone(fallbackQuery)
+        return
+      end
+
+      local decoded, err = noctalia.json.decode(resp.body)
+      if err or type(decoded) ~= "table" then
+        safeDone(fallbackQuery)
+        return
+      end
+
+      local generated: string? = nil
+      if decoded.choices and decoded.choices[1] and decoded.choices[1].message then
+        generated = decoded.choices[1].message.content
+      elseif decoded.content and decoded.content[1] and decoded.content[1].text then
+        generated = decoded.content[1].text
+      elseif decoded.candidates and decoded.candidates[1] and decoded.candidates[1].content and decoded.candidates[1].content.parts then
+        generated = decoded.candidates[1].content.parts[1].text
+      end
+
+      if generated and type(generated) == "string" then
+        local clean = generated:gsub('^["\']+', ''):gsub('["\']+$', '')
+        clean = clean:gsub("[%c]", " ")
+        clean = noctalia.string.trim(clean)
+        if #clean > 0 then
+          safeDone(clean)
+          return
+        end
+      end
+      safeDone(fallbackQuery)
+    end)
+
+    if not httpStarted then
+      safeDone(fallbackQuery)
+    end
+  end)
+
+  if not ok then
+    safeDone(fallbackQuery)
+  end
+end
+
+function client.prepareContextualSearch(
+  text: string,
+  messages: { any },
+  config: any,
+  callback: (searchContext: string?) -> ()
+): ()
+  local hasCalled = false
+  local function safeDone(searchCtx: string?)
+    if hasCalled then return end
+    hasCalled = true
+    callback(searchCtx)
+  end
+
+  local isSearch, searchPrompt = search.isSlashSearch(text)
+  if not isSearch then
+    safeDone(nil)
+    return
+  end
+
+  if config.active_provider == "gemini" and config.search_engine == "gemini_native" then
+    -- Native grounding handles retrieval directly
+    safeDone(nil)
+    return
+  end
+
+  -- 4.5s total safety watchdog for the combined contextual search
+  pcall(function()
+    local ran = noctalia.runAsync({ "sleep", "4.5" }, function()
+      safeDone(nil)
+    end)
+    if not ran then
+      noctalia.runAsync("sleep 4.5", function()
+        safeDone(nil)
+      end)
+    end
+  end)
+
+  local ok, _ = (pcall :: any)(function()
+    client.synthesizeSearchQuery(messages, searchPrompt, config, function(synthesizedQuery)
+      local started = search.performSearch(synthesizedQuery, config, function(okSearch, contextBlock, _err)
+        if okSearch and contextBlock and contextBlock ~= "" then
+          safeDone(contextBlock)
+        else
+          safeDone(nil)
+        end
+      end)
+      if not started then
+        safeDone(nil)
+      end
+    end)
+  end)
+
+  if not ok then
+    safeDone(nil)
+  end
+end
+
 function client.prepareSearchContext(query: string, config: any, callback: (searchContext: string?) -> ()): ()
   local hasCalled = false
   local function safeDone(searchCtx: string?)
@@ -45,18 +220,11 @@ function client.prepareSearchContext(query: string, config: any, callback: (sear
   end
 
   local ok, _ = (pcall :: any)(function()
-    if not (config and config.enable_web_search == true) then
-      safeDone(nil)
-      return
-    end
-
     if config.active_provider == "gemini" and config.search_engine == "gemini_native" then
-      -- Native grounding handles retrieval directly
       safeDone(nil)
       return
     end
 
-    -- 3.5s safety watchdog: ensures search never hangs or locks the UI
     pcall(function()
       local ran = noctalia.runAsync({ "sleep", "3.5" }, function()
         safeDone(nil)
@@ -68,8 +236,8 @@ function client.prepareSearchContext(query: string, config: any, callback: (sear
       end
     end)
 
-    local started = search.performSearch(query, config, function(ok, contextBlock, _err)
-      if ok and contextBlock and contextBlock ~= "" then
+    local started = search.performSearch(query, config, function(okSearch, contextBlock, _err)
+      if okSearch and contextBlock and contextBlock ~= "" then
         safeDone(contextBlock)
       else
         safeDone(nil)
