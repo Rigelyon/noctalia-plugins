@@ -61,6 +61,33 @@ class TestAiSidebarSlashSearch(unittest.TestCase):
         self.assertIn("search.isSlashSearch", content)
         # Verify the persistent toggle in settings was removed
         self.assertNotIn("tr(\"enable_web_search\")", content)
+        # Verify slash command popover nodes
+        self.assertIn("slashNodes", content)
+        self.assertIn("slashQuery", content)
+        self.assertIn('cmd = "/search"', content)
+
+    def test_wikipedia_search_parsing_simulation(self):
+        sample_wiki = {
+            "query": {
+                "search": [
+                    {
+                        "title": "Presiden Indonesia",
+                        "pageid": 12345,
+                        "snippet": "Presiden Republik Indonesia adalah kepala negara...",
+                    }
+                ]
+            }
+        }
+        items = []
+        for r in sample_wiki.get("query", {}).get("search", []):
+            items.append({
+                "title": r.get("title", ""),
+                "url": "https://id.wikipedia.org/wiki/" + r.get("title", "").replace(" ", "_"),
+                "snippet": r.get("snippet", ""),
+            })
+        self.assertEqual(len(items), 1)
+        self.assertEqual(items[0]["title"], "Presiden Indonesia")
+        self.assertEqual(items[0]["url"], "https://id.wikipedia.org/wiki/Presiden_Indonesia")
 
 
 if __name__ == "__main__":

@@ -192,7 +192,24 @@ function client.prepareContextualSearch(
   end)
 
   local ok, _ = (pcall :: any)(function()
-    client.synthesizeSearchQuery(messages, searchPrompt, config, function(synthesizedQuery)
+    -- Fast path: if the user provided an explicit prompt after /search,
+    -- search it directly without waiting for extra LLM synthesis roundtrip!
+    if searchPrompt and searchPrompt ~= "" then
+      local started = search.performSearch(searchPrompt, config, function(okSearch, contextBlock, _err)
+        if okSearch and contextBlock and contextBlock ~= "" then
+          safeDone(contextBlock)
+        else
+          safeDone(nil)
+        end
+      end)
+      if not started then
+        safeDone(nil)
+      end
+      return
+    end
+
+    -- Bare /search: synthesize query from previous conversation history
+    client.synthesizeSearchQuery(messages, "", config, function(synthesizedQuery)
       local started = search.performSearch(synthesizedQuery, config, function(okSearch, contextBlock, _err)
         if okSearch and contextBlock and contextBlock ~= "" then
           safeDone(contextBlock)
@@ -274,15 +291,21 @@ function client.streamChat(
   onError: (err: string) -> (),
   onDone: () -> (),
   onStatus: ((status: string, attempt: number, maxRetries: number) -> ())?,
-  searchContext: string?
+  searchContext: string?,
+  isSlashSearch: boolean?
 ): any
   local prov = getProvider(config.active_provider)
-  local isWebSearchActive = config and config.enable_web_search == true
+  local isWebSearchActive = (isSlashSearch == true) or (searchContext ~= nil and searchContext ~= "")
+  local streamConfig = config
+  if isSlashSearch then
+    streamConfig = table.clone(config)
+    streamConfig._is_slash_search = true
+  end
   local augmentedPrompt = buildEnvironmentPrompt(config.system_prompt, searchContext, isWebSearchActive)
   
   -- Prepare rolling context to prevent token overflows and context amnesia
   local contextMessages = context.prepareContext(messages, context.BUDGET_TOKENS or 4096, augmentedPrompt)
-  local req = prov.buildChatRequest(contextMessages, augmentedPrompt, config)
+  local req = prov.buildChatRequest(contextMessages, augmentedPrompt, streamConfig)
 
   local hasReceivedChunk = false
   local errorReported = false

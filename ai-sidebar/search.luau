@@ -121,6 +121,16 @@ function search.buildSearchRequest(engine: string, query: string, apiKey: string
       },
       follow_redirects = true,
     }
+  elseif engine == "wikipedia" then
+    return {
+      url = "https://id.wikipedia.org/w/api.php?action=query&list=search&srsearch=" .. encQuery .. "&utf8=&format=json",
+      method = "GET",
+      headers = {
+        "Accept: application/json",
+        "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      },
+      follow_redirects = true,
+    }
   else
     -- Default: DuckDuckGo Instant Answer API
     return {
@@ -140,7 +150,22 @@ function search.parseSearchResponse(engine: string, body: string, maxResults: nu
   local limit = maxResults or 3
   local decoded, _ = noctalia.json.decode(body)
 
-  if engine == "tavily" and type(decoded) == "table" then
+  if (engine == "wikipedia" or (type(decoded) == "table" and type(decoded.query) == "table")) and type(decoded) == "table" and type(decoded.query) == "table" and type(decoded.query.search) == "table" then
+    for _, r in ipairs(decoded.query.search) do
+      if #items >= limit then break end
+      if type(r) == "table" and type(r.title) == "string" then
+        local cleanSnippet = stripTags(r.snippet or "")
+        local encodedTitle = safeUrlEncode(r.title):gsub("%%20", "_"):gsub("%+", "_")
+        local pageUrl = "https://id.wikipedia.org/wiki/" .. encodedTitle
+        table.insert(items, {
+          title = r.title,
+          url = pageUrl,
+          snippet = cleanSnippet,
+        })
+      end
+    end
+    return items
+  elseif engine == "tavily" and type(decoded) == "table" then
     if type(decoded.results) == "table" then
       for _, r in ipairs(decoded.results) do
         if #items >= limit then break end
@@ -263,16 +288,39 @@ function search.performSearch(query: string, config: any, callback: (ok: boolean
 
     local req = search.buildSearchRequest(engine, query, apiKey, maxResults)
 
+    local function fallbackWiki()
+      local wikiReq = search.buildSearchRequest("wikipedia", query, nil, maxResults)
+      local wikiStarted = noctalia.http(wikiReq :: any, function(wikiResp)
+        local parseOk, _ = (pcall :: any)(function()
+          if wikiResp.ok and wikiResp.status >= 200 and wikiResp.status < 300 then
+            local wikiItems = search.parseSearchResponse("wikipedia", wikiResp.body, maxResults)
+            if #wikiItems > 0 then
+              local contextBlock = search.formatSearchContext(wikiItems, query)
+              safeCallback(true, contextBlock, nil)
+              return
+            end
+          end
+          safeCallback(true, nil, nil)
+        end)
+        if not parseOk then
+          safeCallback(true, nil, nil)
+        end
+      end)
+      if not wikiStarted then
+        safeCallback(true, nil, nil)
+      end
+    end
+
     local httpStarted = noctalia.http(req :: any, function(resp)
-      local parseOk, parseErr = (pcall :: any)(function()
+      local parseOk, _ = (pcall :: any)(function()
         if not resp.ok or resp.status < 200 or resp.status >= 300 then
-          safeCallback(false, nil, "Search request failed with status " .. tostring(resp.status))
+          fallbackWiki()
           return
         end
 
         local items = search.parseSearchResponse(engine, resp.body, maxResults)
         if #items == 0 then
-          safeCallback(true, nil, nil)
+          fallbackWiki()
         else
           local contextBlock = search.formatSearchContext(items, query)
           safeCallback(true, contextBlock, nil)
@@ -280,14 +328,14 @@ function search.performSearch(query: string, config: any, callback: (ok: boolean
       end)
 
       if not parseOk then
-        safeCallback(false, nil, tostring(parseErr))
+        fallbackWiki()
       end
     end)
 
     if not httpStarted then
-      safeCallback(false, nil, "Failed to start search HTTP request")
+      fallbackWiki()
     end
-    return httpStarted
+    return true
   end)
 
   if not ok then

@@ -22,7 +22,7 @@ function gemini.buildChatRequest(messages: { Message }, systemPrompt: string, co
     }
   end
 
-  if config and config.enable_web_search == true and config.search_engine == "gemini_native" then
+  if config and (config._is_slash_search == true or config.enable_web_search == true) and config.search_engine == "gemini_native" then
     bodyObj.tools = {
       { googleSearch = {} }
     }

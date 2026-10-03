@@ -35,6 +35,7 @@ local showSearchApiKey = false
 local startFreshOnOpen = false
 local showPromptPicker = false
 local hoveredPromptTag: string? = nil
+local hoveredSlashCmd: string? = nil
 
 local render
 
@@ -111,7 +112,7 @@ local function sendMessage()
   local streamStartMs = noctalia.nowMs()
   local assistantMsg = currentSession.messages[#currentSession.messages]
 
-  local function beginStream(searchCtx: string?)
+  local function beginStream(searchCtx: string?, isSlashSearch: boolean?)
     if not isStreaming then return end
     isSearching = false
     lastRenderMs = noctalia.nowMs()
@@ -187,7 +188,8 @@ local function sendMessage()
           render()
         end
       end,
-      searchCtx
+      searchCtx,
+      isSlashSearch
     )
   end
 
@@ -199,7 +201,7 @@ local function sendMessage()
     local function finishSearch(ctx: string?)
       if searchCompleted then return end
       searchCompleted = true
-      beginStream(ctx)
+      beginStream(ctx, true)
     end
 
     pcall(function()
@@ -217,7 +219,7 @@ local function sendMessage()
       finishSearch(searchCtx)
     end)
   else
-    beginStream(nil)
+    beginStream(nil, false)
   end
 end
 
@@ -248,7 +250,7 @@ local function regenerateResponse()
   local streamStartMs = noctalia.nowMs()
   local assistantMsg = currentSession.messages[#currentSession.messages]
 
-  local function beginStream(searchCtx: string?)
+  local function beginStream(searchCtx: string?, isSlashSearch: boolean?)
     if not isStreaming then return end
     isSearching = false
     lastRenderMs = noctalia.nowMs()
@@ -302,7 +304,8 @@ local function regenerateResponse()
           render()
         end
       end,
-      searchCtx
+      searchCtx,
+      isSlashSearch
     )
   end
 
@@ -314,7 +317,7 @@ local function regenerateResponse()
     local function finishSearch(ctx: string?)
       if searchCompleted then return end
       searchCompleted = true
-      beginStream(ctx)
+      beginStream(ctx, true)
     end
 
     pcall(function()
@@ -332,7 +335,7 @@ local function regenerateResponse()
       finishSearch(searchCtx)
     end)
   else
-    beginStream(nil)
+    beginStream(nil, false)
   end
 end
 
@@ -745,7 +748,112 @@ local function renderChatView()
   end
 
   local inputChildren = {}
-  if #promptNodes > 0 then
+  local slashQuery = inputBuffer:match("^/([%w%-_]*)$")
+  local isSlashActive = (slashQuery ~= nil)
+  local matchingSlashCommands = {}
+  if isSlashActive then
+    local sq = (slashQuery or ""):lower()
+    local availableSlashCommands = {
+      {
+        cmd = "/search",
+        label = tr("slash_cmd_search_label") ~= "slash_cmd_search_label" and tr("slash_cmd_search_label") or "Web Search",
+        desc = tr("slash_cmd_search_desc") ~= "slash_cmd_search_desc" and tr("slash_cmd_search_desc") or "Cari informasi real-time di internet",
+        glyph = "world",
+      },
+    }
+    for _, sc in ipairs(availableSlashCommands) do
+      if sc.cmd:sub(2):lower():find(sq, 1, true) then
+        table.insert(matchingSlashCommands, sc)
+      end
+    end
+  end
+
+  local slashNodes = {}
+  if isSlashActive and #matchingSlashCommands > 0 then
+    table.insert(slashNodes, ui.row({
+      align = "center",
+      justify = "space_between",
+      paddingH = 6,
+      padding = 2,
+      onHover = function(state)
+        if (state == "true" or state == true) and hoveredSlashCmd ~= nil then
+          hoveredSlashCmd = nil
+          render()
+        end
+      end,
+    }, {
+      ui.row({ gap = 5, align = "center" }, {
+        ui.glyph({ name = "terminal", size = 11, color = "primary" }),
+        ui.label({ text = "Slash Commands", fontSize = 10, fontWeight = "bold", color = "primary" }),
+      }),
+      ui.button({
+        glyph = "x",
+        variant = "ghost",
+        tooltip = tr("close"),
+        onClick = function()
+          hoveredSlashCmd = nil
+          inputBuffer = ""
+          inputRev += 1
+          render()
+        end,
+      }),
+    }))
+    table.insert(slashNodes, ui.separator({}))
+
+    for _, sc in ipairs(matchingSlashCommands) do
+      local isHovered = hoveredSlashCmd == sc.cmd
+      table.insert(slashNodes, ui.row({
+        key = "slash-" .. sc.cmd,
+        align = "center",
+        justify = "start",
+        gap = 6,
+        padding = 3,
+        paddingH = 6,
+        radius = 4,
+        fill = isHovered and "surface_variant" or "surface_variant/0",
+        onHover = function(state)
+          if state == "true" or state == true then
+            if hoveredSlashCmd ~= sc.cmd then
+              hoveredSlashCmd = sc.cmd
+              render()
+            end
+          else
+            if hoveredSlashCmd == sc.cmd then
+              hoveredSlashCmd = nil
+              render()
+            end
+          end
+        end,
+        onClick = function()
+          inputBuffer = sc.cmd .. " "
+          hoveredSlashCmd = nil
+          inputRev += 1
+          render()
+        end,
+      }, {
+        ui.glyph({ name = sc.glyph, size = 11, color = "primary" }),
+        ui.label({ text = sc.cmd, fontWeight = "bold", fontSize = 11, color = "primary" }),
+        ui.label({ text = "—", fontSize = 10, color = "on_surface_variant" }),
+        ui.label({ text = sc.desc, fontSize = 11, color = "on_surface", flexGrow = 1 }),
+      }))
+    end
+  end
+
+  if #slashNodes > 0 then
+    table.insert(inputChildren, ui.column({
+      fill = "surface_variant/0.4",
+      radius = 6,
+      padding = 4,
+      gap = 2,
+      align = "stretch",
+      onHover = function()
+        if hoveredSlashCmd ~= nil then
+          hoveredSlashCmd = nil
+          render()
+        end
+      end,
+    }, slashNodes))
+  elseif #promptNodes > 0 then
     table.insert(inputChildren, ui.column({
       fill = "surface_variant/0.4",
       radius = 6,
@@ -774,16 +882,21 @@ local function renderChatView()
     height = 70,
     onChange = function(val)
       local oldHash = (inputBuffer:match("^#([%w%-_]*)$") ~= nil) or (inputBuffer:match("%s#([%w%-_]*)$") ~= nil)
-      local wasActive = showPromptPicker or oldHash
+      local oldSlash = (inputBuffer:match("^/([%w%-_]*)$") ~= nil)
+      local wasActive = showPromptPicker or oldHash or oldSlash
       inputBuffer = val or ""
       local newHash = (inputBuffer:match("^#([%w%-_]*)$") ~= nil) or (inputBuffer:match("%s#([%w%-_]*)$") ~= nil)
+      local newSlash = (inputBuffer:match("^/([%w%-_]*)$") ~= nil)
 
       if oldHash and not newHash then
         showPromptPicker = false
         hoveredPromptTag = nil
       end
+      if oldSlash and not newSlash then
+        hoveredSlashCmd = nil
+      end
 
-      local isActive = showPromptPicker or newHash
+      local isActive = showPromptPicker or newHash or newSlash
       if wasActive or isActive then
         render()
       end
@@ -1199,11 +1312,12 @@ local function renderSettingView()
 
   local engineOptions = {
     tr("search_engine_ddg"),
+    tr("search_engine_wikipedia"),
     tr("search_engine_gemini"),
     tr("search_engine_tavily"),
     tr("search_engine_brave"),
   }
-  local engineIds = { "duckduckgo", "gemini_native", "tavily", "brave" }
+  local engineIds = { "duckduckgo", "wikipedia", "gemini_native", "tavily", "brave" }
   local selectedEngineIndex = 0
   for i, eid in ipairs(engineIds) do
     if config.search_engine == eid then
