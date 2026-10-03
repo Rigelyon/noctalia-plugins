@@ -172,11 +172,12 @@ class TestAiSidebarClient(unittest.TestCase):
         self.assertIn("context.prepareContext", content)
         self.assertIn("retryCount", content)
 
-    def test_backoff_retry_simulation(self):
-        delays = [1.0, 2.0]
-        self.assertEqual(delays[0], 1.0)
-        self.assertEqual(delays[1], 2.0)
-        self.assertEqual(len(delays), 2)
+    def test_environment_prompt_with_web_search(self):
+        with open(CLIENT_FILE, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        self.assertIn("Web Search Capability", content)
+        self.assertIn("webSearchEnabled", content)
 
 
 if __name__ == "__main__":

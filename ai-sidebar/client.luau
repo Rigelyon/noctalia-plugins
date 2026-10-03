@@ -20,11 +20,16 @@ local function getProvider(name: string): any
   end
 end
 
-local function buildEnvironmentPrompt(baseSystemPrompt: string?, searchContext: string?): string
+local function buildEnvironmentPrompt(baseSystemPrompt: string?, searchContext: string?, webSearchEnabled: boolean?): string
   local timeStr = noctalia.formatTime("%Y-%m-%d %H:%M:%S")
   local envInfo = "\n\n[Environment Context: Current system time is " .. timeStr .. ", running on Noctalia Hyprland Shell inside custom Bazzite-DX image.]"
   local base = (baseSystemPrompt and baseSystemPrompt ~= "") and baseSystemPrompt or "You are a helpful and concise AI assistant."
   local prompt = base .. envInfo
+
+  if webSearchEnabled == true then
+    prompt = prompt .. "\n\n[Web Search Capability: Active and enabled. You have access to real-time web search. When asked if you can search the web or browse the internet, confirm that you have web search enabled.]"
+  end
+
   if searchContext and searchContext ~= "" then
     prompt = prompt .. "\n\n" .. searchContext
   end
@@ -75,7 +80,8 @@ function client.streamChat(
   searchContext: string?
 ): any
   local prov = getProvider(config.active_provider)
-  local augmentedPrompt = buildEnvironmentPrompt(config.system_prompt, searchContext)
+  local isWebSearchActive = config and config.enable_web_search == true
+  local augmentedPrompt = buildEnvironmentPrompt(config.system_prompt, searchContext, isWebSearchActive)
   
   -- Prepare rolling context to prevent token overflows and context amnesia
   local contextMessages = context.prepareContext(messages, context.BUDGET_TOKENS or 4096, augmentedPrompt)

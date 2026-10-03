@@ -30,6 +30,42 @@ function search.formatSearchContext(items: { SearchResultItem }, query: string):
   return table.concat(lines, "\n")
 end
 
+local function decodeHtmlEntities(str: string?): string
+  if not str then return "" end
+  return str:gsub("&quot;", '"')
+            :gsub("&apos;", "'")
+            :gsub("&#39;", "'")
+            :gsub("&amp;", "&")
+            :gsub("&lt;", "<")
+            :gsub("&gt;", ">")
+            :gsub("&nbsp;", " ")
+end
+
+local function stripTags(str: string?): string
+  if not str then return "" end
+  local stripped: string = (str:gsub("<[^>]+>", ""))
+  return decodeHtmlEntities(stripped)
+end
+
+local function safeTrim(s: string?): string
+  if not s then return "" end
+  local n = noctalia :: any
+  if n and n.string and type(n.string.trim) == "function" then
+    return n.string.trim(s)
+  end
+  local m = s:match("^%s*(.-)%s*$")
+  return m or s
+end
+
+local function safeUrlDecode(s: string?): string
+  if not s then return "" end
+  local n = noctalia :: any
+  if n and n.string and type(n.string.urlDecode) == "function" then
+    return n.string.urlDecode(s)
+  end
+  return s
+end
+
 function search.buildSearchRequest(engine: string, query: string, apiKey: string?, maxResults: number?): { url: string, method: string, headers: { string }?, body: string? }
   local limit = maxResults or 3
   local encQuery = noctalia.string.urlEncode(query)
@@ -60,27 +96,28 @@ function search.buildSearchRequest(engine: string, query: string, apiKey: string
       },
     }
   else
-    -- Default: DuckDuckGo instant answer API
+    -- Default: DuckDuckGo Lite search
     return {
-      url = string.format("https://api.duckduckgo.com/?q=%s&format=json&no_html=1&skip_disambig=1", encQuery),
-      method = "GET",
+      url = "https://lite.duckduckgo.com/lite/",
+      method = "POST",
       headers = {
-        "Accept: application/json",
+        "Content-Type: application/x-www-form-urlencoded",
+        "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
       },
+      body = "q=" .. encQuery,
     }
   end
 end
 
-function search.parseSearchResponse(engine: string, body: string): { SearchResultItem }
+function search.parseSearchResponse(engine: string, body: string, maxResults: number?): { SearchResultItem }
   local items: { SearchResultItem } = {}
+  local limit = maxResults or 3
   local decoded, _ = noctalia.json.decode(body)
-  if type(decoded) ~= "table" then
-    return items
-  end
 
-  if engine == "tavily" then
+  if engine == "tavily" and type(decoded) == "table" then
     if type(decoded.results) == "table" then
       for _, r in ipairs(decoded.results) do
+        if #items >= limit then break end
         if type(r) == "table" and type(r.title) == "string" and type(r.url) == "string" then
           table.insert(items, {
             title = r.title,
@@ -90,9 +127,11 @@ function search.parseSearchResponse(engine: string, body: string): { SearchResul
         end
       end
     end
-  elseif engine == "brave" then
+    return items
+  elseif engine == "brave" and type(decoded) == "table" then
     if type(decoded.web) == "table" and type(decoded.web.results) == "table" then
       for _, r in ipairs(decoded.web.results) do
+        if #items >= limit then break end
         if type(r) == "table" and type(r.title) == "string" and type(r.url) == "string" then
           table.insert(items, {
             title = r.title,
@@ -102,30 +141,71 @@ function search.parseSearchResponse(engine: string, body: string): { SearchResul
         end
       end
     end
+    return items
   else
-    -- DuckDuckGo
-    if type(decoded.AbstractText) == "string" and decoded.AbstractText ~= "" then
-      table.insert(items, {
-        title = type(decoded.Heading) == "string" and decoded.Heading ~= "" and decoded.Heading or "DuckDuckGo Instant Answer",
-        url = type(decoded.AbstractURL) == "string" and decoded.AbstractURL or "",
-        snippet = decoded.AbstractText,
-      })
-    end
-    if type(decoded.RelatedTopics) == "table" then
-      for _, topic in ipairs(decoded.RelatedTopics) do
-        if type(topic) == "table" and type(topic.Text) == "string" and type(topic.FirstURL) == "string" then
-          local tTitle = topic.Text:match("^([^%-]+)%s*%-%s*") or topic.Text:sub(1, 40)
-          table.insert(items, {
-            title = noctalia.string.trim(tTitle),
-            url = topic.FirstURL,
-            snippet = topic.Text,
-          })
+    -- DuckDuckGo: check JSON structure first (for mocks/instant answers)
+    if type(decoded) == "table" then
+      if type(decoded.AbstractText) == "string" and decoded.AbstractText ~= "" then
+        table.insert(items, {
+          title = type(decoded.Heading) == "string" and decoded.Heading ~= "" and decoded.Heading or "DuckDuckGo Instant Answer",
+          url = type(decoded.AbstractURL) == "string" and decoded.AbstractURL or "",
+          snippet = decoded.AbstractText,
+        })
+      end
+      if type(decoded.RelatedTopics) == "table" then
+        for _, topic in ipairs(decoded.RelatedTopics) do
+          if #items >= limit then break end
+          if type(topic) == "table" and type(topic.Text) == "string" and type(topic.FirstURL) == "string" then
+            local tTitle = topic.Text:match("^([^%-]+)%s*%-%s*") or topic.Text:sub(1, 40)
+            table.insert(items, {
+              title = safeTrim(tTitle),
+              url = topic.FirstURL,
+              snippet = topic.Text,
+            })
+          end
         end
       end
+      if #items > 0 then
+        return items
+      end
     end
-  end
 
-  return items
+    -- DuckDuckGo HTML parse from lite.duckduckgo.com
+    if type(body) == "string" and body ~= "" then
+      local links: { { title: string, url: string } } = {}
+      for href, title in body:gmatch("<a[^>]+href=[\"']([^\"']+)[\"'][^>]*class=[\"']result%-link[\"'][^>]*>(.-)</a>") do
+        if #links >= limit then break end
+        local cleanTitle = stripTags(title)
+        local cleanHref = href
+        local rawTarget = href:match("uddg=([^&]+)")
+        if rawTarget and rawTarget ~= "" then
+          cleanHref = safeUrlDecode(rawTarget :: string)
+        end
+        table.insert(links, {
+          title = safeTrim(cleanTitle),
+          url = cleanHref,
+        })
+      end
+
+      local snippets: { string } = {}
+      for snip in body:gmatch("<td[^>]*class=[\"']result%-snippet[\"'][^>]*>(.-)</td>") do
+        if #snippets >= limit then break end
+        local cleanSnip = stripTags(snip)
+        table.insert(snippets, safeTrim(cleanSnip))
+      end
+
+      local count = math.min(#links, #snippets, limit)
+      for i = 1, count do
+        table.insert(items, {
+          title = links[i].title,
+          url = links[i].url,
+          snippet = snippets[i],
+        })
+      end
+    end
+
+    return items
+  end
 end
 
 function search.performSearch(query: string, config: any, callback: (ok: boolean, contextText: string?, err: string?) -> ()): ()
@@ -141,7 +221,7 @@ function search.performSearch(query: string, config: any, callback: (ok: boolean
       return
     end
 
-    local items = search.parseSearchResponse(engine, resp.body)
+    local items = search.parseSearchResponse(engine, resp.body, maxResults)
     if #items == 0 then
       callback(true, nil, nil)
     else

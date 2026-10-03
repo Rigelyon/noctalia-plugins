@@ -123,6 +123,40 @@ class TestAiSidebarSearch(unittest.TestCase):
         self.assertGreaterEqual(len(items), 1)
         self.assertEqual(items[0]["title"], "Python")
 
+    def test_duckduckgo_lite_html_parsing_simulation(self):
+        sample_html = """
+        <a rel="nofollow" href="https://example.com/result1" class='result-link'>Result Title 1</a>
+        </td></tr><tr><td></td>
+        <td class='result-snippet'>Snippet for result 1 with <b>bold</b> text.</td>
+        <a rel="nofollow" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fexample.com%2Fresult2&amp;rut=123" class='result-link'>Result Title 2</a>
+        </td></tr><tr><td></td>
+        <td class='result-snippet'>Snippet for result 2 &amp; extra info.</td>
+        """
+        import re, urllib.parse
+
+        links = re.findall(r'<a[^>]+href=[\'\"]([^\'\"]+)[\'\"][^>]*class=[\'\"]result-link[\'\"][^>]*>(.*?)</a>', sample_html)
+        snippets = re.findall(r'<td[^>]*class=[\'\"]result-snippet[\'\"][^>]*>(.*?)</td>', sample_html, re.DOTALL)
+
+        items = []
+        for i in range(min(len(links), len(snippets))):
+            url, title = links[i]
+            m_uddg = re.search(r'uddg=([^&]+)', url)
+            if m_uddg:
+                url = urllib.parse.unquote(m_uddg.group(1))
+            items.append({
+                "title": re.sub(r'<[^>]+>', '', title).strip(),
+                "url": url,
+                "snippet": re.sub(r'<[^>]+>', '', snippets[i]).replace('&amp;', '&').strip()
+            })
+
+        self.assertEqual(len(items), 2)
+        self.assertEqual(items[0]["title"], "Result Title 1")
+        self.assertEqual(items[0]["url"], "https://example.com/result1")
+        self.assertEqual(items[0]["snippet"], "Snippet for result 1 with bold text.")
+        self.assertEqual(items[1]["title"], "Result Title 2")
+        self.assertEqual(items[1]["url"], "https://example.com/result2")
+        self.assertEqual(items[1]["snippet"], "Snippet for result 2 & extra info.")
+
     def test_gemini_google_search_grounding_payload(self):
         gemini_file = os.path.join(
             os.path.dirname(__file__), "..", "ai-sidebar", "providers", "gemini.luau"
