@@ -28,7 +28,6 @@ local copiedCodeKey = nil
 
 -- UI transient states
 local pendingDeleteSessionId = nil
-local pendingClear = false
 local testConnStatus = nil -- nil | "testing" | "success" | "error: <msg>"
 local showApiKey = false
 local showSearchApiKey = false
@@ -120,9 +119,37 @@ local function stopStreaming()
   render()
 end
 
+local function clearSession()
+  if isStreaming then
+    stopStreaming()
+  end
+  if currentSession then
+    local updated = {}
+    for _, s in ipairs(sessions) do
+      if s.id ~= currentSession.id then
+        table.insert(updated, s)
+      end
+    end
+    sessions = updated
+    currentSession = nil
+    storage.saveSessions(sessions)
+  end
+  startFreshOnOpen = true
+  inputBuffer = ""
+  inputRev += 1
+  showSlashPicker = false
+  showPromptPicker = false
+  render()
+end
+
 local function sendMessage()
   local text = noctalia.string.trim(inputBuffer)
   if text == "" or isStreaming then return end
+
+  if text:lower() == "/clear" or text:lower():match("^/clear%s*$") then
+    clearSession()
+    return
+  end
 
   local isSearch, strippedText = search.isSlashSearch(text)
   local messageText = text
@@ -862,81 +889,38 @@ local function renderChatView()
       onClick = stopStreaming,
     }))
   else
-    if pendingClear then
-      table.insert(actionButtons, ui.label({ text = tr("clear_confirm"), color = "error" }))
-      table.insert(actionButtons, ui.button({
-        glyph = "check",
-        variant = "primary",
-        onClick = function()
-          if currentSession then
-            local updated = {}
-            for _, s in ipairs(sessions) do
-              if s.id ~= currentSession.id then
-                table.insert(updated, s)
-              end
-            end
-            sessions = updated
-            currentSession.messages = {}
-            storage.saveSessions(sessions)
-          end
-          startFreshOnOpen = true
-          inputBuffer = ""
-          inputRev += 1
-          pendingClear = false
-          render()
-        end,
-      }))
-      table.insert(actionButtons, ui.button({
-        glyph = "x",
-        variant = "ghost",
-        onClick = function()
-          pendingClear = false
-          render()
-        end,
-      }))
-    else
-      table.insert(actionButtons, ui.button({
-        glyph = "slash",
-        variant = showSlashPicker and "primary" or "ghost",
-        tooltip = tr("action_slash_commands"),
-        onClick = function()
-          showSlashPicker = not showSlashPicker
-          if showSlashPicker then
-            showPromptPicker = false
-            selectedSlashIndex = 1
-          end
-          render()
-        end,
-      }))
-      table.insert(actionButtons, ui.button({
-        glyph = "hash",
-        variant = showPromptPicker and "primary" or "ghost",
-        tooltip = tr("prompt_library"),
-        onClick = function()
-          showPromptPicker = not showPromptPicker
-          if showPromptPicker then
-            showSlashPicker = false
-            selectedPromptIndex = 1
-          end
-          render()
-        end,
-      }))
-      table.insert(actionButtons, ui.button({
-        glyph = "eraser",
-        variant = "ghost",
-        tooltip = tr("clear"),
-        onClick = function()
-          pendingClear = true
-          render()
-        end,
-      }))
-      table.insert(actionButtons, ui.button({
-        glyph = "send",
-        variant = "primary",
-        text = tr("send"),
-        onClick = sendMessage,
-      }))
-    end
+    table.insert(actionButtons, ui.button({
+      glyph = "slash",
+      variant = showSlashPicker and "primary" or "ghost",
+      tooltip = tr("action_slash_commands"),
+      onClick = function()
+        showSlashPicker = not showSlashPicker
+        if showSlashPicker then
+          showPromptPicker = false
+          selectedSlashIndex = 1
+        end
+        render()
+      end,
+    }))
+    table.insert(actionButtons, ui.button({
+      glyph = "hash",
+      variant = showPromptPicker and "primary" or "ghost",
+      tooltip = tr("prompt_library"),
+      onClick = function()
+        showPromptPicker = not showPromptPicker
+        if showPromptPicker then
+          showSlashPicker = false
+          selectedPromptIndex = 1
+        end
+        render()
+      end,
+    }))
+    table.insert(actionButtons, ui.button({
+      glyph = "send",
+      variant = "primary",
+      text = tr("send"),
+      onClick = sendMessage,
+    }))
   end
 
   local hashQuery = inputBuffer:match("^#([%w%-_]*)$") or inputBuffer:match("%s#([%w%-_]*)$")
@@ -1041,6 +1025,12 @@ local function renderChatView()
         desc = tr("slash_cmd_search_desc") ~= "slash_cmd_search_desc" and tr("slash_cmd_search_desc") or "Cari informasi real-time di internet",
         glyph = "world",
       },
+      {
+        cmd = "/clear",
+        label = tr("slash_cmd_clear_label") ~= "slash_cmd_clear_label" and tr("slash_cmd_clear_label") or "Clear Session",
+        desc = tr("slash_cmd_clear_desc") ~= "slash_cmd_clear_desc" and tr("slash_cmd_clear_desc") or "Hapus percakapan saat ini dan mulai sesi baru",
+        glyph = "eraser",
+      },
     }
     if sq == "" then
       matchingSlashCommands = availableSlashCommands
@@ -1056,6 +1046,12 @@ local function renderChatView()
 
   applySlashCommand = function(sc: any)
     if not sc then return end
+    if sc.cmd == "/clear" then
+      showSlashPicker = false
+      hoveredSlashCmd = nil
+      clearSession()
+      return
+    end
     if slashQuery ~= nil then
       local pattern = "(/[" .. "%w%-_" .. "]*)$"
       inputBuffer = inputBuffer:gsub(pattern, sc.cmd .. " ")
@@ -1787,11 +1783,6 @@ local function renderSettingView()
     local searchItems = {
       ui.label({ text = tr("search_engine"), fontSize = 12, fontWeight = "bold" }),
       engineDropdown,
-      ui.label({
-        text = tr("search_engine_scrapped_note"),
-        fontSize = 11,
-        color = "on_surface_variant",
-      }),
     }
     if config.search_engine == "tavily" or config.search_engine == "brave" then
       table.insert(searchItems, ui.label({ text = tr("search_api_key"), fontSize = 12, fontWeight = "bold" }))
@@ -1985,7 +1976,6 @@ function onOpen(_context)
 
   activeTab = "chat"
   pendingDeleteSessionId = nil
-  pendingClear = false
   testConnStatus = nil
   historySearch = ""
   showApiKey = false
@@ -2021,7 +2011,9 @@ function onConfigChanged()
 end
 
 function onIpc(event: string, payload: string?)
-  if event == "clear" or event == "new_session" then
+  if event == "clear" then
+    clearSession()
+  elseif event == "new_session" then
     if isStreaming then
       stopStreaming()
     end

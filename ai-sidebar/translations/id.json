@@ -80,6 +80,8 @@
   "search_engine_scrapped_note": "DuckDuckGo & Wikipedia: Scrapped / Dinonaktifkan",
   "slash_cmd_search_label": "Pencarian Web",
   "slash_cmd_search_desc": "Cari informasi real-time di internet",
+  "slash_cmd_clear_label": "Hapus Sesi",
+  "slash_cmd_clear_desc": "Hapus percakapan saat ini dan mulai sesi baru",
   "slash_search_default_prompt": "Tolong carikan informasi terbaru dari web terkait topik ini.",
   "search_api_key": "Search API Key",
   "search_max_results": "Maksimal Hasil Pencarian",

@@ -63,7 +63,7 @@ class TestAiSidebarPanel(unittest.TestCase):
         with open(PANEL_FILE, "r", encoding="utf-8") as f:
             content = f.read()
         self.assertIn("ui.markdown", content)
-        self.assertIn("pendingClear", content)
+        self.assertIn("clearSession", content)
         self.assertIn("player-stop", content)
         self.assertIn("eraser", content)
         self.assertIn("send", content)
@@ -285,7 +285,16 @@ class TestAiSidebarPanel(unittest.TestCase):
 
         # Check search engines: duckduckgo and wikipedia are scrapped and excluded from UI options
         self.assertIn('local engineIds = { "tavily", "brave", "gemini_native" }', content)
-        self.assertIn("search_engine_scrapped_note", content)
+
+    def test_clear_slash_command(self):
+        with open(PANEL_FILE, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # /clear slash command registered in availableSlashCommands
+        self.assertIn('cmd = "/clear"', content)
+        self.assertIn("clearSession()", content)
+        # Clear button removed from input action buttons
+        self.assertNotIn('tooltip = tr("clear")', content)
 
 
     def test_background_streaming_persists_across_on_close(self):
