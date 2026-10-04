@@ -1825,27 +1825,26 @@ local function renderSettingView()
   end
 
   local promptItems = {
-    ui.row({ align = "center", justify = "space_between" }, {
-      ui.row({ gap = 8, align = "center", flexShrink = 1 }, {
-        ui.glyph({ name = "hash", size = 16, color = "primary" }),
-        ui.column({ gap = 2, flexShrink = 1 }, {
-          ui.label({ text = tr("prompt_library_settings"), fontSize = 13, fontWeight = "bold" }),
-          ui.label({
-            text = promptSubText,
-            fontSize = 11,
-            color = "on_surface_variant",
-          }),
+    ui.row({ gap = 8, align = "center" }, {
+      ui.glyph({ name = "hash", size = 16, color = "primary" }),
+      ui.column({ gap = 2, flexGrow = 1 }, {
+        ui.label({ text = tr("prompt_library_settings"), fontSize = 13, fontWeight = "bold" }),
+        ui.label({
+          text = promptSubText,
+          fontSize = 11,
+          color = "on_surface_variant",
+          multiline = true,
         }),
       }),
-      ui.button({
-        glyph = "edit",
-        text = tr("action_edit_prompts"),
-        variant = "secondary",
-        tooltip = promptStatus.path,
-        onClick = function()
-          prompts.openInEditor()
-        end,
-      }),
+    }),
+    ui.button({
+      glyph = "edit",
+      text = tr("action_edit_prompts"),
+      variant = "secondary",
+      tooltip = promptStatus.path,
+      onClick = function()
+        prompts.openInEditor()
+      end,
     }),
   }
   if not promptStatus.ok and promptStatus.error then
