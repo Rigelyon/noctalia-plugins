@@ -280,6 +280,18 @@ panel_layer = "overlay"
         self.assertIn("decoded.search_api_key", content)
         self.assertIn("decoded.search_max_results", content)
 
+    def test_provider_and_model_fallbacks_in_prefer_toml(self):
+        with open(STORAGE_FILE, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # In preferToml 'else' branch, decoded provider and model settings must be preserved
+        self.assertIn("cfg.active_provider = decoded.active_provider", content)
+        self.assertIn("cfg.custom_base_url = decoded.custom_base_url", content)
+        self.assertIn("cfg.custom_model = decoded.custom_model", content)
+        self.assertIn("cfg.openai_model = decoded.openai_model", content)
+        self.assertIn("cfg.anthropic_model = decoded.anthropic_model", content)
+        self.assertIn("cfg.gemini_model = decoded.gemini_model", content)
+
 
 if __name__ == "__main__":
     unittest.main()

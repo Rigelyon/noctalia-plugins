@@ -53,7 +53,7 @@ local DOT_FRAMES = { ".", "..", "..." }
 local animFrame = 0
 local animRunning = false
 local streamStartMs = 0
-local isPanelOpen = false
+local isPanelOpen = true
 
 local render: () -> ()
 local stopAnimation: () -> ()
@@ -1841,7 +1841,6 @@ end
 -- ── Render Root ──────────────────────────────────────────────────────────────
 
 render = function()
-  if not isPanelOpen then return end
   local titleRow = ui.row({ align = "center", justify = "space_between" }, {
     ui.row({ gap = 8, align = "center" }, {
       ui.glyph({ name = "sparkles", size = 18, color = "primary" }),

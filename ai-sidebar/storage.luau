@@ -251,11 +251,47 @@ function storage.loadConfig(): ConfigTable
         if type(decoded.search_api_key) == "string" then cfg.search_api_key = decoded.search_api_key end
         if type(decoded.search_max_results) == "number" then cfg.search_max_results = decoded.search_max_results end
       else
+        if type(decoded.active_provider) == "string" and decoded.active_provider ~= "" then
+          local tomlProv = noctalia.getConfig("default_provider") or noctalia.getConfig("provider")
+          if not tomlProv or tomlProv == "" or tomlProv == "openai" then
+            cfg.active_provider = decoded.active_provider
+          end
+        end
+        if type(decoded.custom_base_url) == "string" and decoded.custom_base_url ~= "" then
+          local tomlUrl = noctalia.getConfig("custom_base_url")
+          if not tomlUrl or tomlUrl == "" or tomlUrl == "http://localhost:11434/v1" then
+            cfg.custom_base_url = decoded.custom_base_url
+          end
+        end
+        if type(decoded.custom_model) == "string" and decoded.custom_model ~= "" then
+          local tomlM = noctalia.getConfig("custom_model")
+          if not tomlM or tomlM == "" or tomlM == "llama3.2" then
+            cfg.custom_model = decoded.custom_model
+          end
+        end
+        if type(decoded.openai_model) == "string" and decoded.openai_model ~= "" then
+          local tomlM = noctalia.getConfig("openai_model")
+          if not tomlM or tomlM == "" or tomlM == "gpt-4o-mini" then
+            cfg.openai_model = decoded.openai_model
+          end
+        end
+        if type(decoded.anthropic_model) == "string" and decoded.anthropic_model ~= "" then
+          local tomlM = noctalia.getConfig("anthropic_model")
+          if not tomlM or tomlM == "" or tomlM == "claude-3-5-haiku-20241022" then
+            cfg.anthropic_model = decoded.anthropic_model
+          end
+        end
+        if type(decoded.gemini_model) == "string" and decoded.gemini_model ~= "" then
+          local tomlM = noctalia.getConfig("gemini_model")
+          if not tomlM or tomlM == "" or tomlM == "gemini-1.5-flash" then
+            cfg.gemini_model = decoded.gemini_model
+          end
+        end
         if cfg.openai_key == "" and type(decoded.openai_key) == "string" then cfg.openai_key = decoded.openai_key end
         if cfg.anthropic_key == "" and type(decoded.anthropic_key) == "string" then cfg.anthropic_key = decoded.anthropic_key end
         if cfg.gemini_key == "" and type(decoded.gemini_key) == "string" then cfg.gemini_key = decoded.gemini_key end
         if cfg.custom_key == "" and type(decoded.custom_key) == "string" then cfg.custom_key = decoded.custom_key end
-        if cfg.system_prompt == "You are a helpful and concise AI assistant." and type(decoded.system_prompt) == "string" and decoded.system_prompt ~= "" then
+        if (cfg.system_prompt == "You are a helpful and concise AI assistant." or cfg.system_prompt == "") and type(decoded.system_prompt) == "string" and decoded.system_prompt ~= "" then
           cfg.system_prompt = decoded.system_prompt
         end
 
