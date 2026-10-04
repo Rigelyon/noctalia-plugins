@@ -64,7 +64,13 @@ function gemini.buildTestRequest(config: any): any
   }
 end
 
-function gemini.parseStreamLine(line: string): string?
+export type StreamEvent = {
+  type: "content" | "reasoning" | "tool_call" | "done",
+  text: string?,
+  toolCalls: { any }?,
+}
+
+function gemini.parseStreamEvent(line: string, state: any?): StreamEvent?
   local trimmed = noctalia.string.trim(line)
   if not trimmed:match("^data:%s*") then return nil end
 
@@ -73,11 +79,39 @@ function gemini.parseStreamLine(line: string): string?
   if type(decoded) == "table" and type(decoded.candidates) == "table" then
     local cand = decoded.candidates[1]
     if type(cand) == "table" and type(cand.content) == "table" and type(cand.content.parts) == "table" then
-      local part = cand.content.parts[1]
-      if type(part) == "table" and type(part.text) == "string" then
-        return part.text
+      for _, part in ipairs(cand.content.parts) do
+        if type(part) == "table" then
+          if part.thought == true and type(part.text) == "string" and part.text ~= "" then
+            return { type = "reasoning", text = part.text }
+          elseif type(part.functionCall) == "table" then
+            local fc = part.functionCall
+            local argsStr = noctalia.json.encode(fc.args) or "{}"
+            return {
+              type = "tool_call",
+              toolCalls = {
+                {
+                  id = "gemini_call",
+                  ["function"] = {
+                    name = fc.name,
+                    arguments = argsStr,
+                  },
+                },
+              },
+            }
+          elseif type(part.text) == "string" and part.text ~= "" then
+            return { type = "content", text = part.text }
+          end
+        end
       end
     end
+  end
+  return nil
+end
+
+function gemini.parseStreamLine(line: string): string?
+  local ev = gemini.parseStreamEvent(line, nil)
+  if ev and ev.type == "content" then
+    return ev.text
   end
   return nil
 end
