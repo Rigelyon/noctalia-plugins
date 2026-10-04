@@ -311,9 +311,15 @@ function client.streamChat(
   local function startAttempt(overrideReq: any?)
     if isCancelled then return end
     local activeReq = overrideReq or req
+    local lastErrorLines = {}
 
     currentHandle = noctalia.httpStream(activeReq, function(line: string)
       if isCancelled then return end
+      table.insert(lastErrorLines, line)
+      if #lastErrorLines > 10 then
+        table.remove(lastErrorLines, 1)
+      end
+
       if prov.parseStreamEvent then
         local ev = prov.parseStreamEvent(line, parserState)
         if ev then
@@ -374,7 +380,25 @@ function client.streamChat(
       if isError then
         if not errorReported then
           errorReported = true
-          onError("Stream error (HTTP " .. tostring(result.status) .. ")")
+          local detailedError = nil
+          for _, el in ipairs(lastErrorLines) do
+            local clean = noctalia.string.trim(el):gsub("^data:%s*", "")
+            local decoded, err = noctalia.json.decode(clean)
+            if not err and type(decoded) == "table" then
+              if type(decoded.error) == "table" and type(decoded.error.message) == "string" then
+                detailedError = decoded.error.message
+                break
+              elseif type(decoded.message) == "string" then
+                detailedError = decoded.message
+                break
+              end
+            end
+          end
+          if detailedError and detailedError ~= "" then
+            onError(detailedError .. " (HTTP " .. tostring(result.status) .. ")")
+          else
+            onError("Stream error (HTTP " .. tostring(result.status) .. ")")
+          end
         end
         return
       end
@@ -440,6 +464,7 @@ function client.streamChat(
             local pass2Prompt = buildEnvironmentPrompt(config.system_prompt, toolResult, true)
             local pass2Req = prov.buildChatRequest(followUpMessages, pass2Prompt, pass2Config)
 
+            hasReceivedChunk = false
             startAttempt(pass2Req)
           end)
           return

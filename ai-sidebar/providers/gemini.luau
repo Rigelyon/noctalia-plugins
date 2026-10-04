@@ -1,16 +1,33 @@
 --!strict
 local gemini = {}
 
-type Message = { role: string, content: string }
+type Message = {
+  role: string,
+  content: string,
+  tool_calls: { any }?,
+  tool_call_id: string?,
+}
 
 function gemini.buildChatRequest(messages: { Message }, systemPrompt: string, config: any): any
-  local contents = {}
+  local contents: { any } = {}
   for _, m in ipairs(messages) do
-    local gRole = (m.role == "assistant") and "model" or "user"
-    table.insert(contents, {
-      role = gRole,
-      parts = { { text = m.content } },
-    })
+    if m.role == "tool" then
+      table.insert(contents, {
+        role = "function",
+        parts = { { functionResponse = { name = "web_search", response = { content = m.content } } } },
+      })
+    elseif m.tool_calls then
+      table.insert(contents, {
+        role = "model",
+        parts = { { functionCall = { name = "web_search", args = { query = "" } } } },
+      })
+    else
+      local gRole = (m.role == "assistant") and "model" or "user"
+      table.insert(contents, {
+        role = gRole,
+        parts = { { text = m.content } },
+      })
+    end
   end
 
   local bodyObj: { [string]: any } = {

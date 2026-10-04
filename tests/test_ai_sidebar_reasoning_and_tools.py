@@ -138,6 +138,24 @@ class TestAiSidebarReasoningAndTools(unittest.TestCase):
         content = client_path.read_text(encoding="utf-8")
         self.assertIn("_disable_tools = true", content)
 
+    def test_providers_and_context_preserve_tool_fields(self):
+        custom_content = (PLUGIN_DIR / "providers" / "custom.luau").read_text(encoding="utf-8")
+        openai_content = (PLUGIN_DIR / "providers" / "openai.luau").read_text(encoding="utf-8")
+        gemini_content = (PLUGIN_DIR / "providers" / "gemini.luau").read_text(encoding="utf-8")
+        context_content = (PLUGIN_DIR / "context.luau").read_text(encoding="utf-8")
+
+        self.assertIn("m.tool_calls", custom_content)
+        self.assertIn("m.tool_call_id", custom_content)
+
+        self.assertIn("m.tool_calls", openai_content)
+        self.assertIn("m.tool_call_id", openai_content)
+
+        self.assertIn("functionResponse", gemini_content)
+
+        self.assertIn("tool_calls = m.tool_calls", context_content)
+        self.assertIn("tool_call_id = m.tool_call_id", context_content)
+
 if __name__ == "__main__":
     unittest.main()
+
 

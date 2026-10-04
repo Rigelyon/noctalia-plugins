@@ -1,7 +1,12 @@
 --!strict
 local custom = {}
 
-type Message = { role: string, content: string }
+type Message = {
+  role: string,
+  content: string,
+  tool_calls: { any }?,
+  tool_call_id: string?,
+}
 
 local function normalizeUrl(baseUrl: string?, endpoint: string): string
   local trimmed = (baseUrl and baseUrl ~= "") and noctalia.string.trim(baseUrl) or "http://localhost:11434/v1"
@@ -28,10 +33,17 @@ function custom.buildChatRequest(messages: { Message }, systemPrompt: string, co
   end
 
   for _, m in ipairs(messages) do
-    table.insert(formattedMessages, {
+    local msgObj: { [string]: any } = {
       role = m.role,
       content = m.content,
-    })
+    }
+    if m.tool_calls then
+      msgObj.tool_calls = m.tool_calls
+    end
+    if m.tool_call_id then
+      msgObj.tool_call_id = m.tool_call_id
+    end
+    table.insert(formattedMessages, msgObj)
   end
 
   local model = (config and config.custom_model and config.custom_model ~= "") and config.custom_model or "llama3.2"

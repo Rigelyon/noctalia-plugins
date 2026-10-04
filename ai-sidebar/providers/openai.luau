@@ -1,7 +1,12 @@
 --!strict
 local openai = {}
 
-type Message = { role: string, content: string }
+type Message = {
+  role: string,
+  content: string,
+  tool_calls: { any }?,
+  tool_call_id: string?,
+}
 
 function openai.buildChatRequest(messages: { Message }, systemPrompt: string, config: any): any
   local apiMessages = {}
@@ -9,7 +14,17 @@ function openai.buildChatRequest(messages: { Message }, systemPrompt: string, co
     table.insert(apiMessages, { role = "system", content = systemPrompt })
   end
   for _, m in ipairs(messages) do
-    table.insert(apiMessages, { role = m.role, content = m.content })
+    local msgObj: { [string]: any } = {
+      role = m.role,
+      content = m.content,
+    }
+    if m.tool_calls then
+      msgObj.tool_calls = m.tool_calls
+    end
+    if m.tool_call_id then
+      msgObj.tool_call_id = m.tool_call_id
+    end
+    table.insert(apiMessages, msgObj)
   end
 
   local bodyObj: { [string]: any } = {

@@ -7,6 +7,8 @@ export type Message = {
   role: string,
   content: string,
   timestamp: number?,
+  tool_calls: { any }?,
+  tool_call_id: string?,
 }
 
 function context.estimateTokens(text: string?): number
@@ -39,6 +41,16 @@ local function summarizeTurn(msg: Message): string
   return roleTag .. ": " .. cleaned
 end
 
+local function cloneMessage(m: Message): Message
+  return {
+    role = m.role,
+    content = m.content,
+    timestamp = m.timestamp,
+    tool_calls = m.tool_calls,
+    tool_call_id = m.tool_call_id,
+  }
+end
+
 -- Prepares conversation context with anchor turn preservation and rolling condensation
 function context.prepareContext(
   messages: { Message },
@@ -58,7 +70,7 @@ function context.prepareContext(
   if currentTotal <= availableBudget or #messages <= 2 then
     local copy = {}
     for _, m in ipairs(messages) do
-      table.insert(copy, { role = m.role, content = m.content })
+      table.insert(copy, cloneMessage(m))
     end
     return copy
   end
@@ -92,9 +104,9 @@ function context.prepareContext(
 
   -- If no intermediate messages were skipped, return directly
   if cutIndex < 2 then
-    local result = { { role = anchor.role, content = anchor.content } }
+    local result = { cloneMessage(anchor) }
     for _, m in ipairs(recent) do
-      table.insert(result, { role = m.role, content = m.content })
+      table.insert(result, cloneMessage(m))
     end
     return result
   end
@@ -112,10 +124,10 @@ function context.prepareContext(
   }
 
   local finalMessages = {}
-  table.insert(finalMessages, { role = anchor.role, content = anchor.content })
+  table.insert(finalMessages, cloneMessage(anchor))
   table.insert(finalMessages, recapMsg)
   for _, m in ipairs(recent) do
-    table.insert(finalMessages, { role = m.role, content = m.content })
+    table.insert(finalMessages, cloneMessage(m))
   end
 
   return finalMessages
