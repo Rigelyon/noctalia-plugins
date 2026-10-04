@@ -123,17 +123,23 @@ local function clearSession()
   if isStreaming then
     stopStreaming()
   end
-  if currentSession then
-    local updated = {}
+  if currentSession and #currentSession.messages > 0 then
+    local exists = false
     for _, s in ipairs(sessions) do
-      if s.id ~= currentSession.id then
-        table.insert(updated, s)
+      if s.id == currentSession.id then
+        exists = true
+        break
       end
     end
-    sessions = updated
-    currentSession = nil
+    if not exists then
+      table.insert(sessions, 1, currentSession)
+    end
+    table.sort(sessions, function(a, b)
+      return (a.updated_at or 0) > (b.updated_at or 0)
+    end)
     storage.saveSessions(sessions)
   end
+  currentSession = nil
   startFreshOnOpen = true
   inputBuffer = ""
   inputRev += 1

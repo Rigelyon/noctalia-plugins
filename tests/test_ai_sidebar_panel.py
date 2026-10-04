@@ -296,6 +296,15 @@ class TestAiSidebarPanel(unittest.TestCase):
         # Clear button removed from input action buttons
         self.assertNotIn('tooltip = tr("clear")', content)
 
+        # clearSession must save the session to history rather than deleting it
+        clear_func_match = re.search(r"local function clearSession\(\)(.*?)end\n\nlocal function sendMessage", content, re.DOTALL)
+        self.assertIsNotNone(clear_func_match)
+        clear_body = clear_func_match.group(1)
+        self.assertIn("storage.saveSessions(sessions)", clear_body)
+        self.assertNotIn("s.id ~= currentSession.id", clear_body, "clearSession must NOT filter out/delete current session")
+        self.assertIn("currentSession = nil", clear_body)
+        self.assertIn("startFreshOnOpen = true", clear_body)
+
 
     def test_background_streaming_persists_across_on_close(self):
         with open(PANEL_FILE, "r", encoding="utf-8") as f:
