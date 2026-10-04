@@ -281,7 +281,9 @@ function client.streamChat(
   onDone: () -> (),
   onStatus: ((status: string, attempt: number, maxRetries: number) -> ())?,
   searchContext: string?,
-  isSlashSearch: boolean?
+  isSlashSearch: boolean?,
+  onReasoning: ((text: string) -> ())?,
+  onToolStatus: ((statusText: string) -> ())?
 ): any
   local prov = getProvider(config.active_provider)
   local isWebSearchActive = (isSlashSearch == true) or (searchContext ~= nil and searchContext ~= "")
@@ -302,16 +304,53 @@ function client.streamChat(
   local maxRetries = 2
   local isCancelled = false
   local currentHandle: any = nil
+  local hasExecutedToolHop = false
+  local accumulatedToolCalls: { [number]: { id: string?, name: string?, arguments: string } } = {}
+  local parserState = { inThink = false }
 
-  local function startAttempt()
+  local function startAttempt(overrideReq: any?)
     if isCancelled then return end
+    local activeReq = overrideReq or req
 
-    currentHandle = noctalia.httpStream(req, function(line: string)
+    currentHandle = noctalia.httpStream(activeReq, function(line: string)
       if isCancelled then return end
-      local text = prov.parseStreamLine(line)
-      if text and text ~= "" then
-        hasReceivedChunk = true
-        onChunk(text)
+      if prov.parseStreamEvent then
+        local ev = prov.parseStreamEvent(line, parserState)
+        if ev then
+          if ev.type == "reasoning" and ev.text and ev.text ~= "" then
+            hasReceivedChunk = true
+            if onReasoning then
+              onReasoning(ev.text)
+            end
+          elseif ev.type == "content" and ev.text and ev.text ~= "" then
+            hasReceivedChunk = true
+            onChunk(ev.text)
+          elseif ev.type == "tool_call" and ev.toolCalls then
+            for _, tc in ipairs(ev.toolCalls) do
+              local idx = tc.index or 1
+              if not accumulatedToolCalls[idx] then
+                accumulatedToolCalls[idx] = { id = tc.id, name = "", arguments = "" }
+              end
+              if tc.id and tc.id ~= "" then
+                accumulatedToolCalls[idx].id = tc.id
+              end
+              if tc["function"] then
+                if tc["function"].name and tc["function"].name ~= "" then
+                  accumulatedToolCalls[idx].name = tc["function"].name
+                end
+                if tc["function"].arguments and tc["function"].arguments ~= "" then
+                  accumulatedToolCalls[idx].arguments = accumulatedToolCalls[idx].arguments .. tc["function"].arguments
+                end
+              end
+            end
+          end
+        end
+      else
+        local text = prov.parseStreamLine(line)
+        if text and text ~= "" then
+          hasReceivedChunk = true
+          onChunk(text)
+        end
       end
     end, function(result: any)
       if isCancelled then return end
@@ -326,7 +365,7 @@ function client.streamChat(
         local delaySec = retryCount == 1 and "1" or "2"
         noctalia.runAsync({ "sleep", delaySec }, function()
           if not isCancelled then
-            startAttempt()
+            startAttempt(overrideReq)
           end
         end)
         return
@@ -337,12 +376,80 @@ function client.streamChat(
           errorReported = true
           onError("Stream error (HTTP " .. tostring(result.status) .. ")")
         end
-      else
-        if not hasReceivedChunk and not errorReported then
-          onError("No response data received from provider")
-        else
-          onDone()
+        return
+      end
+
+      -- Check for autonomous tool call execution (max 1 hop)
+      if not hasExecutedToolHop and not isCancelled then
+        local foundSearchCall = nil
+        for _, tc in pairs(accumulatedToolCalls) do
+          if tc.name == "web_search" then
+            foundSearchCall = tc
+            break
+          end
         end
+
+        if foundSearchCall then
+          hasExecutedToolHop = true
+          local query = ""
+          if foundSearchCall.arguments and foundSearchCall.arguments ~= "" then
+            local decodedArgs, _ = noctalia.json.decode(foundSearchCall.arguments)
+            if type(decodedArgs) == "table" and type(decodedArgs.query) == "string" then
+              query = decodedArgs.query
+            end
+          end
+          if query == "" then
+            query = "general information"
+          end
+
+          if onToolStatus then
+            onToolStatus("🔍 " .. query)
+          end
+
+          search.performSearch(query, config, function(okSearch, contextBlock, _err)
+            if isCancelled then return end
+            local toolResult = (okSearch and contextBlock and contextBlock ~= "") and contextBlock or "No relevant search results found."
+            
+            -- Prepare follow-up messages for pass 2
+            local followUpMessages = {}
+            for _, m in ipairs(contextMessages) do
+              table.insert(followUpMessages, m)
+            end
+            table.insert(followUpMessages, {
+              role = "assistant",
+              content = "",
+              tool_calls = {
+                {
+                  id = foundSearchCall.id or "call_web_search",
+                  type = "function",
+                  ["function"] = {
+                    name = "web_search",
+                    arguments = foundSearchCall.arguments or "{}",
+                  },
+                },
+              },
+            })
+            table.insert(followUpMessages, {
+              role = "tool",
+              tool_call_id = foundSearchCall.id or "call_web_search",
+              content = toolResult,
+            })
+
+            local pass2Config = table.clone(config)
+            pass2Config._disable_tools = true
+            local pass2Prompt = buildEnvironmentPrompt(config.system_prompt, toolResult, true)
+            local pass2Req = prov.buildChatRequest(followUpMessages, pass2Prompt, pass2Config)
+
+            startAttempt(pass2Req)
+          end)
+          return
+        end
+      end
+
+      if not hasReceivedChunk and not errorReported then
+        onError("No response data received from provider")
+      else
+        onDone()
       end
     end)
 
@@ -355,7 +462,7 @@ function client.streamChat(
         local delaySec = retryCount == 1 and "1" or "2"
         noctalia.runAsync({ "sleep", delaySec }, function()
           if not isCancelled then
-            startAttempt()
+            startAttempt(overrideReq)
           end
         end)
       else
@@ -364,7 +471,7 @@ function client.streamChat(
     end
   end
 
-  startAttempt()
+  startAttempt(nil)
 
   return {
     stop = function()

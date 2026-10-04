@@ -71,5 +71,13 @@ class TestAiSidebarReasoningAndTools(unittest.TestCase):
         self.assertTrue(data_g["candidates"][0]["content"]["parts"][0]["thought"])
         self.assertEqual(data_g["candidates"][0]["content"]["parts"][0]["text"], "Thinking step 1")
 
+    def test_client_stream_chat_supports_reasoning_and_tools(self):
+        client_path = PLUGIN_DIR / "client.luau"
+        content = client_path.read_text(encoding="utf-8")
+        self.assertIn("onReasoning", content)
+        self.assertIn("onToolStatus", content)
+        self.assertIn("parseStreamEvent", content)
+        self.assertIn("web_search", content)
+
 if __name__ == "__main__":
     unittest.main()
