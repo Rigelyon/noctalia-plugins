@@ -273,13 +273,30 @@ class TestAiSidebarPanel(unittest.TestCase):
 
         # Check spinner frames and animation helpers
         self.assertIn("SPINNER_FRAMES", content)
+        self.assertIn("DOT_FRAMES", content)
         self.assertIn("startAnimation", content)
         self.assertIn("stopAnimation", content)
         self.assertIn("onFrameTick", content)
         self.assertIn("panel.setNeedsFrameTick", content)
-        # Check typing cursor
-        self.assertIn("cursorSuffix", content)
-        self.assertIn("isStreamingCursor", content)
+        # Check triple dot streaming suffix (no block cursor)
+        self.assertIn("streamingSuffix", content)
+        self.assertIn("isStreamingActive", content)
+        self.assertNotIn("cursorSuffix", content)
+
+    def test_background_streaming_persists_across_on_close(self):
+        with open(PANEL_FILE, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # Check onClose does NOT cancel streaming
+        on_close_match = re.search(r"function onClose\(\)(.*?)end\n", content, re.DOTALL)
+        self.assertIsNotNone(on_close_match)
+        on_close_body = on_close_match.group(1)
+        self.assertNotIn("stopStreaming()", on_close_body)
+        self.assertIn("isPanelOpen = false", on_close_body)
+
+        # Check onOpen keeps in-memory streaming session intact
+        self.assertIn("if not isStreaming and not isSearching then", content)
+        self.assertIn("isPanelOpen = true", content)
 
 
 if __name__ == "__main__":

@@ -49,9 +49,11 @@ local applyPrompt: ((p: any) -> ())? = nil
 local saveSuccess = false
 
 local SPINNER_FRAMES = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" }
+local DOT_FRAMES = { ".", "..", "..." }
 local animFrame = 0
 local animRunning = false
 local streamStartMs = 0
+local isPanelOpen = false
 
 local render: () -> ()
 local stopAnimation: () -> ()
@@ -65,22 +67,31 @@ stopAnimation = function()
 end
 
 startAnimation = function()
-  if animRunning then return end
+  if animRunning or not isPanelOpen then return end
   animRunning = true
   pcall(function()
     panel.setNeedsFrameTick(true)
   end)
   local function loop()
-    if not animRunning or (not isStreaming and not isSearching) then
+    if not animRunning or not isPanelOpen or (not isStreaming and not isSearching) then
       stopAnimation()
-      render()
+      if isPanelOpen then
+        render()
+      end
       return
     end
     animFrame += 1
-    render()
+    if isPanelOpen then
+      render()
+    end
     noctalia.runAsync({ "sleep", "0.2" }, function()
-      if animRunning then
+      if animRunning and isPanelOpen and (isStreaming or isSearching) then
         loop()
+      else
+        stopAnimation()
+        if isPanelOpen then
+          render()
+        end
       end
     end)
   end
@@ -495,11 +506,11 @@ local function regenerateResponse()
   end
 end
 
-local function renderAssistantContent(content: string, msgIndex: number, isStreamingCursor: boolean?): { any }
+local function renderAssistantContent(content: string, msgIndex: number, isStreamingActive: boolean?): { any }
   local segments = markdown.parseSegments(content)
   local nodes = {}
-  local showCursor = (math.floor(noctalia.nowMs() / 450) % 2 == 0)
-  local cursorSuffix = (isStreamingCursor and showCursor) and " ▋" or ""
+  local dotFrame = DOT_FRAMES[(math.floor(noctalia.nowMs() / 350) % #DOT_FRAMES) + 1]
+  local streamingSuffix = isStreamingActive and " ..." or ""
 
   for segIdx, seg in ipairs(segments) do
     if seg.type == "code" then
@@ -547,18 +558,24 @@ local function renderAssistantContent(content: string, msgIndex: number, isStrea
         ui.markdown({ text = "```" .. langLabel .. "\n" .. cleanCode .. "\n```" }),
         ui.spacer({ height = 12 }),
       }))
+      if isStreamingActive and segIdx == #segments then
+        table.insert(nodes, ui.markdown({ text = dotFrame }))
+      end
     else
       if seg.content and seg.content ~= "" then
         local textToRender = seg.content
-        if isStreamingCursor and segIdx == #segments then
-          textToRender = textToRender .. cursorSuffix
+        if isStreamingActive and segIdx == #segments then
+          textToRender = textToRender .. streamingSuffix
         end
         table.insert(nodes, ui.markdown({ text = textToRender }))
       end
     end
   end
   if #nodes == 0 then
-    table.insert(nodes, ui.markdown({ text = content .. cursorSuffix }))
+    local emptyText = isStreamingActive and dotFrame or content
+    if emptyText ~= "" then
+      table.insert(nodes, ui.markdown({ text = emptyText }))
+    end
   end
   return nodes
 end
@@ -1824,6 +1841,7 @@ end
 -- ── Render Root ──────────────────────────────────────────────────────────────
 
 render = function()
+  if not isPanelOpen then return end
   local titleRow = ui.row({ align = "center", justify = "space_between" }, {
     ui.row({ gap = 8, align = "center" }, {
       ui.glyph({ name = "sparkles", size = 18, color = "primary" }),
@@ -1912,22 +1930,31 @@ end
 -- ── Lifecycle Handlers ────────────────────────────────────────────────────────
 
 function onOpen(_context)
+  isPanelOpen = true
   config = storage.loadConfig()
-  sessions = storage.loadSessions()
-  if startFreshOnOpen or (currentSession ~= nil and #currentSession.messages == 0) then
-    startFreshOnOpen = true
-    currentSession = nil
-  elseif currentSession then
-    local matched = nil
-    for _, sess in ipairs(sessions) do
-      if sess.id == currentSession.id then
-        matched = sess
-        break
+
+  if not isStreaming and not isSearching then
+    sessions = storage.loadSessions()
+    if startFreshOnOpen or (currentSession ~= nil and #currentSession.messages == 0) then
+      startFreshOnOpen = true
+      currentSession = nil
+    elseif currentSession then
+      local matched = nil
+      for _, sess in ipairs(sessions) do
+        if sess.id == currentSession.id then
+          matched = sess
+          break
+        end
       end
+      currentSession = matched or sessions[1] or nil
+    else
+      currentSession = sessions[1] or nil
     end
-    currentSession = matched or sessions[1] or nil
   else
-    currentSession = sessions[1] or nil
+    -- Stream or search is running in background: keep in-memory session,
+    -- resume UI animations and scroll to bottom
+    scrollRev += 1
+    startAnimation()
   end
 
   activeTab = "chat"
@@ -1937,21 +1964,28 @@ function onOpen(_context)
   historySearch = ""
   showApiKey = false
   showSearchApiKey = false
-  isSearching = false
+  if not isStreaming then
+    isSearching = false
+  end
   saveSuccess = false
   settingRev += 1
   render()
 end
 
 function onClose()
-  if isStreaming then
-    stopStreaming()
-  end
+  isPanelOpen = false
+  stopAnimation()
   pcall(function()
     if config then
       storage.saveConfig(config, true)
     end
   end)
+end
+
+function onExit(_signal: number, _reason: string)
+  if isStreaming then
+    stopStreaming()
+  end
 end
 
 function onConfigChanged()
@@ -2062,7 +2096,7 @@ end
 
 local frameElapsedMs = 0
 function onFrameTick(deltaMs: number)
-  if not isStreaming and not isSearching then
+  if not isPanelOpen or (not isStreaming and not isSearching) then
     stopAnimation()
     return
   end
