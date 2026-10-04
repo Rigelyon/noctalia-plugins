@@ -138,6 +138,7 @@ placement = "floating"
 position = "center_right"
 width = 560
 height = "fill"
+capture_keys = ["Escape", "Up", "Down", "Tab"]
 
 [[widget]]
 id = "ai-sidebar"

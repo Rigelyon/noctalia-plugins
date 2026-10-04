@@ -91,8 +91,8 @@ class TestAiSidebarSlashSearch(unittest.TestCase):
             content = f.read()
         self.assertIn("client.prepareContextualSearch", content)
         self.assertIn("search.isSlashSearch", content)
-        # Verify the persistent toggle in settings was removed
-        self.assertNotIn("tr(\"enable_web_search\")", content)
+        # Verify master toggle in settings exists
+        self.assertIn('tr("enable_web_search")', content)
         # Verify slash command popover nodes
         self.assertIn("slashNodes", content)
         self.assertIn("slashQuery", content)

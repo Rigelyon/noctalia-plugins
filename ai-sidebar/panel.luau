@@ -34,8 +34,18 @@ local showApiKey = false
 local showSearchApiKey = false
 local startFreshOnOpen = false
 local showPromptPicker = false
+local showSlashPicker = false
+local selectedSlashIndex = 1
+local selectedPromptIndex = 1
 local hoveredPromptTag: string? = nil
 local hoveredSlashCmd: string? = nil
+local expandedThinking: { [number]: boolean } = {}
+local isThinkingActive = false
+local toolCallStatus: string? = nil
+local lastMatchingSlashCommands: { any } = {}
+local lastMatchingPrompts: { any } = {}
+local applySlashCommand: ((sc: any) -> ())? = nil
+local applyPrompt: ((p: any) -> ())? = nil
 local saveSuccess = false
 
 local render
@@ -90,6 +100,27 @@ local function sendMessage()
     end
   end
 
+  if isSearch and config.enable_web_search == false then
+    table.insert(currentSession.messages, {
+      role = "user",
+      content = messageText,
+      timestamp = math.floor(noctalia.nowMs() / 1000),
+      is_search = true,
+    })
+    local assistantRole = "assistant"
+    table.insert(currentSession.messages, {
+      role = assistantRole,
+      content = "**[" .. tr("search_disabled_notice") .. "]**",
+      timestamp = math.floor(noctalia.nowMs() / 1000),
+    })
+    inputBuffer = ""
+    inputRev += 1
+    scrollRev += 1
+    storage.saveSessions(sessions)
+    render()
+    return
+  end
+
   -- Add user message
   table.insert(currentSession.messages, {
     role = "user",
@@ -122,6 +153,8 @@ local function sendMessage()
   scrollRev += 1
   isStreaming = true
   retryStatus = nil
+  toolCallStatus = nil
+  isThinkingActive = false
   lastRenderMs = noctalia.nowMs()
   local streamStartMs = noctalia.nowMs()
   local assistantMsg = currentSession.messages[#currentSession.messages]
@@ -129,6 +162,7 @@ local function sendMessage()
   local function beginStream(searchCtx: string?, isSlashSearch: boolean?)
     if not isStreaming then return end
     isSearching = false
+    toolCallStatus = nil
     lastRenderMs = noctalia.nowMs()
     render()
 
@@ -137,65 +171,73 @@ local function sendMessage()
       config,
       function(chunk: string)
         retryStatus = nil
-      assistantMsg.content = assistantMsg.content .. chunk
-      local now = noctalia.nowMs()
-      -- Throttled UI update (>= 80ms) for CPU budget compliance
-      if now - lastRenderMs >= 80 then
-        lastRenderMs = now
-        scrollRev += 1
-        render()
-      end
+        if isThinkingActive then
+          isThinkingActive = false
+          expandedThinking[#currentSession.messages] = false
+        end
+        assistantMsg.content = assistantMsg.content .. chunk
+        local now = noctalia.nowMs()
+        -- Throttled UI update (>= 80ms) for CPU budget compliance
+        if now - lastRenderMs >= 80 then
+          lastRenderMs = now
+          scrollRev += 1
+          render()
+        end
       end,
       function(err: string)
         if not isStreaming then return end
-      isStreaming = false
-      streamHandle = nil
-      retryStatus = nil
-      assistantMsg.content = assistantMsg.content .. "\n\n**[" .. tr("error_title") .. ": " .. err .. "]**"
-      storage.saveSessions(sessions)
-      scrollRev += 1
-      render()
+        isStreaming = false
+        isThinkingActive = false
+        toolCallStatus = nil
+        streamHandle = nil
+        retryStatus = nil
+        assistantMsg.content = assistantMsg.content .. "\n\n**[" .. tr("error_title") .. ": " .. err .. "]**"
+        storage.saveSessions(sessions)
+        scrollRev += 1
+        render()
       end,
       function()
         isStreaming = false
-      streamHandle = nil
-      retryStatus = nil
+        isThinkingActive = false
+        toolCallStatus = nil
+        streamHandle = nil
+        retryStatus = nil
 
-      -- Compute telemetry metrics
-      local durationMs = math.max(100, noctalia.nowMs() - streamStartMs)
-      local tokens = context.estimateTokens(assistantMsg.content)
-      local durationSec = durationMs / 1000
-      local tokensPerSec = math.round((tokens / durationSec) * 10) / 10
-      assistantMsg.metrics = {
-        tokens = tokens,
-        durationMs = durationMs,
-        tokensPerSec = tokensPerSec,
-      }
+        -- Compute telemetry metrics
+        local durationMs = math.max(100, noctalia.nowMs() - streamStartMs)
+        local tokens = context.estimateTokens(assistantMsg.content)
+        local durationSec = durationMs / 1000
+        local tokensPerSec = math.round((tokens / durationSec) * 10) / 10
+        assistantMsg.metrics = {
+          tokens = tokens,
+          durationMs = durationMs,
+          tokensPerSec = tokensPerSec,
+        }
 
-      storage.saveSessions(sessions)
-      scrollRev += 1
-      render()
+        storage.saveSessions(sessions)
+        scrollRev += 1
+        render()
 
-      -- Background auto-titler trigger on Turn 1 completion
-      if currentSession and #currentSession.messages == 2 then
-        local capturedSessionId = currentSession.id
-        client.generateTitle(text, assistantMsg.content, config, function(autoTitle)
-          if currentSession and currentSession.id == capturedSessionId then
-            currentSession.title = autoTitle
-            storage.saveSessions(sessions)
-            render()
-          else
-            for _, s in ipairs(sessions) do
-              if s.id == capturedSessionId then
-                s.title = autoTitle
-                storage.saveSessions(sessions)
-                break
+        -- Background auto-titler trigger on Turn 1 completion
+        if currentSession and #currentSession.messages == 2 then
+          local capturedSessionId = currentSession.id
+          client.generateTitle(text, assistantMsg.content, config, function(autoTitle)
+            if currentSession and currentSession.id == capturedSessionId then
+              currentSession.title = autoTitle
+              storage.saveSessions(sessions)
+              render()
+            else
+              for _, s in ipairs(sessions) do
+                if s.id == capturedSessionId then
+                  s.title = autoTitle
+                  storage.saveSessions(sessions)
+                  break
+                end
               end
             end
-          end
-        end)
-      end
-    end,
+          end)
+        end
+      end,
       function(status: string, attempt: number, maxRetries: number)
         if status == "retrying" then
           retryStatus = tr("status_retrying", { attempt = tostring(attempt), max = tostring(maxRetries) })
@@ -203,7 +245,29 @@ local function sendMessage()
         end
       end,
       searchCtx,
-      isSlashSearch
+      isSlashSearch,
+      function(reasoningChunk: string)
+        retryStatus = nil
+        isThinkingActive = true
+        expandedThinking[#currentSession.messages] = true
+        assistantMsg.reasoning = (assistantMsg.reasoning or "") .. reasoningChunk
+        assistantMsg.reasoningDurationMs = math.max(100, noctalia.nowMs() - streamStartMs)
+        local now = noctalia.nowMs()
+        if now - lastRenderMs >= 80 then
+          lastRenderMs = now
+          scrollRev += 1
+          render()
+        end
+      end,
+      function(statusText: string)
+        toolCallStatus = statusText
+        local now = noctalia.nowMs()
+        if now - lastRenderMs >= 80 then
+          lastRenderMs = now
+          scrollRev += 1
+          render()
+        end
+      end
     )
   end
 
@@ -259,6 +323,8 @@ local function regenerateResponse()
   scrollRev += 1
   isStreaming = true
   retryStatus = nil
+  toolCallStatus = nil
+  isThinkingActive = false
   lastRenderMs = noctalia.nowMs()
   local streamStartMs = noctalia.nowMs()
   local assistantMsg = currentSession.messages[#currentSession.messages]
@@ -266,6 +332,7 @@ local function regenerateResponse()
   local function beginStream(searchCtx: string?, isSlashSearch: boolean?)
     if not isStreaming then return end
     isSearching = false
+    toolCallStatus = nil
     lastRenderMs = noctalia.nowMs()
     render()
 
@@ -274,6 +341,10 @@ local function regenerateResponse()
       config,
       function(chunk: string)
         retryStatus = nil
+        if isThinkingActive then
+          isThinkingActive = false
+          expandedThinking[#currentSession.messages] = false
+        end
         assistantMsg.content = assistantMsg.content .. chunk
         local now = noctalia.nowMs()
         if now - lastRenderMs >= 80 then
@@ -285,6 +356,8 @@ local function regenerateResponse()
       function(err: string)
         if not isStreaming then return end
         isStreaming = false
+        isThinkingActive = false
+        toolCallStatus = nil
         streamHandle = nil
         retryStatus = nil
         assistantMsg.content = assistantMsg.content .. "\n\n**[" .. tr("error_title") .. ": " .. err .. "]**"
@@ -294,6 +367,8 @@ local function regenerateResponse()
       end,
       function()
         isStreaming = false
+        isThinkingActive = false
+        toolCallStatus = nil
         streamHandle = nil
         retryStatus = nil
 
@@ -318,7 +393,29 @@ local function regenerateResponse()
         end
       end,
       searchCtx,
-      isSlashSearch
+      isSlashSearch,
+      function(reasoningChunk: string)
+        retryStatus = nil
+        isThinkingActive = true
+        expandedThinking[#currentSession.messages] = true
+        assistantMsg.reasoning = (assistantMsg.reasoning or "") .. reasoningChunk
+        assistantMsg.reasoningDurationMs = math.max(100, noctalia.nowMs() - streamStartMs)
+        local now = noctalia.nowMs()
+        if now - lastRenderMs >= 80 then
+          lastRenderMs = now
+          scrollRev += 1
+          render()
+        end
+      end,
+      function(statusText: string)
+        toolCallStatus = statusText
+        local now = noctalia.nowMs()
+        if now - lastRenderMs >= 80 then
+          lastRenderMs = now
+          scrollRev += 1
+          render()
+        end
+      end
     )
   end
 
@@ -515,7 +612,9 @@ local function renderChatView()
       elseif msg.role == "assistant" then
         local content = msg.content
         if content == "" and isStreaming then
-          if isSearching then
+          if toolCallStatus then
+            content = "_" .. toolCallStatus .. "_"
+          elseif isSearching then
             content = "_" .. tr("status_searching_web") .. "_"
           else
             content = "_" .. tr("status_typing") .. "_"
@@ -575,6 +674,68 @@ local function renderChatView()
             ui.row({ gap = 2, align = "center" }, actionButtons),
           }),
         }
+
+        local hasReasoning = (msg.reasoning and msg.reasoning ~= "")
+        local isThisThinkingActive = (isLastAssistant and isStreaming and isThinkingActive)
+
+        if hasReasoning or isThisThinkingActive then
+          local isExpanded = (expandedThinking[idx] == true)
+          local durationText: string
+          if isThisThinkingActive then
+            durationText = tr("thinking_active")
+          else
+            local secVal = math.max(0.1, (msg.reasoningDurationMs or 1000) / 1000)
+            durationText = tr("thinking_done", { sec = string.format("%.1f", secVal) })
+          end
+
+          local thinkingChildren = {
+            ui.row({
+              align = "center",
+              justify = "space_between",
+              padding = 4,
+              paddingH = 6,
+              radius = 6,
+              fill = "surface_variant/0.25",
+              onClick = function()
+                expandedThinking[idx] = not isExpanded
+                render()
+              end,
+            }, {
+              ui.row({ gap = 6, align = "center" }, {
+                ui.glyph({
+                  name = isThisThinkingActive and "loader-2" or "brain",
+                  size = 12,
+                  color = isThisThinkingActive and "secondary" or "primary",
+                }),
+                ui.label({
+                  text = durationText,
+                  fontSize = 11,
+                  fontWeight = "medium",
+                  color = isThisThinkingActive and "secondary" or "on_surface_variant",
+                }),
+              }),
+              ui.glyph({
+                name = isExpanded and "chevron-up" or "chevron-down",
+                size = 12,
+                color = "on_surface_variant",
+              }),
+            }),
+          }
+
+          if isExpanded and hasReasoning then
+            table.insert(thinkingChildren, ui.column({
+              fill = "surface_variant/0.15",
+              radius = 6,
+              padding = 8,
+              paddingH = 10,
+              gap = 4,
+            }, {
+              ui.markdown({ text = msg.reasoning }),
+            }))
+          end
+
+          table.insert(assistantChildren, ui.column({ gap = 4, align = "stretch" }, thinkingChildren))
+        end
 
         for _, cNode in ipairs(renderAssistantContent(content, idx)) do
           table.insert(assistantChildren, cNode)
@@ -655,11 +816,28 @@ local function renderChatView()
       }))
     else
       table.insert(actionButtons, ui.button({
+        glyph = "slash",
+        variant = showSlashPicker and "primary" or "ghost",
+        tooltip = tr("action_slash_commands"),
+        onClick = function()
+          showSlashPicker = not showSlashPicker
+          if showSlashPicker then
+            showPromptPicker = false
+            selectedSlashIndex = 1
+          end
+          render()
+        end,
+      }))
+      table.insert(actionButtons, ui.button({
         glyph = "hash",
         variant = showPromptPicker and "primary" or "ghost",
         tooltip = tr("prompt_library"),
         onClick = function()
           showPromptPicker = not showPromptPicker
+          if showPromptPicker then
+            showSlashPicker = false
+            selectedPromptIndex = 1
+          end
           render()
         end,
       }))
@@ -684,6 +862,21 @@ local function renderChatView()
   local hashQuery = inputBuffer:match("^#([%w%-_]*)$") or inputBuffer:match("%s#([%w%-_]*)$")
   local isPromptActive = showPromptPicker or (hashQuery ~= nil)
   local matchingPrompts = isPromptActive and prompts.filter(hashQuery or "") or {}
+  lastMatchingPrompts = matchingPrompts
+
+  applyPrompt = function(p: any)
+    if not p then return end
+    if hashQuery ~= nil then
+      local pattern = "(#[" .. "%w%-_" .. "]*)$"
+      inputBuffer = inputBuffer:gsub(pattern, p.content)
+    else
+      inputBuffer = (inputBuffer ~= "" and (inputBuffer .. " ") or "") .. p.content
+    end
+    showPromptPicker = false
+    hoveredPromptTag = nil
+    inputRev += 1
+    render()
+  end
 
   local promptNodes = {}
   if isPromptActive and #matchingPrompts > 0 then
@@ -716,8 +909,8 @@ local function renderChatView()
     }))
     table.insert(promptNodes, ui.separator({}))
 
-    for _, p in ipairs(matchingPrompts) do
-      local isHovered = hoveredPromptTag == p.tag
+    for pIdx, p in ipairs(matchingPrompts) do
+      local isHovered = (hoveredPromptTag == p.tag) or (selectedPromptIndex == pIdx)
       table.insert(promptNodes, ui.row({
         key = "prompt-" .. p.tag,
         align = "center",
@@ -731,6 +924,7 @@ local function renderChatView()
           if state == "true" or state == true then
             if hoveredPromptTag ~= p.tag then
               hoveredPromptTag = p.tag
+              selectedPromptIndex = pIdx
               render()
             end
           else
@@ -741,16 +935,7 @@ local function renderChatView()
           end
         end,
         onClick = function()
-          if hashQuery ~= nil then
-            local pattern = "(#[" .. "%w%-_" .. "]*)$"
-            inputBuffer = inputBuffer:gsub(pattern, p.content)
-          else
-            inputBuffer = inputBuffer .. p.content
-          end
-          showPromptPicker = false
-          hoveredPromptTag = nil
-          inputRev += 1
-          render()
+          applyPrompt(p)
         end,
       }, {
         ui.glyph({ name = "hash", size = 11, color = "primary" }),
@@ -763,7 +948,7 @@ local function renderChatView()
 
   local inputChildren = {}
   local slashQuery = inputBuffer:match("^/([%w%-_]*)$") or inputBuffer:match("%s/([%w%-_]*)$")
-  local isSlashActive = (slashQuery ~= nil)
+  local isSlashActive = showSlashPicker or (slashQuery ~= nil)
   local matchingSlashCommands = {}
   if isSlashActive then
     local sq = (slashQuery or ""):lower()
@@ -775,11 +960,30 @@ local function renderChatView()
         glyph = "world",
       },
     }
-    for _, sc in ipairs(availableSlashCommands) do
-      if sc.cmd:sub(2):lower():find(sq, 1, true) then
-        table.insert(matchingSlashCommands, sc)
+    if sq == "" then
+      matchingSlashCommands = availableSlashCommands
+    else
+      for _, sc in ipairs(availableSlashCommands) do
+        if sc.cmd:sub(2):lower():find(sq, 1, true) then
+          table.insert(matchingSlashCommands, sc)
+        end
       end
     end
+  end
+  lastMatchingSlashCommands = matchingSlashCommands
+
+  applySlashCommand = function(sc: any)
+    if not sc then return end
+    if slashQuery ~= nil then
+      local pattern = "(/[" .. "%w%-_" .. "]*)$"
+      inputBuffer = inputBuffer:gsub(pattern, sc.cmd .. " ")
+    else
+      inputBuffer = (inputBuffer ~= "" and (inputBuffer .. " ") or "") .. sc.cmd .. " "
+    end
+    showSlashPicker = false
+    hoveredSlashCmd = nil
+    inputRev += 1
+    render()
   end
 
   local slashNodes = {}
@@ -805,17 +1009,16 @@ local function renderChatView()
         variant = "ghost",
         tooltip = tr("close"),
         onClick = function()
+          showSlashPicker = false
           hoveredSlashCmd = nil
-          inputBuffer = ""
-          inputRev += 1
           render()
         end,
       }),
     }))
     table.insert(slashNodes, ui.separator({}))
 
-    for _, sc in ipairs(matchingSlashCommands) do
-      local isHovered = hoveredSlashCmd == sc.cmd
+    for scIdx, sc in ipairs(matchingSlashCommands) do
+      local isHovered = (hoveredSlashCmd == sc.cmd) or (selectedSlashIndex == scIdx)
       table.insert(slashNodes, ui.row({
         key = "slash-" .. sc.cmd,
         align = "center",
@@ -829,6 +1032,7 @@ local function renderChatView()
           if state == "true" or state == true then
             if hoveredSlashCmd ~= sc.cmd then
               hoveredSlashCmd = sc.cmd
+              selectedSlashIndex = scIdx
               render()
             end
           else
@@ -839,15 +1043,7 @@ local function renderChatView()
           end
         end,
         onClick = function()
-          if slashQuery ~= nil then
-            local pattern = "(/[" .. "%w%-_" .. "]*)$"
-            inputBuffer = inputBuffer:gsub(pattern, sc.cmd .. " ")
-          else
-            inputBuffer = inputBuffer .. " " .. sc.cmd .. " "
-          end
-          hoveredSlashCmd = nil
-          inputRev += 1
-          render()
+          applySlashCommand(sc)
         end,
       }, {
         ui.glyph({ name = sc.glyph, size = 11, color = "primary" }),
@@ -902,7 +1098,7 @@ local function renderChatView()
     onChange = function(val)
       local oldHash = (inputBuffer:match("^#([%w%-_]*)$") ~= nil) or (inputBuffer:match("%s#([%w%-_]*)$") ~= nil)
       local oldSlash = (inputBuffer:match("^/([%w%-_]*)$") ~= nil) or (inputBuffer:match("%s/([%w%-_]*)$") ~= nil)
-      local wasActive = showPromptPicker or oldHash or oldSlash
+      local wasActive = showPromptPicker or showSlashPicker or oldHash or oldSlash
       inputBuffer = val or ""
       local newHash = (inputBuffer:match("^#([%w%-_]*)$") ~= nil) or (inputBuffer:match("%s#([%w%-_]*)$") ~= nil)
       local newSlash = (inputBuffer:match("^/([%w%-_]*)$") ~= nil) or (inputBuffer:match("%s/([%w%-_]*)$") ~= nil)
@@ -912,15 +1108,30 @@ local function renderChatView()
         hoveredPromptTag = nil
       end
       if oldSlash and not newSlash then
+        showSlashPicker = false
         hoveredSlashCmd = nil
       end
 
-      local isActive = showPromptPicker or newHash or newSlash
+      local isActive = showPromptPicker or showSlashPicker or newHash or newSlash
       if wasActive or isActive then
         render()
       end
     end,
     onSubmit = function()
+      if isSlashActive and #matchingSlashCommands > 0 then
+        local chosen = matchingSlashCommands[selectedSlashIndex] or matchingSlashCommands[1]
+        if chosen and applySlashCommand then
+          applySlashCommand(chosen)
+          return
+        end
+      end
+      if isPromptActive and #matchingPrompts > 0 then
+        local chosen = matchingPrompts[selectedPromptIndex] or matchingPrompts[1]
+        if chosen and applyPrompt then
+          applyPrompt(chosen)
+          return
+        end
+      end
       sendMessage()
     end,
   }))
@@ -1433,52 +1644,64 @@ local function renderSettingView()
   })
 
   table.insert(scrollItems, ui.separator({}))
-  table.insert(scrollItems, ui.row({ gap = 8, align = "center" }, {
-    ui.glyph({
-      name = "world",
-      size = 16,
-      color = "primary",
-    }),
-    ui.column({ gap = 2 }, {
-      ui.label({ text = tr("web_search_title") .. " (/search)", fontSize = 13, fontWeight = "bold" }),
-      ui.label({
-        text = tr("web_search_slash_hint") ~= "web_search_slash_hint" and tr("web_search_slash_hint") or "Type /search in chat for AI contextual search",
-        fontSize = 11,
-        color = "on_surface_variant",
+  table.insert(scrollItems, ui.row({ align = "center", justify = "space_between" }, {
+    ui.row({ gap = 8, align = "center" }, {
+      ui.glyph({
+        name = "world",
+        size = 16,
+        color = config.enable_web_search and "primary" or "outline",
       }),
+      ui.column({ gap = 2 }, {
+        ui.label({ text = tr("enable_web_search"), fontSize = 13, fontWeight = "bold" }),
+        ui.label({
+          text = config.enable_web_search and (tr("web_search_on_hint") ~= "web_search_on_hint" and tr("web_search_on_hint") or "Search web before responding") or (tr("web_search_off_hint") ~= "web_search_off_hint" and tr("web_search_off_hint") or "Search disabled, offline model knowledge only"),
+          fontSize = 11,
+          color = "on_surface_variant",
+        }),
+      }),
+    }),
+    ui.toggle({
+      checked = config.enable_web_search == true,
+      onChange = function(val)
+        config.enable_web_search = val
+        settingRev += 1
+        render()
+      end,
     }),
   }))
 
-  local searchItems = {
-    ui.label({ text = tr("search_engine"), fontSize = 12, fontWeight = "bold" }),
-    engineDropdown,
-  }
-  if config.search_engine == "tavily" or config.search_engine == "brave" then
-    table.insert(searchItems, ui.label({ text = tr("search_api_key"), fontSize = 12, fontWeight = "bold" }))
-    table.insert(searchItems, ui.row({ gap = 6, align = "center" }, {
-      ui.input({
-        flexGrow = 1,
-        key = "setting-search-key-" .. tostring(settingRev) .. "-" .. (showSearchApiKey and "vis" or "hid"),
-        value = config.search_api_key,
-        placeholder = (config.search_engine == "tavily" and "tvly-..." or "BSAE..."),
-        password = not showSearchApiKey,
-        onChange = function(v) config.search_api_key = v or "" end,
-      }),
-      ui.button({
-        glyph = showSearchApiKey and "eye-off" or "eye",
-        variant = "ghost",
-        tooltip = showSearchApiKey and tr("hide_api_key") or tr("show_api_key"),
-        onClick = function()
-          showSearchApiKey = not showSearchApiKey
-          render()
-        end,
-      }),
-    }))
-  end
-  table.insert(searchItems, ui.label({ text = tr("search_max_results"), fontSize = 12, fontWeight = "bold" }))
-  table.insert(searchItems, maxResultsDropdown)
+  if config.enable_web_search == true then
+    local searchItems = {
+      ui.label({ text = tr("search_engine"), fontSize = 12, fontWeight = "bold" }),
+      engineDropdown,
+    }
+    if config.search_engine == "tavily" or config.search_engine == "brave" then
+      table.insert(searchItems, ui.label({ text = tr("search_api_key"), fontSize = 12, fontWeight = "bold" }))
+      table.insert(searchItems, ui.row({ gap = 6, align = "center" }, {
+        ui.input({
+          flexGrow = 1,
+          key = "setting-search-key-" .. tostring(settingRev) .. "-" .. (showSearchApiKey and "vis" or "hid"),
+          value = config.search_api_key,
+          placeholder = (config.search_engine == "tavily" and "tvly-..." or "BSAE..."),
+          password = not showSearchApiKey,
+          onChange = function(v) config.search_api_key = v or "" end,
+        }),
+        ui.button({
+          glyph = showSearchApiKey and "eye-off" or "eye",
+          variant = "ghost",
+          tooltip = showSearchApiKey and tr("hide_api_key") or tr("show_api_key"),
+          onClick = function()
+            showSearchApiKey = not showSearchApiKey
+            render()
+          end,
+        }),
+      }))
+    end
+    table.insert(searchItems, ui.label({ text = tr("search_max_results"), fontSize = 12, fontWeight = "bold" }))
+    table.insert(searchItems, maxResultsDropdown)
 
-  table.insert(scrollItems, ui.column({ gap = 8, align = "stretch" }, searchItems))
+    table.insert(scrollItems, ui.column({ gap = 8, align = "stretch" }, searchItems))
+  end
 
   table.insert(scrollItems, ui.separator({}))
   table.insert(scrollItems, ui.button({
@@ -1696,5 +1919,69 @@ function onIpc(event: string, payload: string?)
     noctalia.togglePanel("rigelyon/ai-sidebar:panel")
   else
     noctalia.log("AI Sidebar: Unhandled IPC event " .. tostring(event))
+  end
+end
+
+function onKey(chord: string, pressed: boolean)
+  if not pressed then return end
+
+  local slashQuery = inputBuffer:match("^/([%w%-_]*)$") or inputBuffer:match("%s/([%w%-_]*)$")
+  local isSlashActive = showSlashPicker or (slashQuery ~= nil)
+
+  local hashQuery = inputBuffer:match("^#([%w%-_]*)$") or inputBuffer:match("%s#([%w%-_]*)$")
+  local isPromptActive = showPromptPicker or (hashQuery ~= nil)
+
+  if isSlashActive and #lastMatchingSlashCommands > 0 then
+    if selectedSlashIndex > #lastMatchingSlashCommands or selectedSlashIndex < 1 then
+      selectedSlashIndex = 1
+    end
+
+    if chord == "Escape" then
+      showSlashPicker = false
+      hoveredSlashCmd = nil
+      render()
+      return
+    elseif chord == "Down" then
+      selectedSlashIndex = (selectedSlashIndex % #lastMatchingSlashCommands) + 1
+      render()
+      return
+    elseif chord == "Up" then
+      selectedSlashIndex = ((selectedSlashIndex - 2 + #lastMatchingSlashCommands) % #lastMatchingSlashCommands) + 1
+      render()
+      return
+    elseif chord == "Tab" then
+      local chosen = lastMatchingSlashCommands[selectedSlashIndex] or lastMatchingSlashCommands[1]
+      if chosen and applySlashCommand then
+        applySlashCommand(chosen)
+      end
+      return
+    end
+  end
+
+  if isPromptActive and #lastMatchingPrompts > 0 then
+    if selectedPromptIndex > #lastMatchingPrompts or selectedPromptIndex < 1 then
+      selectedPromptIndex = 1
+    end
+
+    if chord == "Escape" then
+      showPromptPicker = false
+      hoveredPromptTag = nil
+      render()
+      return
+    elseif chord == "Down" then
+      selectedPromptIndex = (selectedPromptIndex % #lastMatchingPrompts) + 1
+      render()
+      return
+    elseif chord == "Up" then
+      selectedPromptIndex = ((selectedPromptIndex - 2 + #lastMatchingPrompts) % #lastMatchingPrompts) + 1
+      render()
+      return
+    elseif chord == "Tab" then
+      local chosen = lastMatchingPrompts[selectedPromptIndex] or lastMatchingPrompts[1]
+      if chosen and applyPrompt then
+        applyPrompt(chosen)
+      end
+      return
+    end
   end
 end

@@ -79,5 +79,20 @@ class TestAiSidebarReasoningAndTools(unittest.TestCase):
         self.assertIn("parseStreamEvent", content)
         self.assertIn("web_search", content)
 
+    def test_plugin_toml_has_capture_keys(self):
+        toml_path = PLUGIN_DIR / "plugin.toml"
+        content = toml_path.read_text(encoding="utf-8")
+        self.assertIn("capture_keys", content)
+        self.assertIn("Escape", content)
+        self.assertIn("Tab", content)
+
+    def test_panel_has_on_key_and_slash_button(self):
+        panel_path = PLUGIN_DIR / "panel.luau"
+        content = panel_path.read_text(encoding="utf-8")
+        self.assertIn("function onKey(", content)
+        self.assertIn("showSlashPicker", content)
+        self.assertIn("expandedThinking", content)
+        self.assertIn("enable_web_search", content)
+
 if __name__ == "__main__":
     unittest.main()
