@@ -221,7 +221,7 @@ function storage.loadConfig(): ConfigTable
     custom_model = (noctalia.getConfig("custom_model") or "llama3.2") :: string,
     system_prompt = (noctalia.getConfig("system_prompt") or "You are a helpful and concise AI assistant.") :: string,
     enable_web_search = if tomlWeb ~= nil then tomlWeb else false,
-    search_engine = (noctalia.getConfig("search_engine") or "duckduckgo") :: string,
+    search_engine = (noctalia.getConfig("search_engine") or "tavily") :: string,
     search_api_key = (noctalia.getConfig("search_api_key") or "") :: string,
     search_max_results = tonumber(noctalia.getConfig("search_max_results")) or 3,
   }
@@ -324,6 +324,11 @@ function storage.loadConfig(): ConfigTable
       end
     end
   end
+  -- Migrate scrapped search engines
+  if cfg.search_engine == "duckduckgo" or cfg.search_engine == "wikipedia" then
+    cfg.search_engine = "tavily"
+  end
+
   return cfg
 end
 

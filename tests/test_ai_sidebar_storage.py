@@ -292,6 +292,16 @@ panel_layer = "overlay"
         self.assertIn("cfg.anthropic_model = decoded.anthropic_model", content)
         self.assertIn("cfg.gemini_model = decoded.gemini_model", content)
 
+    def test_scrapped_search_engines_migration(self):
+        with open(STORAGE_FILE, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # Default engine is now tavily
+        self.assertIn('search_engine = (noctalia.getConfig("search_engine") or "tavily") :: string', content)
+        # Migration from legacy duckduckgo or wikipedia to tavily
+        self.assertIn('if cfg.search_engine == "duckduckgo" or cfg.search_engine == "wikipedia" then', content)
+        self.assertIn('cfg.search_engine = "tavily"', content)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -104,12 +104,12 @@ key = "search_engine"
 type = "select"
 label_key = "settings.search-engine.label"
 description_key = "settings.search-engine.description"
-default = "duckduckgo"
+default = "tavily"
+# Note: DuckDuckGo and Wikipedia options are scrapped / discontinued
 options = [
-  { value = "duckduckgo", label_key = "settings.search-engine.options.duckduckgo" },
-  { value = "gemini_native", label_key = "settings.search-engine.options.gemini_native" },
   { value = "tavily", label_key = "settings.search-engine.options.tavily" },
   { value = "brave", label_key = "settings.search-engine.options.brave" },
+  { value = "gemini_native", label_key = "settings.search-engine.options.gemini_native" },
 ]
 
 [[setting]]

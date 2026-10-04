@@ -49,7 +49,6 @@ local applyPrompt: ((p: any) -> ())? = nil
 local saveSuccess = false
 
 local SPINNER_FRAMES = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" }
-local DOT_FRAMES = { ".", "..", "..." }
 local animFrame = 0
 local animRunning = false
 local streamStartMs = 0
@@ -509,7 +508,6 @@ end
 local function renderAssistantContent(content: string, msgIndex: number, isStreamingActive: boolean?): { any }
   local segments = markdown.parseSegments(content)
   local nodes = {}
-  local dotFrame = DOT_FRAMES[(math.floor(noctalia.nowMs() / 350) % #DOT_FRAMES) + 1]
   local streamingSuffix = isStreamingActive and " ..." or ""
 
   for segIdx, seg in ipairs(segments) do
@@ -559,7 +557,7 @@ local function renderAssistantContent(content: string, msgIndex: number, isStrea
         ui.spacer({ height = 12 }),
       }))
       if isStreamingActive and segIdx == #segments then
-        table.insert(nodes, ui.markdown({ text = dotFrame }))
+        table.insert(nodes, ui.markdown({ text = "..." }))
       end
     else
       if seg.content and seg.content ~= "" then
@@ -572,7 +570,7 @@ local function renderAssistantContent(content: string, msgIndex: number, isStrea
     end
   end
   if #nodes == 0 then
-    local emptyText = isStreamingActive and dotFrame or content
+    local emptyText = isStreamingActive and "..." or content
     if emptyText ~= "" then
       table.insert(nodes, ui.markdown({ text = emptyText }))
     end
@@ -1653,13 +1651,11 @@ local function renderSettingView()
   end
 
   local engineOptions = {
-    tr("search_engine_ddg"),
-    tr("search_engine_wikipedia"),
-    tr("search_engine_gemini"),
     tr("search_engine_tavily"),
     tr("search_engine_brave"),
+    tr("search_engine_gemini"),
   }
-  local engineIds = { "duckduckgo", "wikipedia", "gemini_native", "tavily", "brave" }
+  local engineIds = { "tavily", "brave", "gemini_native" }
   local selectedEngineIndex = 0
   for i, eid in ipairs(engineIds) do
     if config.search_engine == eid then
@@ -1791,6 +1787,11 @@ local function renderSettingView()
     local searchItems = {
       ui.label({ text = tr("search_engine"), fontSize = 12, fontWeight = "bold" }),
       engineDropdown,
+      ui.label({
+        text = tr("search_engine_scrapped_note"),
+        fontSize = 11,
+        color = "on_surface_variant",
+      }),
     }
     if config.search_engine == "tavily" or config.search_engine == "brave" then
       table.insert(searchItems, ui.label({ text = tr("search_api_key"), fontSize = 12, fontWeight = "bold" }))

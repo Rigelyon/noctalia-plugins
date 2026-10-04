@@ -282,7 +282,7 @@ function search.performSearch(query: string, config: any, callback: (ok: boolean
   end
 
   local ok, started = (pcall :: any)(function()
-    local engine = (config and config.search_engine) or "duckduckgo"
+    local engine = (config and config.search_engine) or "tavily"
     local apiKey = (config and config.search_api_key) or ""
     local maxResults = (config and tonumber(config.search_max_results)) or 3
 

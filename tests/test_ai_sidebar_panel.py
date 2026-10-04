@@ -273,15 +273,20 @@ class TestAiSidebarPanel(unittest.TestCase):
 
         # Check spinner frames and animation helpers
         self.assertIn("SPINNER_FRAMES", content)
-        self.assertIn("DOT_FRAMES", content)
+        self.assertNotIn("DOT_FRAMES", content)
         self.assertIn("startAnimation", content)
         self.assertIn("stopAnimation", content)
         self.assertIn("onFrameTick", content)
         self.assertIn("panel.setNeedsFrameTick", content)
-        # Check triple dot streaming suffix (no block cursor)
-        self.assertIn("streamingSuffix", content)
-        self.assertIn("isStreamingActive", content)
+        # Check static triple dot streaming suffix (no block cursor or dynamic dot oscillation)
+        self.assertIn('local streamingSuffix = isStreamingActive and " ..." or ""', content)
+        self.assertIn('local emptyText = isStreamingActive and "..." or content', content)
         self.assertNotIn("cursorSuffix", content)
+
+        # Check search engines: duckduckgo and wikipedia are scrapped and excluded from UI options
+        self.assertIn('local engineIds = { "tavily", "brave", "gemini_native" }', content)
+        self.assertIn("search_engine_scrapped_note", content)
+
 
     def test_background_streaming_persists_across_on_close(self):
         with open(PANEL_FILE, "r", encoding="utf-8") as f:
