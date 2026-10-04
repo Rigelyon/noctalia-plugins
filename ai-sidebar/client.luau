@@ -301,7 +301,7 @@ function client.streamChat(
   local hasReceivedChunk = false
   local errorReported = false
   local retryCount = 0
-  local maxRetries = 2
+  local maxRetries = 3
   local isCancelled = false
   local currentHandle: any = nil
   local hasExecutedToolHop = false
@@ -361,14 +361,14 @@ function client.streamChat(
     end, function(result: any)
       if isCancelled then return end
       local isError = not result.ok or (result.status ~= 0 and result.status >= 400)
-      local isRetryable = isError and (result.status == 429 or result.status == 503 or result.status == 0)
+      local isRetryable = isError and (result.status == 429 or result.status == 500 or result.status == 502 or result.status == 503 or result.status == 504 or result.status == 0)
 
       if isRetryable and not hasReceivedChunk and retryCount < maxRetries then
         retryCount += 1
         if onStatus then
           onStatus("retrying", retryCount, maxRetries)
         end
-        local delaySec = retryCount == 1 and "1" or "2"
+        local delaySec = retryCount == 1 and "1" or (retryCount == 2 and "2" or "3")
         noctalia.runAsync({ "sleep", delaySec }, function()
           if not isCancelled then
             startAttempt(overrideReq)
@@ -394,7 +394,11 @@ function client.streamChat(
               end
             end
           end
-          if detailedError and detailedError ~= "" then
+          if result.status == 503 then
+            onError("Service Unavailable: Model is temporarily overloaded. Please retry in a few moments (HTTP 503)")
+          elseif result.status == 504 then
+            onError("Gateway Timeout: Upstream service timed out. Please retry (HTTP 504)")
+          elseif detailedError and detailedError ~= "" then
             onError(detailedError .. " (HTTP " .. tostring(result.status) .. ")")
           else
             onError("Stream error (HTTP " .. tostring(result.status) .. ")")

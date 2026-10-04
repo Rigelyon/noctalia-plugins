@@ -267,6 +267,20 @@ class TestAiSidebarPanel(unittest.TestCase):
         self.assertIn("storage.saveConfig(config, true)", content)
         self.assertIn("storage.saveConfig(config, false)", content)
 
+    def test_panel_animations(self):
+        with open(PANEL_FILE, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # Check spinner frames and animation helpers
+        self.assertIn("SPINNER_FRAMES", content)
+        self.assertIn("startAnimation", content)
+        self.assertIn("stopAnimation", content)
+        self.assertIn("onFrameTick", content)
+        self.assertIn("panel.setNeedsFrameTick", content)
+        # Check typing cursor
+        self.assertIn("cursorSuffix", content)
+        self.assertIn("isStreamingCursor", content)
+
 
 if __name__ == "__main__":
     unittest.main()

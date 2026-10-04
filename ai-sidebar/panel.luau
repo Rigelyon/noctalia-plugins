@@ -48,7 +48,44 @@ local applySlashCommand: ((sc: any) -> ())? = nil
 local applyPrompt: ((p: any) -> ())? = nil
 local saveSuccess = false
 
-local render
+local SPINNER_FRAMES = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" }
+local animFrame = 0
+local animRunning = false
+local streamStartMs = 0
+
+local render: () -> ()
+local stopAnimation: () -> ()
+local startAnimation: () -> ()
+
+stopAnimation = function()
+  animRunning = false
+  pcall(function()
+    panel.setNeedsFrameTick(false)
+  end)
+end
+
+startAnimation = function()
+  if animRunning then return end
+  animRunning = true
+  pcall(function()
+    panel.setNeedsFrameTick(true)
+  end)
+  local function loop()
+    if not animRunning or (not isStreaming and not isSearching) then
+      stopAnimation()
+      render()
+      return
+    end
+    animFrame += 1
+    render()
+    noctalia.runAsync({ "sleep", "0.2" }, function()
+      if animRunning then
+        loop()
+      end
+    end)
+  end
+  loop()
+end
 
 local function tr(key: string, subst: { [string]: any }?): string
   return noctalia.tr(key, subst)
@@ -63,7 +100,10 @@ local function stopStreaming()
   end
   isStreaming = false
   isSearching = false
+  isThinkingActive = false
+  toolCallStatus = nil
   retryStatus = nil
+  stopAnimation()
   if currentSession and #currentSession.messages > 0 then
     storage.saveSessions(sessions)
   end
@@ -156,8 +196,9 @@ local function sendMessage()
   toolCallStatus = nil
   isThinkingActive = false
   lastRenderMs = noctalia.nowMs()
-  local streamStartMs = noctalia.nowMs()
+  streamStartMs = noctalia.nowMs()
   local assistantMsg = currentSession.messages[#currentSession.messages]
+  startAnimation()
 
   local function beginStream(searchCtx: string?, isSlashSearch: boolean?)
     if not isStreaming then return end
@@ -191,6 +232,7 @@ local function sendMessage()
         toolCallStatus = nil
         streamHandle = nil
         retryStatus = nil
+        stopAnimation()
         assistantMsg.content = assistantMsg.content .. "\n\n**[" .. tr("error_title") .. ": " .. err .. "]**"
         storage.saveSessions(sessions)
         scrollRev += 1
@@ -202,6 +244,7 @@ local function sendMessage()
         toolCallStatus = nil
         streamHandle = nil
         retryStatus = nil
+        stopAnimation()
 
         -- Compute telemetry metrics
         local durationMs = math.max(100, noctalia.nowMs() - streamStartMs)
@@ -326,8 +369,9 @@ local function regenerateResponse()
   toolCallStatus = nil
   isThinkingActive = false
   lastRenderMs = noctalia.nowMs()
-  local streamStartMs = noctalia.nowMs()
+  streamStartMs = noctalia.nowMs()
   local assistantMsg = currentSession.messages[#currentSession.messages]
+  startAnimation()
 
   local function beginStream(searchCtx: string?, isSlashSearch: boolean?)
     if not isStreaming then return end
@@ -360,6 +404,7 @@ local function regenerateResponse()
         toolCallStatus = nil
         streamHandle = nil
         retryStatus = nil
+        stopAnimation()
         assistantMsg.content = assistantMsg.content .. "\n\n**[" .. tr("error_title") .. ": " .. err .. "]**"
         storage.saveSessions(sessions)
         scrollRev += 1
@@ -371,6 +416,7 @@ local function regenerateResponse()
         toolCallStatus = nil
         streamHandle = nil
         retryStatus = nil
+        stopAnimation()
 
         local durationMs = math.max(100, noctalia.nowMs() - streamStartMs)
         local tokens = context.estimateTokens(assistantMsg.content)
@@ -449,9 +495,12 @@ local function regenerateResponse()
   end
 end
 
-local function renderAssistantContent(content: string, msgIndex: number): { any }
+local function renderAssistantContent(content: string, msgIndex: number, isStreamingCursor: boolean?): { any }
   local segments = markdown.parseSegments(content)
   local nodes = {}
+  local showCursor = (math.floor(noctalia.nowMs() / 450) % 2 == 0)
+  local cursorSuffix = (isStreamingCursor and showCursor) and " ▋" or ""
+
   for segIdx, seg in ipairs(segments) do
     if seg.type == "code" then
       local codeKey = tostring(msgIndex) .. "_" .. tostring(segIdx)
@@ -500,12 +549,16 @@ local function renderAssistantContent(content: string, msgIndex: number): { any 
       }))
     else
       if seg.content and seg.content ~= "" then
-        table.insert(nodes, ui.markdown({ text = seg.content }))
+        local textToRender = seg.content
+        if isStreamingCursor and segIdx == #segments then
+          textToRender = textToRender .. cursorSuffix
+        end
+        table.insert(nodes, ui.markdown({ text = textToRender }))
       end
     end
   end
   if #nodes == 0 then
-    table.insert(nodes, ui.markdown({ text = content }))
+    table.insert(nodes, ui.markdown({ text = content .. cursorSuffix }))
   end
   return nodes
 end
@@ -681,8 +734,10 @@ local function renderChatView()
         if hasReasoning or isThisThinkingActive then
           local isExpanded = (expandedThinking[idx] == true)
           local durationText: string
+          local spinnerChar = SPINNER_FRAMES[(animFrame % #SPINNER_FRAMES) + 1]
           if isThisThinkingActive then
-            durationText = tr("thinking_active")
+            local secVal = math.max(0.1, (noctalia.nowMs() - streamStartMs) / 1000)
+            durationText = spinnerChar .. " " .. tr("thinking_active") .. " (" .. string.format("%.1f", secVal) .. "s)"
           else
             local secVal = math.max(0.1, (msg.reasoningDurationMs or 1000) / 1000)
             durationText = tr("thinking_done", { sec = string.format("%.1f", secVal) })
@@ -695,7 +750,7 @@ local function renderChatView()
               padding = 4,
               paddingH = 6,
               radius = 6,
-              fill = "surface_variant/0.25",
+              fill = isThisThinkingActive and "surface_variant/0.4" or "surface_variant/0.25",
               onClick = function()
                 expandedThinking[idx] = not isExpanded
                 render()
@@ -703,14 +758,14 @@ local function renderChatView()
             }, {
               ui.row({ gap = 6, align = "center" }, {
                 ui.glyph({
-                  name = isThisThinkingActive and "loader-2" or "brain",
+                  name = isThisThinkingActive and ((animFrame % 2 == 0) and "loader-2" or "brain") or "brain",
                   size = 12,
                   color = isThisThinkingActive and "secondary" or "primary",
                 }),
                 ui.label({
                   text = durationText,
                   fontSize = 11,
-                  fontWeight = "medium",
+                  fontWeight = isThisThinkingActive and "bold" or "medium",
                   color = isThisThinkingActive and "secondary" or "on_surface_variant",
                 }),
               }),
@@ -722,6 +777,15 @@ local function renderChatView()
             }),
           }
 
+          if isThisThinkingActive then
+            table.insert(thinkingChildren, ui.progress({
+              progress = ((animFrame * 10) % 100) / 100,
+              height = 2,
+              radius = 1,
+              fill = "secondary/0.5",
+            }))
+          end
+
           if isExpanded and hasReasoning then
             table.insert(thinkingChildren, ui.column({
               fill = "surface_variant/0.15",
@@ -730,14 +794,15 @@ local function renderChatView()
               paddingH = 10,
               gap = 4,
             }, {
-              ui.markdown({ text = msg.reasoning }),
+              ui.markdown({ text = msg.reasoning .. (isThisThinkingActive and (" " .. spinnerChar) or "") }),
             }))
           end
 
           table.insert(assistantChildren, ui.column({ gap = 4, align = "stretch" }, thinkingChildren))
         end
 
-        for _, cNode in ipairs(renderAssistantContent(content, idx)) do
+        local isThisAssistantActive = (isLastAssistant and isStreaming and not isThisThinkingActive)
+        for _, cNode in ipairs(renderAssistantContent(content, idx, isThisAssistantActive)) do
           table.insert(assistantChildren, cNode)
         end
 
@@ -1142,10 +1207,15 @@ local function renderChatView()
 
   local statusText: string
   if isStreaming then
+    local spinChar = SPINNER_FRAMES[(animFrame % #SPINNER_FRAMES) + 1]
     if isSearching then
-      statusText = tr("status_searching_web")
+      statusText = spinChar .. " " .. tr("status_searching_web")
+    elseif toolCallStatus then
+      statusText = spinChar .. " " .. toolCallStatus
+    elseif isThinkingActive then
+      statusText = spinChar .. " " .. tr("thinking_active")
     else
-      statusText = retryStatus or tr("status_typing")
+      statusText = retryStatus or (spinChar .. " " .. tr("status_typing"))
     end
   else
     local msgs = (currentSession and currentSession.messages) or {}
@@ -1987,5 +2057,19 @@ function onKey(chord: string, pressed: boolean)
       end
       return
     end
+  end
+end
+
+local frameElapsedMs = 0
+function onFrameTick(deltaMs: number)
+  if not isStreaming and not isSearching then
+    stopAnimation()
+    return
+  end
+  frameElapsedMs += deltaMs
+  if frameElapsedMs >= 180 then
+    frameElapsedMs = 0
+    animFrame += 1
+    render()
   end
 end

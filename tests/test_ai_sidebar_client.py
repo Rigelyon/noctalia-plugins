@@ -179,6 +179,19 @@ class TestAiSidebarClient(unittest.TestCase):
         self.assertIn("Web Search Capability", content)
         self.assertIn("webSearchEnabled", content)
 
+    def test_client_503_retry_and_error_handling(self):
+        with open(CLIENT_FILE, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # Check retryable status codes include 503, 500, 502, 504
+        self.assertIn("result.status == 503", content)
+        self.assertIn("result.status == 504", content)
+        self.assertIn("result.status == 502", content)
+        self.assertIn("maxRetries = 3", content)
+        # Check custom error messages
+        self.assertIn("Service Unavailable: Model is temporarily overloaded", content)
+        self.assertIn("Gateway Timeout: Upstream service timed out", content)
+
 
 if __name__ == "__main__":
     unittest.main()
