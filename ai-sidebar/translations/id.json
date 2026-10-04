@@ -87,6 +87,11 @@
   "search_results_7": "7 Hasil (Lengkap)",
   "status_searching_web": "Mencari di web...",
   "search_error_fallback": "Pencarian web gagal, melanjutkan dengan pengetahuan model.",
+  "thinking_active": "Sedang berpikir...",
+  "thinking_done": "Telah berpikir selama {sec} detik",
+  "thinking_seconds": "{sec} dtk",
+  "action_slash_commands": "Perintah Slash",
+  "search_disabled_notice": "Pencarian web dinonaktifkan di Pengaturan",
   "settings": {
     "default-provider": {
       "label": "Provider Bawaan",

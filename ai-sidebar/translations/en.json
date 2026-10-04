@@ -87,6 +87,11 @@
   "search_results_7": "7 Results (Detailed)",
   "status_searching_web": "Searching the web...",
   "search_error_fallback": "Web search failed, proceeding with offline model knowledge.",
+  "thinking_active": "Thinking...",
+  "thinking_done": "Thought for {sec}s",
+  "thinking_seconds": "{sec}s",
+  "action_slash_commands": "Slash Commands",
+  "search_disabled_notice": "Web search is disabled in Settings",
   "settings": {
     "default-provider": {
       "label": "Default Provider",

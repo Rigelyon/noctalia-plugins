@@ -8,10 +8,14 @@ export type MessageMetrics = {
 }
 
 export type Message = {
-  role: string, -- "user" | "assistant" | "system"
+  role: string, -- "user" | "assistant" | "system" | "tool"
   content: string,
   timestamp: number?,
   metrics: MessageMetrics?,
+  reasoning: string?,
+  reasoningDurationMs: number?,
+  tool_calls: { any }?,
+  tool_call_id: string?,
 }
 
 export type Session = {
