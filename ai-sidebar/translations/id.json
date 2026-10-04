@@ -95,6 +95,11 @@
   "thinking_seconds": "{sec} dtk",
   "action_slash_commands": "Perintah Slash",
   "search_disabled_notice": "Pencarian web dinonaktifkan di Pengaturan",
+  "prompt_library_settings": "Prompt Library",
+  "prompt_library_settings_desc": "Prompt kustom #tag tersimpan di prompts.json",
+  "action_edit_prompts": "Edit prompts.json",
+  "prompt_file_error": "Kesalahan Sintaks di prompts.json",
+  "prompt_file_valid": "{count} template aktif",
   "settings": {
     "default-provider": {
       "label": "Provider Bawaan",

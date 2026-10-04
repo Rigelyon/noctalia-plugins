@@ -305,6 +305,17 @@ class TestAiSidebarPanel(unittest.TestCase):
         self.assertIn("currentSession = nil", clear_body)
         self.assertIn("startFreshOnOpen = true", clear_body)
 
+    def test_prompt_library_settings_edit_button(self):
+        with open(PANEL_FILE, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # Check prompt library section in settings view
+        self.assertIn("prompts.getStatus()", content)
+        self.assertIn("prompts.openInEditor()", content)
+        self.assertIn('tr("action_edit_prompts")', content)
+        self.assertIn('tr("prompt_library_settings")', content)
+        self.assertIn('tr("prompt_file_error")', content)
+
 
     def test_background_streaming_persists_across_on_close(self):
         with open(PANEL_FILE, "r", encoding="utf-8") as f:

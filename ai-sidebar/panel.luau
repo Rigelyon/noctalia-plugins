@@ -1818,6 +1818,58 @@ local function renderSettingView()
     table.insert(scrollItems, ui.column({ gap = 8, align = "stretch" }, searchItems))
   end
 
+  local promptStatus = prompts.getStatus()
+  local promptItems = {
+    ui.row({ align = "center", justify = "space_between" }, {
+      ui.row({ gap = 8, align = "center" }, {
+        ui.glyph({ name = "hash", size = 16, color = "primary" }),
+        ui.column({ gap = 2 }, {
+          ui.label({ text = tr("prompt_library_settings"), fontSize = 13, fontWeight = "bold" }),
+          ui.label({
+            text = tr("prompt_library_settings_desc"),
+            fontSize = 11,
+            color = "on_surface_variant",
+          }),
+        }),
+      }),
+      ui.button({
+        glyph = "edit",
+        text = tr("action_edit_prompts"),
+        variant = "secondary",
+        tooltip = promptStatus.path,
+        onClick = function()
+          prompts.openInEditor()
+        end,
+      }),
+    }),
+  }
+  if not promptStatus.ok and promptStatus.error then
+    table.insert(promptItems, ui.row({
+      align = "center",
+      gap = 6,
+      fill = "error/0.15",
+      padding = 6,
+      radius = 6,
+    }, {
+      ui.glyph({ name = "alert-circle", size = 14, color = "error" }),
+      ui.label({
+        text = tr("prompt_file_error") .. ": " .. tostring(promptStatus.error),
+        fontSize = 11,
+        color = "error",
+        wrap = true,
+      }),
+    }))
+  else
+    table.insert(promptItems, ui.label({
+      text = tr("prompt_file_valid", { count = promptStatus.count }),
+      fontSize = 10,
+      color = "on_surface_variant",
+    }))
+  end
+
+  table.insert(scrollItems, ui.separator({}))
+  table.insert(scrollItems, ui.column({ gap = 6, align = "stretch" }, promptItems))
+
   table.insert(scrollItems, ui.separator({}))
   table.insert(scrollItems, ui.button({
     glyph = if saveSuccess then "check" else "device-floppy",

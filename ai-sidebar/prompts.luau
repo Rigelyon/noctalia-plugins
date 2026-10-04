@@ -64,40 +64,131 @@ function prompts.getDefaults(): { PromptTemplate }
   }
 end
 
-function prompts.load(): { PromptTemplate }
+local cachedPrompts: { PromptTemplate }? = nil
+local lastFileError: string? = nil
+
+export type PromptStatus = {
+  ok: boolean,
+  error: string?,
+  count: number,
+  path: string,
+}
+
+function prompts.getFilePath(): string
+  return promptsFilePath()
+end
+
+function prompts.openInEditor(): boolean
   local path = promptsFilePath()
-  local raw, _ = noctalia.readFile(path)
+  local raw = noctalia.readFile(path)
   if not raw or noctalia.string.trim(raw) == "" then
     local defaults = prompts.getDefaults()
     prompts.save(defaults)
+  end
+
+  local ok, res = pcall(function()
+    return noctalia.runAsync({ "xdg-open", path })
+  end)
+  return ok and (res ~= false)
+end
+
+function prompts.getStatus(): PromptStatus
+  local list = prompts.load()
+  return {
+    ok = (lastFileError == nil),
+    error = lastFileError,
+    count = #list,
+    path = promptsFilePath(),
+  }
+end
+
+function prompts.load(): { PromptTemplate }
+  local path = promptsFilePath()
+  local raw = noctalia.readFile(path)
+  if raw == nil then
+    -- File does not exist yet: write defaults
+    local defaults = prompts.getDefaults()
+    prompts.save(defaults)
+    cachedPrompts = defaults
+    lastFileError = nil
     return defaults
   end
 
-  local decoded, err = noctalia.json.decode(raw)
-  if err or type(decoded) ~= "table" then
-    local defaults = prompts.getDefaults()
-    prompts.save(defaults)
-    return defaults
+  local trimmed = noctalia.string.trim(raw)
+  if trimmed == "" then
+    lastFileError = "prompts.json is empty"
+    if cachedPrompts and #cachedPrompts > 0 then
+      return cachedPrompts
+    end
+    return prompts.getDefaults()
+  end
+
+  local decodeOk, decoded = pcall(function()
+    local res, err = noctalia.json.decode(trimmed)
+    if err then error(err) end
+    return res
+  end)
+
+  if not decodeOk or type(decoded) ~= "table" then
+    local errMsg = if not decodeOk then tostring(decoded) else "Root JSON element must be an array"
+    lastFileError = "Syntax error in prompts.json: " .. errMsg
+    noctalia.log("AI Sidebar: " .. tostring(lastFileError))
+    -- CRITICAL SAFETY: Do NOT overwrite the file! Preserve user content and fall back to memory
+    if cachedPrompts and #cachedPrompts > 0 then
+      return cachedPrompts
+    end
+    return prompts.getDefaults()
   end
 
   local list: { PromptTemplate } = {}
-  for _, item in ipairs(decoded) do
-    if type(item) == "table" and type(item.tag) == "string" and type(item.content) == "string" then
-      table.insert(list, {
-        tag = item.tag,
-        label = type(item.label) == "string" and item.label or item.tag,
-        description = type(item.description) == "string" and item.description or "",
-        content = item.content,
-      })
+  local malformedCount = 0
+  for idx, item in ipairs(decoded) do
+    if type(item) == "table" then
+      local rawTag = item.tag
+      local rawContent = item.content
+      local tag = if type(rawTag) == "string" and noctalia.string.trim(rawTag) ~= ""
+        then noctalia.string.trim(rawTag):gsub("^#+", "")
+        else nil
+      local content = if type(rawContent) == "string" and noctalia.string.trim(rawContent) ~= ""
+        then rawContent
+        else nil
+      local label = if type(item.label) == "string" and noctalia.string.trim(item.label) ~= ""
+        then noctalia.string.trim(item.label)
+        else (tag or "Prompt " .. tostring(idx))
+      local desc = if type(item.description) == "string"
+        then item.description
+        else ""
+
+      if tag and content then
+        table.insert(list, {
+          tag = tag,
+          label = label,
+          description = desc,
+          content = content,
+        })
+      else
+        malformedCount += 1
+      end
+    else
+      malformedCount += 1
     end
   end
 
-  if #list == 0 then
-    local defaults = prompts.getDefaults()
-    prompts.save(defaults)
-    return defaults
+  if malformedCount > 0 then
+    lastFileError = string.format("%d prompt item(s) skipped (missing required 'tag' or 'content')", malformedCount)
+  else
+    lastFileError = nil
   end
 
+  if #list == 0 then
+    lastFileError = "No valid prompt templates found in prompts.json"
+    if cachedPrompts and #cachedPrompts > 0 then
+      return cachedPrompts
+    end
+    return prompts.getDefaults()
+  end
+
+  cachedPrompts = list
   return list
 end
 
@@ -106,6 +197,10 @@ function prompts.save(templates: { PromptTemplate }): boolean
   local encoded, _ = noctalia.json.encode(templates, true)
   if encoded then
     local ok, _ = noctalia.writeFile(path, encoded)
+    if ok then
+      cachedPrompts = templates
+      lastFileError = nil
+    end
     return ok
   end
   return false

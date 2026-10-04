@@ -16,9 +16,13 @@ class TestAiSidebarPrompts(unittest.TestCase):
         self.assertIn("prompts.load", content)
         self.assertIn("prompts.save", content)
         self.assertIn("prompts.filter", content)
+        self.assertIn("prompts.getFilePath", content)
+        self.assertIn("prompts.openInEditor", content)
+        self.assertIn("prompts.getStatus", content)
 
         # Check types
         self.assertIn("export type PromptTemplate", content)
+        self.assertIn("export type PromptStatus", content)
 
         # Check presets presence
         expected_presets = [
@@ -131,6 +135,19 @@ class TestAiSidebarPrompts(unittest.TestCase):
         with open(client_file, "r", encoding="utf-8") as f:
             content = f.read()
         self.assertIn("factual background knowledge", content.lower())
+
+    def test_syntax_error_safety_and_editor_support(self):
+        with open(PROMPTS_FILE, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # Check safe JSON decode via pcall
+        self.assertIn("pcall(function()", content)
+        self.assertIn("noctalia.json.decode(trimmed)", content)
+        # Check that syntax error does NOT overwrite file with prompts.save
+        self.assertIn("Syntax error in prompts.json", content)
+        self.assertIn("cachedPrompts", content)
+        # Check editor launcher
+        self.assertIn("xdg-open", content)
 
 
 if __name__ == "__main__":

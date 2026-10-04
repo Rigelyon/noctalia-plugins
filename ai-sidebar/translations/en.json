@@ -95,6 +95,11 @@
   "thinking_seconds": "{sec}s",
   "action_slash_commands": "Slash Commands",
   "search_disabled_notice": "Web search is disabled in Settings",
+  "prompt_library_settings": "Prompt Library",
+  "prompt_library_settings_desc": "Custom #tag prompts stored in prompts.json",
+  "action_edit_prompts": "Edit prompts.json",
+  "prompt_file_error": "Syntax Error in prompts.json",
+  "prompt_file_valid": "{count} templates loaded",
   "settings": {
     "default-provider": {
       "label": "Default Provider",
