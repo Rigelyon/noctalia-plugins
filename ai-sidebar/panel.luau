@@ -1819,14 +1819,19 @@ local function renderSettingView()
   end
 
   local promptStatus = prompts.getStatus()
+  local promptSubText = tr("prompt_library_settings_desc")
+  if promptStatus.ok then
+    promptSubText = promptSubText .. " • " .. tr("prompt_file_valid", { count = promptStatus.count })
+  end
+
   local promptItems = {
     ui.row({ align = "center", justify = "space_between" }, {
-      ui.row({ gap = 8, align = "center" }, {
+      ui.row({ gap = 8, align = "center", flexShrink = 1 }, {
         ui.glyph({ name = "hash", size = 16, color = "primary" }),
-        ui.column({ gap = 2 }, {
+        ui.column({ gap = 2, flexShrink = 1 }, {
           ui.label({ text = tr("prompt_library_settings"), fontSize = 13, fontWeight = "bold" }),
           ui.label({
-            text = tr("prompt_library_settings_desc"),
+            text = promptSubText,
             fontSize = 11,
             color = "on_surface_variant",
           }),
@@ -1844,31 +1849,34 @@ local function renderSettingView()
     }),
   }
   if not promptStatus.ok and promptStatus.error then
-    table.insert(promptItems, ui.row({
-      align = "center",
-      gap = 6,
+    table.insert(promptItems, ui.column({
+      align = "stretch",
+      gap = 4,
       fill = "error/0.15",
-      padding = 6,
+      padding = 8,
+      paddingH = 10,
       radius = 6,
     }, {
-      ui.glyph({ name = "alert-circle", size = 14, color = "error" }),
-      ui.label({
-        text = tr("prompt_file_error") .. ": " .. tostring(promptStatus.error),
-        fontSize = 11,
-        color = "error",
-        wrap = true,
+      ui.row({ align = "center", gap = 6 }, {
+        ui.glyph({ name = "alert-triangle", size = 13, color = "error" }),
+        ui.label({
+          text = tr("prompt_file_error"),
+          fontSize = 11,
+          fontWeight = "bold",
+          color = "error",
+        }),
       }),
-    }))
-  else
-    table.insert(promptItems, ui.label({
-      text = tr("prompt_file_valid", { count = promptStatus.count }),
-      fontSize = 10,
-      color = "on_surface_variant",
+      ui.label({
+        text = tostring(promptStatus.error),
+        fontSize = 10,
+        color = "error",
+        multiline = true,
+      }),
     }))
   end
 
   table.insert(scrollItems, ui.separator({}))
-  table.insert(scrollItems, ui.column({ gap = 6, align = "stretch" }, promptItems))
+  table.insert(scrollItems, ui.column({ gap = 8, align = "stretch" }, promptItems))
 
   table.insert(scrollItems, ui.separator({}))
   table.insert(scrollItems, ui.button({
