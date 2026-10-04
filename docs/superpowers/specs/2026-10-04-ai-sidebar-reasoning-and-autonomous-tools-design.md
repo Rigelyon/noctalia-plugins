@@ -93,8 +93,6 @@ The system must support the two major reasoning output conventions used across L
 ### 2.5 Hybrid Harmony with `/search` Slash Command
 * **Normal Chat**: LLM autonomously decides when to trigger `web_search`.
 * **Manual `/search <query>`**: If the user explicitly types `/search`, the existing pre-retrieval pipeline immediately executes search before invoking the LLM, bypassing the LLM's decision step.
-* **Persona Preservation**: Factual web context is strictly treated as background facts; the assistant's assigned persona, character, and conversational style are unconditionally preserved.
-
 ### 2.6 Master Settings Toggle
 * **Setting Option**: `enable_web_search: boolean` (Default: `true`).
 * **In Settings UI**:
@@ -103,6 +101,22 @@ The system must support the two major reasoning output conventions used across L
   * Tool schema is NOT included in LLM requests (autonomous tool calling is inactive).
   * If the user attempts `/search`, the UI alerts the user: `[Pencarian web dinonaktifkan di Pengaturan]`.
   * Search engine configuration controls in Settings are dimmed or disabled.
+
+### 2.7 Slash Command Toolbar Button
+* In `actionButtons` (alongside `#` prompt library, clear, and send):
+  * Add a dedicated button for slash commands: `glyph = "slash"`, `variant = showSlashPicker and "primary" or "ghost"`, `tooltip = tr("slash_commands")`.
+  * Clicking toggles `showSlashPicker = not showSlashPicker` (closing `showPromptPicker` if open), displaying the available slash commands list directly without requiring manual typing.
+
+### 2.8 Keyboard Navigation for `/` and `#` Popovers
+* When either popover (`/` slash commands or `#` prompts) is active:
+  * **Visual Selection**: Active item is highlighted with `fill = "surface_variant"` and distinct accent indicator.
+  * **Arrow Down / Up**: Cycles the highlighted item up and down smoothly through the list with index clamping/wrapping.
+  * **Tab / Enter**: Autocompletes and inserts the selected item into the input buffer, closes the popover, and focuses the text box.
+    * In `ui.input`, if a popover is active and an item is highlighted, pressing Enter selects/autocompletes the item instead of prematurely sending the chat message.
+  * **Escape**: Immediately dismisses the popover and clears highlighted state without altering input.
+* **Manifest Key Capture**:
+  * In `plugin.toml` under `[[panel]]`, add `capture_keys = ["Escape", "Up", "Down", "Tab"]`.
+  * `panel.luau` implements `function onKey(chord, pressed)` to route these keyboard events to popover navigation when active.
 
 ---
 
