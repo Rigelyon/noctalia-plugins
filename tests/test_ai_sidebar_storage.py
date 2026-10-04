@@ -273,8 +273,8 @@ panel_layer = "overlay"
         with open(STORAGE_FILE, "r", encoding="utf-8") as f:
             content = f.read()
 
-        # In the preferToml 'else' branch, decoded search settings must be checked as fallbacks
-        self.assertIn('elseif type(decoded.enable_web_search) == "boolean" then', content)
+        # In the preferToml 'else' branch, decoded search settings must be checked
+        self.assertIn('if type(decoded.enable_web_search) == "boolean" then', content)
         self.assertIn("cfg.enable_web_search = decoded.enable_web_search", content)
         self.assertIn("decoded.search_engine", content)
         self.assertIn("decoded.search_api_key", content)

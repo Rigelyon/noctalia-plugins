@@ -295,31 +295,31 @@ function storage.loadConfig(): ConfigTable
           cfg.system_prompt = decoded.system_prompt
         end
 
-        if tomlWeb ~= nil then
-          cfg.enable_web_search = tomlWeb
-        elseif type(decoded.enable_web_search) == "boolean" then
+        if type(decoded.enable_web_search) == "boolean" then
           cfg.enable_web_search = decoded.enable_web_search
+        elseif tomlWeb ~= nil then
+          cfg.enable_web_search = tomlWeb
         end
 
         local rawEngine = noctalia.getConfig("search_engine")
-        if type(rawEngine) == "string" and rawEngine ~= "" then
-          cfg.search_engine = rawEngine
-        elseif type(decoded.search_engine) == "string" and decoded.search_engine ~= "" then
+        if type(decoded.search_engine) == "string" and decoded.search_engine ~= "" then
           cfg.search_engine = decoded.search_engine
+        elseif type(rawEngine) == "string" and rawEngine ~= "" then
+          cfg.search_engine = rawEngine
         end
 
         local rawSearchKey = noctalia.getConfig("search_api_key")
-        if type(rawSearchKey) == "string" and rawSearchKey ~= "" then
-          cfg.search_api_key = rawSearchKey
-        elseif type(decoded.search_api_key) == "string" and decoded.search_api_key ~= "" then
+        if type(decoded.search_api_key) == "string" and decoded.search_api_key ~= "" then
           cfg.search_api_key = decoded.search_api_key
+        elseif type(rawSearchKey) == "string" and rawSearchKey ~= "" then
+          cfg.search_api_key = rawSearchKey
         end
 
         local rawMaxResults = tonumber(noctalia.getConfig("search_max_results"))
-        if rawMaxResults ~= nil then
-          cfg.search_max_results = rawMaxResults
-        elseif type(decoded.search_max_results) == "number" then
+        if type(decoded.search_max_results) == "number" then
           cfg.search_max_results = decoded.search_max_results
+        elseif rawMaxResults ~= nil then
+          cfg.search_max_results = rawMaxResults
         end
       end
     end

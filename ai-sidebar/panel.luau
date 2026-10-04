@@ -1735,7 +1735,15 @@ local function renderSettingView()
   })
 
   table.insert(scrollItems, ui.separator({}))
-  table.insert(scrollItems, ui.row({ align = "center", justify = "space_between" }, {
+  table.insert(scrollItems, ui.row({
+    align = "center",
+    justify = "space_between",
+    onClick = function()
+      config.enable_web_search = not (config.enable_web_search == true)
+      settingRev += 1
+      render()
+    end,
+  }, {
     ui.row({ gap = 8, align = "center" }, {
       ui.glyph({
         name = "world",
@@ -1752,9 +1760,27 @@ local function renderSettingView()
       }),
     }),
     ui.toggle({
+      key = "setting-toggle-web-" .. tostring(settingRev) .. "-" .. (config.enable_web_search and "on" or "off"),
       checked = config.enable_web_search == true,
+      value = config.enable_web_search == true,
+      active = config.enable_web_search == true,
       onChange = function(val)
-        config.enable_web_search = val
+        local newVal: boolean
+        if type(val) == "boolean" then
+          newVal = val
+        elseif type(val) == "string" then
+          newVal = (val == "true" or val == "1" or val == "on")
+        elseif type(val) == "number" then
+          newVal = (val == 1)
+        else
+          newVal = not (config.enable_web_search == true)
+        end
+        config.enable_web_search = newVal
+        settingRev += 1
+        render()
+      end,
+      onClick = function()
+        config.enable_web_search = not (config.enable_web_search == true)
         settingRev += 1
         render()
       end,
