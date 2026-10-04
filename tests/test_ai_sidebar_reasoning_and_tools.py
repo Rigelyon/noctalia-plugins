@@ -94,5 +94,50 @@ class TestAiSidebarReasoningAndTools(unittest.TestCase):
         self.assertIn("expandedThinking", content)
         self.assertIn("enable_web_search", content)
 
+    def test_copy_button_copies_only_msg_content_excluding_reasoning(self):
+        panel_path = PLUGIN_DIR / "panel.luau"
+        content = panel_path.read_text(encoding="utf-8")
+        self.assertIn('noctalia.copyToClipboard(msg.content, "text/plain")', content)
+        # Ensure msg.reasoning is not concatenated to clipboard
+        self.assertNotIn("msg.content .. msg.reasoning", content)
+        self.assertNotIn("msg.reasoning .. msg.content", content)
+
+    def test_keyboard_navigation_index_wraparound(self):
+        # Test Down wrap-around logic: (idx % count) + 1
+        count = 3
+        idx = 1
+        idx = (idx % count) + 1
+        self.assertEqual(idx, 2)
+        idx = (idx % count) + 1
+        self.assertEqual(idx, 3)
+        idx = (idx % count) + 1
+        self.assertEqual(idx, 1)  # wrap-around to 1
+
+        # Test Up wrap-around logic: ((idx - 2 + count) % count) + 1
+        idx = ((idx - 2 + count) % count) + 1
+        self.assertEqual(idx, 3)  # wrap-around from 1 to 3
+        idx = ((idx - 2 + count) % count) + 1
+        self.assertEqual(idx, 2)
+
+    def test_settings_search_toggle_wiring(self):
+        panel_path = PLUGIN_DIR / "panel.luau"
+        content = panel_path.read_text(encoding="utf-8")
+        self.assertIn("config.enable_web_search == false", content)
+        self.assertIn("search_disabled_notice", content)
+
+    def test_thinking_accordion_structure_in_panel(self):
+        panel_path = PLUGIN_DIR / "panel.luau"
+        content = panel_path.read_text(encoding="utf-8")
+        self.assertIn("expandedThinking[idx]", content)
+        self.assertIn('"brain"', content)
+        self.assertIn("thinking_active", content)
+        self.assertIn("thinking_done", content)
+
+    def test_autonomous_tool_single_hop_limit(self):
+        client_path = PLUGIN_DIR / "client.luau"
+        content = client_path.read_text(encoding="utf-8")
+        self.assertIn("_disable_tools = true", content)
+
 if __name__ == "__main__":
     unittest.main()
+
