@@ -157,7 +157,7 @@ local function generateArchiveName(content: string): string
 end
 
 local function commitRename(oldFile: string, newName: string): boolean
-  local sanitized = noctalia.string.trim(newName):gsub("[/%\\:*?\"<>|]", "")
+  local sanitized = noctalia.string.trim(newName):gsub("[/\\:*?\"<>|]", "")
   sanitized = sanitized:gsub("^%.+", "")
   sanitized = noctalia.string.trim(sanitized)
   if #sanitized == 0 then
@@ -231,8 +231,8 @@ local function archiveCurrentDraft()
 end
 
 local function insertMarkdownSyntax(prefix: string, postfix: string?)
-  postfix = postfix or ""
-  buffer = buffer .. prefix .. postfix
+  local post = postfix or ""
+  buffer = buffer .. prefix .. post
   editorRev += 1
   render()
 end

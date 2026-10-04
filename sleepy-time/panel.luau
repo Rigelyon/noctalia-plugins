@@ -35,9 +35,12 @@ local function parseTimeStringToSeconds(str: string): number?
     clean = string.gsub(clean, "[^0-9:]", "")
     if clean == "" then return nil end
 
-    local parts = {}
+    local parts: { number } = {}
     for p in string.gmatch(clean, "%d+") do
-        table.insert(parts, tonumber(p))
+        local n = tonumber(p)
+        if n then
+            table.insert(parts, n)
+        end
     end
 
     if #parts == 1 then

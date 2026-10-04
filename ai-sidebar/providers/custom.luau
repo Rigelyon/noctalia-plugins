@@ -156,7 +156,7 @@ function custom.parseStreamEvent(line: string, state: any?): StreamEvent?
 
     if inThink then
       local closeTagStart, closeTagEnd = contentText:find("</think>")
-      if closeTagStart then
+      if closeTagStart and closeTagEnd then
         if state then state.inThink = false end
         local rText = contentText:sub(1, closeTagStart - 1)
         local cText = contentText:sub(closeTagEnd + 1)
@@ -171,11 +171,11 @@ function custom.parseStreamEvent(line: string, state: any?): StreamEvent?
       end
     else
       local openTagStart, openTagEnd = contentText:find("<think>")
-      if openTagStart then
+      if openTagStart and openTagEnd then
         if state then state.inThink = true end
         local afterOpen = contentText:sub(openTagEnd + 1)
         local closeTagStart, closeTagEnd = afterOpen:find("</think>")
-        if closeTagStart then
+        if closeTagStart and closeTagEnd then
           if state then state.inThink = false end
           local rText = afterOpen:sub(1, closeTagStart - 1)
           if rText ~= "" then

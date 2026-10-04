@@ -84,7 +84,7 @@ local function loadDatabase()
   return { entries = entries, allRows = allRows }
 end
 
-local db = loadDatabase()
+db = loadDatabase()
 
 local function splitTokens(text)
   local tokens = {}

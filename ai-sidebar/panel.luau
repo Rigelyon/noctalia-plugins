@@ -935,7 +935,9 @@ local function renderChatView()
           end
         end,
         onClick = function()
-          applyPrompt(p)
+          if applyPrompt then
+            applyPrompt(p)
+          end
         end,
       }, {
         ui.glyph({ name = "hash", size = 11, color = "primary" }),
@@ -1043,7 +1045,9 @@ local function renderChatView()
           end
         end,
         onClick = function()
-          applySlashCommand(sc)
+          if applySlashCommand then
+            applySlashCommand(sc)
+          end
         end,
       }, {
         ui.glyph({ name = sc.glyph, size = 11, color = "primary" }),
