@@ -83,6 +83,10 @@ class TestAiSidebarPanel(unittest.TestCase):
         self.assertIn("historySearch", content)
         self.assertIn("deleteSession", content)
         self.assertIn("createSession", content)
+        self.assertIn('text = tr("tab_history")', content)
+        self.assertNotIn('text = tr("tab_history") .. " ("', content)
+        self.assertIn("history_count", content)
+        self.assertIn("startFreshOnOpen", content)
 
     def test_setting_view_components(self):
         self.assertTrue(os.path.isfile(PANEL_FILE), "Missing panel.luau")

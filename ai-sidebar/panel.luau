@@ -98,6 +98,8 @@ local function sendMessage()
     is_search = if isSearch then true else nil,
   })
 
+  startFreshOnOpen = false
+
   -- Set session title from first message if default
   if currentSession.title == "New Conversation" then
     currentSession.title = storage.generateTitle(messageText)
@@ -636,6 +638,7 @@ local function renderChatView()
             currentSession.messages = {}
             storage.saveSessions(sessions)
           end
+          startFreshOnOpen = true
           inputBuffer = ""
           inputRev += 1
           pendingClear = false
@@ -1036,6 +1039,7 @@ local function renderHistoryView()
           gap = 2,
           onClick = function()
             currentSession = sess
+            startFreshOnOpen = false
             activeTab = "chat"
             render()
           end,
@@ -1053,6 +1057,24 @@ local function renderHistoryView()
     end
   end
 
+  local validCount = 0
+  for _, sess in ipairs(sessions) do
+    if #sess.messages > 0 then
+      validCount += 1
+    end
+  end
+
+  local countLabel: string
+  if queryLower ~= "" then
+    countLabel = tr("history_count_filtered", { shown = tostring(#rows), total = tostring(validCount) })
+  else
+    countLabel = tr("history_count", { count = tostring(validCount) })
+  end
+
+  local countRow = ui.row({ align = "center", justify = "space_between", paddingH = 4 }, {
+    ui.label({ text = countLabel, fontSize = 11, color = "on_surface_variant" }),
+  })
+
   if #rows == 0 then
     local emptyMsg = (queryLower == "") and tr("no_history") or tr("no_search_results")
     table.insert(rows, ui.label({ text = emptyMsg, color = "on_surface_variant" }))
@@ -1065,6 +1087,7 @@ local function renderHistoryView()
       variant = "primary",
       onClick = function()
         currentSession = storage.createSession(nil, config.active_provider, config[config.active_provider .. "_model"])
+        startFreshOnOpen = true
         inputBuffer = ""
         inputRev += 1
         activeTab = "chat"
@@ -1072,6 +1095,7 @@ local function renderHistoryView()
       end,
     }),
     searchBar,
+    countRow,
     ui.scroll({ flexGrow = 1, gap = 4 }, rows),
   })
 end
@@ -1527,6 +1551,7 @@ render = function()
         tooltip = tr("new_chat"),
         onClick = function()
           currentSession = storage.createSession(nil, config.active_provider, config[config.active_provider .. "_model"])
+          startFreshOnOpen = true
           inputBuffer = ""
           inputRev += 1
           activeTab = "chat"
@@ -1554,7 +1579,7 @@ render = function()
       end,
     }),
     ui.button({
-      text = tr("tab_history") .. " (" .. tostring(#sessions) .. ")",
+      text = tr("tab_history"),
       variant = activeTab == "history" and "primary" or "ghost",
       onClick = function()
         activeTab = "history"
@@ -1592,8 +1617,8 @@ end
 function onOpen(_context)
   config = storage.loadConfig()
   sessions = storage.loadSessions()
-  if startFreshOnOpen then
-    startFreshOnOpen = false
+  if startFreshOnOpen or (currentSession ~= nil and #currentSession.messages == 0) then
+    startFreshOnOpen = true
     currentSession = nil
   elseif currentSession then
     local matched = nil

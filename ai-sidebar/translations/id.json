@@ -21,6 +21,8 @@
   "search_history": "Cari riwayat percakapan...",
   "no_history": "Belum ada riwayat percakapan",
   "no_search_results": "Sesi tidak ditemukan",
+  "history_count": "{count} percakapan",
+  "history_count_filtered": "{shown} dari {total} percakapan",
   "delete_session": "Hapus",
   "delete_confirm": "Hapus sesi ini?",
   "save_settings": "Simpan Pengaturan",
