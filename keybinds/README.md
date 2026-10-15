@@ -1,27 +1,45 @@
 # Keybinds Cheatsheet
 
-<p align="center">
-  <img src="thumbnail.webp" alt="Keybinds Cheatsheet" style="width: 100%; max-width: 680px; border-radius: 12px;" />
-</p>
+![Keybinds Cheatsheet](thumbnail.webp)
 
 A sleek, aesthetic cheatsheet panel for Linux Hyprland keybindings paired with a customizable manual shortcut registry for terminal applications, shell commands, and custom tools.
 
-## Features
+## Plugin
 
-- **⚡ Live Hyprland Sync**: Queries active keybindings directly from `hyprctl binds -j` without brittle config parsing. Updates instantly when Hyprland reloads.
-- **✨ Smart Auto-Categorization**: Intelligently groups shortcuts into *Window Management*, *Workspaces*, *Apps & Launchers*, *Media & Hardware*, *Screen & Tools*, and *System*.
-- **⌨️ Physical `<kbd>` Visual Styling**: Displays modifier combinations (`SUPER`, `CTRL`, `ALT`, `SHIFT`) and special keys formatted like physical mechanical keyboard keys.
-- **🔍 Instant Multi-Word Search**: Filter shortcuts by description, key name, or category in real-time.
-- **📋 Click to Copy**: Click any shortcut card to instantly copy the key combination string to your clipboard.
-- **🛠️ Decoupled Custom Registry**: Includes built-in presets for Kitty Terminal, Shell CLI, and Neovim in `~/.config/noctalia/custom_keybinds.json`.
-- **📊 Status Bar Widget**: Keyboard icon in your Noctalia bar with instant panel toggle.
+| Field | Value |
+| --- | --- |
+| ID | `rigelyon/keybinds` |
+| Entries | Bar widget: `widget`; panel: `panel` |
 
 ## Requirements
 
-- **Hyprland**: For dynamic Wayland keybinding discovery (`hyprctl`).
-- **Noctalia v5** (Plugin API 28+).
+- `hyprland`: For dynamic Wayland keybinding discovery (`hyprctl`).
+- Noctalia v5 (Plugin API 28+).
 
-## Custom Keybinds
+## Usage
+
+Add the `widget` bar widget to your status bar layout in Noctalia Settings, or click it to open the cheatsheet. You can also toggle the `panel` directly from a Hyprland keybind or terminal command:
+
+```sh
+noctalia msg panel-toggle rigelyon/keybinds:panel
+```
+
+To bind this in your Hyprland configuration (`~/.config/hypr/configs/keybinds.lua`):
+
+```lua
+hl.bind("SUPER + F1", hl.dsp.exec_cmd("noctalia msg panel-toggle rigelyon/keybinds:panel"), { description = "Open Keybinds Cheatsheet" })
+```
+
+### Features
+
+- **Live Hyprland Sync**: Queries active keybindings directly from `hyprctl binds -j`. Updates instantly when Hyprland reloads.
+- **Smart Auto-Categorization**: Intelligently groups shortcuts into *Window Management*, *Workspaces*, *Apps & Launchers*, *Media & Hardware*, *Screen & Tools*, and *System*.
+- **Physical `<kbd>` Visual Styling**: Displays modifier combinations (`SUPER`, `CTRL`, `ALT`, `SHIFT`) and special keys formatted like physical mechanical keyboard keys.
+- **Instant Multi-Word Search**: Filter shortcuts by description, key name, or category in real-time.
+- **Click to Copy**: Click any shortcut card to instantly copy the key combination string to your clipboard.
+- **Decoupled Custom Registry**: Includes built-in presets for Kitty Terminal, Shell CLI, and Neovim in `~/.config/noctalia/custom_keybinds.json`.
+
+### Custom Keybinds
 
 Edit `~/.config/noctalia/custom_keybinds.json` to register custom shortcuts:
 
@@ -42,6 +60,13 @@ Edit `~/.config/noctalia/custom_keybinds.json` to register custom shortcuts:
 
 ## Settings
 
-- **Custom Keybinds File Path**: Path to manual JSON shortcut definitions.
-- **Copy on Click**: Enable/disable automatic clipboard copy when clicking cards.
-- **Grid Columns**: Choose between 1-column or 2-column layout.
+| Setting | Type | Default | Description |
+| --- | --- | --- | --- |
+| `custom_file_path` | `string` | `~/.config/noctalia/custom_keybinds.json` | Path to manual JSON shortcut definitions. |
+| `copy_on_click` | `bool` | `true` | Automatically copies the key combination to clipboard when clicking a card. |
+| `grid_columns` | `select` | `2` | Number of columns to display in the shortcuts grid (`1` or `2`). |
+
+## Notes
+
+- Binds are fetched dynamically via `hyprctl binds -j` on panel open and manual refresh.
+- If Hyprland is unavailable, custom keybinds remain accessible.

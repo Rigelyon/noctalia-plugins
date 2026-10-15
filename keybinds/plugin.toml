@@ -5,7 +5,7 @@ plugin_api = 28
 author = "rigelyon"
 license = "MIT"
 dependencies = []
-tags = ["utility", "hyprland", "keybinds", "cheatsheet", "panel", "bar"]
+tags = ["utility", "hyprland", "panel", "bar", "shortcut", "productivity"]
 icon = "keyboard"
 description = "Aesthetic keybindings cheatsheet panel for Hyprland shell with custom shortcut registry."
 
