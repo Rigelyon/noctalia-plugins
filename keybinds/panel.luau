@@ -2,7 +2,7 @@
 -- Keybinds Cheatsheet Panel for Noctalia
 -- Displays active Hyprland bindings and manual custom shortcuts in an aesthetic modal.
 
-local presets = require("./presets")
+local presets = require("./presets.luau")
 
 type KeybindItem = {
   id: string,
@@ -112,53 +112,53 @@ local function categorizeBind(description: string, key: string, dispatcher: stri
   local windowTerms = { "window", "float", "pin", "fullscreen", "maximize", "focus", "swap", "resize" }
   for _, term in ipairs(windowTerms) do
     if string.find(desc, term, 1, true) then
-      return "window", "app_window"
+      return "window", "app-window"
     end
   end
   if disp == "closewindow" or disp == "killactive" or disp == "togglefloating" or disp == "fullscreen"
     or disp == "pin" or disp == "movewindow" or disp == "resizeactive" or disp == "swapwindow" or disp == "movefocus" then
-    return "window", "app_window"
+    return "window", "app-window"
   end
 
   -- Workspaces
   if string.find(desc, "workspace", 1, true) or disp == "workspace" or disp == "movetoworkspace"
     or disp == "movetoworkspacesilent" or disp == "togglespecialworkspace" then
-    return "workspaces", "grid_view"
+    return "workspaces", "layout-grid"
   end
 
   -- Apps & Launchers
   if string.sub(desc, 1, 5) == "open " or string.find(desc, "browser", 1, true) or string.find(desc, "terminal", 1, true)
     or string.find(desc, "file manager", 1, true) or string.find(desc, "launcher", 1, true) or string.find(desc, "calculator", 1, true)
     or string.find(desc, "settings", 1, true) then
-    return "apps", "rocket_launch"
+    return "apps", "rocket"
   end
 
   -- Media & Hardware
   local mediaTerms = { "volume", "brightness", "mic", "play", "stop", "track", "mute", "airplane", "sleep" }
   for _, term in ipairs(mediaTerms) do
     if string.find(desc, term, 1, true) then
-      return "media", "volume_up"
+      return "media", "volume-2"
     end
   end
   if string.sub(k, 1, 4) == "xf86" then
-    return "media", "volume_up"
+    return "media", "volume-2"
   end
 
   -- Screen & Tools
   local screenTerms = { "screenshot", "record", "ocr", "qr", "annotation", "clipboard" }
   for _, term in ipairs(screenTerms) do
     if string.find(desc, term, 1, true) then
-      return "screen", "crop"
+      return "screen", "camera"
     end
   end
 
   -- System
   if string.find(desc, "exit", 1, true) or string.find(desc, "lock", 1, true) or string.find(desc, "power", 1, true)
     or string.find(desc, "shutdown", 1, true) or string.find(desc, "reboot", 1, true) or disp == "exit" then
-    return "system", "power_settings_new"
+    return "system", "power"
   end
 
-  return "other", "category"
+  return "other", "hash"
 end
 
 local function buildKeyComboText(modifiers: { string }, key: string): string
@@ -198,6 +198,9 @@ local function loadCustomKeybinds(): { KeybindItem }
     for _, cat in ipairs(data.categories) do
       local catName = cat.name or "Custom"
       local catIcon = cat.icon or "terminal"
+      if catIcon == "terminal_window" then
+        catIcon = "terminal"
+      end
       if type(cat.binds) == "table" then
         for i, b in ipairs(cat.binds) do
           local keys = b.keys or {}
@@ -293,7 +296,7 @@ local function renderHeader(): any
     paddingV = 4,
   }, {
     ui.row({ gap = 10, align = "center" }, {
-      ui.box({
+      ui.row({
         padding = 8,
         radius = 8 * cornerRadiusScale,
         fill = "surface_variant",
@@ -311,25 +314,25 @@ local function renderHeader(): any
     }),
     ui.row({ gap = 6, align = "center" }, {
       ui.button({
-        icon = "refresh",
+        glyph = "refresh",
+        variant = "ghost",
         tooltip = "Refresh Keybinds",
-        flat = true,
         onClick = function()
           refreshAllBinds()
         end,
       }),
       ui.button({
-        icon = "settings",
+        glyph = "settings",
+        variant = "ghost",
         tooltip = "Open Settings",
-        flat = true,
         onClick = function()
           noctalia.openSettings()
         end,
       }),
       ui.button({
-        icon = "close",
+        glyph = "x",
+        variant = "ghost",
         tooltip = "Close",
-        flat = true,
         onClick = function()
           panel.close()
         end,
@@ -349,17 +352,18 @@ local function renderSearchBar(): any
   }, {
     ui.glyph({ name = "search", size = 16, color = "on_surface_variant" }),
     ui.input({
+      key = "search-input",
       flexGrow = 1,
       placeholder = tr("panel.search_placeholder"),
       value = searchQuery,
-      onInput = function(val)
+      onChange = function(val)
         searchQuery = val
         render()
       end,
     }),
     (#searchQuery > 0) and ui.button({
-      icon = "close",
-      flat = true,
+      glyph = "x",
+      variant = "ghost",
       onClick = function()
         searchQuery = ""
         render()
@@ -381,13 +385,13 @@ local function renderCategoryPills(): any
 
   -- Base categories
   local cats = {
-    { id = "all", label = tr("panel.categories.all"), icon = "apps" },
-    { id = "window", label = tr("panel.categories.window"), icon = "app_window" },
-    { id = "workspaces", label = tr("panel.categories.workspaces"), icon = "grid_view" },
-    { id = "apps", label = tr("panel.categories.apps"), icon = "rocket_launch" },
-    { id = "media", label = tr("panel.categories.media"), icon = "volume_up" },
-    { id = "screen", label = tr("panel.categories.screen"), icon = "crop" },
-    { id = "system", label = tr("panel.categories.system"), icon = "power_settings_new" },
+    { id = "all", label = tr("panel.categories.all"), icon = "layout-grid" },
+    { id = "window", label = tr("panel.categories.window"), icon = "app-window" },
+    { id = "workspaces", label = tr("panel.categories.workspaces"), icon = "layout-grid" },
+    { id = "apps", label = tr("panel.categories.apps"), icon = "rocket" },
+    { id = "media", label = tr("panel.categories.media"), icon = "volume-2" },
+    { id = "screen", label = tr("panel.categories.screen"), icon = "camera" },
+    { id = "system", label = tr("panel.categories.system"), icon = "power" },
   }
 
   -- Collect custom categories present in items
@@ -408,7 +412,7 @@ local function renderCategoryPills(): any
     local cnt = counts[cat.id] or 0
     if cnt > 0 or cat.id == "all" then
       local isSelected = (activeCategory == cat.id)
-      table.insert(pillNodes, ui.box({
+      table.insert(pillNodes, ui.row({
         key = "pill-" .. cat.id,
         paddingV = 6,
         paddingH = 12,
@@ -431,7 +435,7 @@ local function renderCategoryPills(): any
             fontWeight = isSelected and "bold" or "normal",
             color = isSelected and "on_primary" or "on_surface",
           }),
-          ui.box({
+          ui.row({
             paddingV = 1,
             paddingH = 6,
             radius = 10,
@@ -449,14 +453,13 @@ local function renderCategoryPills(): any
     end
   end
 
-  return ui.scroll({
-    direction = "horizontal",
+  return ui.row({
     gap = 6,
   }, pillNodes)
 end
 
 local function renderKbdBadge(text: string, isPrimary: boolean): any
-  return ui.box({
+  return ui.row({
     paddingV = 3,
     paddingH = 7,
     radius = 4 * cornerRadiusScale,
@@ -483,7 +486,7 @@ local function renderKeybindCard(item: KeybindItem): any
     table.insert(kbdBadges, renderKbdBadge(item.key, true))
   end
 
-  return ui.box({
+  return ui.column({
     key = "card-" .. item.id,
     flexGrow = 1,
     padding = 10,
@@ -564,7 +567,7 @@ local function renderCardGrid(filtered: { KeybindItem }): any
       gap = 12,
       padding = 40,
     }, {
-      ui.glyph({ name = "search_off", size = 48, color = "on_surface_variant" }),
+      ui.glyph({ name = "search", size = 48, color = "on_surface_variant" }),
       ui.label({
         text = tr("panel.no_results", { query = searchQuery }),
         fontSize = 13,

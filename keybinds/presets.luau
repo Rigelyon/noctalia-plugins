@@ -22,7 +22,7 @@ presets.defaultJson = [=[{
     },
     {
       "name": "Shell / CLI",
-      "icon": "terminal_window",
+      "icon": "terminal",
       "binds": [
         { "keys": ["CTRL", "R"], "description": "Search History (Reverse)" },
         { "keys": ["CTRL", "L"], "description": "Clear Terminal Screen" },

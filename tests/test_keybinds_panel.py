@@ -22,7 +22,8 @@ class TestKeybindsPanel(unittest.TestCase):
         self.assertIn("panel.render(", content)
         self.assertIn("ui.input(", content)
         self.assertIn("ui.scroll(", content)
-        self.assertIn("ui.box(", content)
+        self.assertIn("ui.row(", content)
+        self.assertIn("ui.column(", content)
         self.assertIn("ui.label(", content)
         self.assertIn("ui.glyph(", content)
 
