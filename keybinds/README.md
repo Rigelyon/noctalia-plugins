@@ -33,15 +33,22 @@ hl.bind("SUPER + F1", hl.dsp.exec_cmd("noctalia msg panel-toggle rigelyon/keybin
 ### Features
 
 - **Live Hyprland Sync**: Queries active keybindings directly from `hyprctl binds -j`. Updates instantly when Hyprland reloads.
-- **Smart Auto-Categorization**: Intelligently groups shortcuts into *Window Management*, *Workspaces*, *Apps & Launchers*, *Media & Hardware*, *Screen & Tools*, and *System*.
+- **In-Panel CRUD Management**: Add, edit, or delete custom keybindings directly inside the panel using an interactive modal dialog with modifier toggle chips (`SUPER`, `CTRL`, `ALT`, `SHIFT`).
+- **Expanded 3-Column Layout**: Generous `1280 × 720 px` floating panel providing ~413px per column to minimize text truncation on long descriptions.
+- **Smart Auto-Categorization**: Intelligently groups shortcuts per app with subcategories sorted alphabetically (A–Z).
 - **Physical `<kbd>` Visual Styling**: Displays modifier combinations (`SUPER`, `CTRL`, `ALT`, `SHIFT`) and special keys formatted like physical mechanical keyboard keys.
 - **Instant Multi-Word Search**: Filter shortcuts by description, key name, or category in real-time.
-- **Click to Copy**: Click any shortcut card to instantly copy the key combination string to your clipboard.
-- **Decoupled Custom Registry**: Includes built-in presets for Kitty Terminal, Shell CLI, and Neovim in `~/.local/state/noctalia/plugins/data/rigelyon/keybinds/custom_keybinds.json`.
+- **Click to Copy & Tooltip Preview**: Click any shortcut card to instantly copy the key combination string to clipboard, or hover to view full unclipped description and key combo.
+- **Decoupled Custom Registry**: Includes built-in presets for Kitty Terminal, Shell CLI, and Neovim stored in `~/.local/state/noctalia/plugins/data/rigelyon/keybinds/custom_keybinds.json`.
 
-### Custom Keybinds
+### Managing Custom Keybinds
 
-Edit `~/.local/state/noctalia/plugins/data/rigelyon/keybinds/custom_keybinds.json` to register custom shortcuts:
+You can manage your custom shortcuts in two ways:
+1. **Directly from the Panel UI (Recommended)**:
+   - Click the `+` icon button in the header bar to add a new keybind.
+   - Hover over any custom shortcut card and click the **pencil** icon to edit or the **trash** icon to delete.
+2. **Via JSON File**:
+   - Edit `~/.local/state/noctalia/plugins/data/rigelyon/keybinds/custom_keybinds.json` directly:
 
 ```json
 {
