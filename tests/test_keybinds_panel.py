@@ -58,5 +58,13 @@ class TestKeybindsPanel(unittest.TestCase):
         self.assertIn("renderModalOverlay", content)
 
 
+    def test_top_to_bottom_column_chunking(self):
+        with open(PANEL_FILE, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn("math.ceil(totalItems / 3)", content)
+        self.assertIn("idx2 = r + numRows", content)
+        self.assertIn("idx3 = r + numRows * 2", content)
+
+
 if __name__ == "__main__":
     unittest.main()

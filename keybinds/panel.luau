@@ -915,18 +915,28 @@ local function renderCardGrid(filtered: { KeybindItem }): any
       -- Subcategory Section Heading
       table.insert(scrollContent, renderSubcategoryHeading(grp.name, grp.icon, #grp.items))
 
-      -- Cards in N columns
+      -- Cards in N columns (flowing top-to-bottom down columns, then left-to-right)
+      local totalItems = #grp.items
       if cols == 3 then
-        for i = 1, #grp.items, 3 do
-          local col1 = renderKeybindCard(grp.items[i])
-          local col2 = (i + 1 <= #grp.items) and renderKeybindCard(grp.items[i + 1]) or ui.spacer({ flexGrow = 1 })
-          local col3 = (i + 2 <= #grp.items) and renderKeybindCard(grp.items[i + 2]) or ui.spacer({ flexGrow = 1 })
+        local numRows = math.ceil(totalItems / 3)
+        for r = 1, numRows do
+          local idx1 = r
+          local idx2 = r + numRows
+          local idx3 = r + numRows * 2
+
+          local col1 = renderKeybindCard(grp.items[idx1])
+          local col2 = (idx2 <= totalItems) and renderKeybindCard(grp.items[idx2]) or ui.spacer({ flexGrow = 1 })
+          local col3 = (idx3 <= totalItems) and renderKeybindCard(grp.items[idx3]) or ui.spacer({ flexGrow = 1 })
           table.insert(scrollContent, ui.row({ gap = 6, align = "center" }, { col1, col2, col3 }))
         end
       elseif cols == 2 then
-        for i = 1, #grp.items, 2 do
-          local col1 = renderKeybindCard(grp.items[i])
-          local col2 = (i + 1 <= #grp.items) and renderKeybindCard(grp.items[i + 1]) or ui.spacer({ flexGrow = 1 })
+        local numRows = math.ceil(totalItems / 2)
+        for r = 1, numRows do
+          local idx1 = r
+          local idx2 = r + numRows
+
+          local col1 = renderKeybindCard(grp.items[idx1])
+          local col2 = (idx2 <= totalItems) and renderKeybindCard(grp.items[idx2]) or ui.spacer({ flexGrow = 1 })
           table.insert(scrollContent, ui.row({ gap = 6, align = "center" }, { col1, col2 }))
         end
       else
