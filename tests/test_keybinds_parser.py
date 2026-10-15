@@ -143,6 +143,8 @@ class TestKeybindsParser(unittest.TestCase):
         self.assertIn("return presets", content)
         self.assertIn("Kitty Terminal", content)
         self.assertIn("Shell / CLI", content)
+        self.assertIn("subcategories", content)
+        self.assertIn("Tabs & Windows", content)
 
 
 if __name__ == "__main__":

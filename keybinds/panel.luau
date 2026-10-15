@@ -1,13 +1,17 @@
 --!nonstrict
 -- Keybinds Cheatsheet Panel for Noctalia
--- Displays active Hyprland bindings and manual custom shortcuts in an aesthetic modal.
+-- Displays active Hyprland bindings and manual custom shortcuts categorized per app with subcategories.
 
 local presets = require("./presets.luau")
 
 type KeybindItem = {
   id: string,
-  category: string,
-  categoryIcon: string,
+  appId: string,
+  appName: string,
+  appIcon: string,
+  subcatId: string,
+  subcatName: string,
+  subcatIcon: string,
   modifiers: { string },
   key: string,
   keyComboText: string,
@@ -17,13 +21,13 @@ type KeybindItem = {
 }
 
 local items: { KeybindItem } = {}
-local activeCategory = "all"
+local activeApp = "hyprland"
 local searchQuery = ""
 local copiedId: string? = nil
 local hyprAvailable = true
 local isLoading = false
 local cornerRadiusScale = 1.0
-local gridColumns = "2"
+local gridColumns = "3"
 local customFilePath = ""
 
 local render
@@ -161,6 +165,20 @@ local function categorizeBind(description: string, key: string, dispatcher: stri
   return "other", "hash"
 end
 
+local HYPRLAND_ORDER = {
+  "window", "workspaces", "apps", "media", "screen", "system", "other"
+}
+
+local HYPRLAND_SUBCAT_INFO = {
+  window = { icon = "app-window", labelKey = "panel.categories.window" },
+  workspaces = { icon = "layout-grid", labelKey = "panel.categories.workspaces" },
+  apps = { icon = "rocket", labelKey = "panel.categories.apps" },
+  media = { icon = "volume-2", labelKey = "panel.categories.media" },
+  screen = { icon = "camera", labelKey = "panel.categories.screen" },
+  system = { icon = "power", labelKey = "panel.categories.system" },
+  other = { icon = "hash", labelKey = "panel.categories.other" },
+}
+
 local function buildKeyComboText(modifiers: { string }, key: string): string
   local parts = {}
   for _, m in ipairs(modifiers) do
@@ -194,37 +212,85 @@ local function loadCustomKeybinds(): { KeybindItem }
     return noctalia.json.decode(raw)
   end)
 
-  if ok and type(data) == "table" and type(data.categories) == "table" then
-    for _, cat in ipairs(data.categories) do
-      local catName = cat.name or "Custom"
-      local catIcon = cat.icon or "terminal"
-      if catIcon == "terminal_window" then
-        catIcon = "terminal"
-      end
-      if type(cat.binds) == "table" then
-        for i, b in ipairs(cat.binds) do
-          local keys = b.keys or {}
-          local mods = {}
-          local primaryKey = ""
-          if #keys > 0 then
-            for kIdx = 1, #keys - 1 do
-              table.insert(mods, keys[kIdx])
+  if ok and type(data) == "table" then
+    local appList = data.apps or data.categories
+    if type(appList) == "table" then
+      for appIdx, app in ipairs(appList) do
+        local appName = app.name or ("App " .. tostring(appIdx))
+        local appIcon = app.icon or "terminal"
+        if appIcon == "terminal_window" then
+          appIcon = "terminal"
+        end
+        local appId = string.lower(appName)
+
+        if type(app.subcategories) == "table" then
+          for subIdx, sub in ipairs(app.subcategories) do
+            local subName = sub.name or "General"
+            local subIcon = sub.icon or "command"
+            local subId = string.lower(subName)
+            if type(sub.binds) == "table" then
+              for bIdx, b in ipairs(sub.binds) do
+                local keys = b.keys or {}
+                local mods = {}
+                local primaryKey = ""
+                if #keys > 0 then
+                  for kIdx = 1, #keys - 1 do
+                    table.insert(mods, keys[kIdx])
+                  end
+                  primaryKey = keys[#keys]
+                end
+                local desc = b.description or ""
+                local combo = buildKeyComboText(mods, primaryKey)
+                table.insert(customItems, {
+                  id = "custom-" .. appId .. "-" .. tostring(subIdx) .. "-" .. tostring(bIdx),
+                  appId = appId,
+                  appName = appName,
+                  appIcon = appIcon,
+                  subcatId = subId,
+                  subcatName = subName,
+                  subcatIcon = subIcon,
+                  modifiers = mods,
+                  key = primaryKey,
+                  keyComboText = combo,
+                  description = desc,
+                  source = "custom",
+                  searchIndex = string.lower(appName .. " " .. subName .. " " .. desc .. " " .. combo),
+                })
+              end
             end
-            primaryKey = keys[#keys]
           end
-          local desc = b.description or ""
-          local combo = buildKeyComboText(mods, primaryKey)
-          table.insert(customItems, {
-            id = "custom-" .. catName .. "-" .. tostring(i),
-            category = catName,
-            categoryIcon = catIcon,
-            modifiers = mods,
-            key = primaryKey,
-            keyComboText = combo,
-            description = desc,
-            source = "custom",
-            searchIndex = string.lower(catName .. " " .. desc .. " " .. combo),
-          })
+        elseif type(app.binds) == "table" then
+          for bIdx, b in ipairs(app.binds) do
+            local keys = b.keys or {}
+            local mods = {}
+            local primaryKey = ""
+            if #keys > 0 then
+              for kIdx = 1, #keys - 1 do
+                table.insert(mods, keys[kIdx])
+              end
+              primaryKey = keys[#keys]
+            end
+            local desc = b.description or ""
+            local subName = b.subcategory or b.subcat or b.category or "General"
+            local subIcon = b.subcategoryIcon or b.icon or "command"
+            local subId = string.lower(subName)
+            local combo = buildKeyComboText(mods, primaryKey)
+            table.insert(customItems, {
+              id = "custom-" .. appId .. "-" .. tostring(bIdx),
+              appId = appId,
+              appName = appName,
+              appIcon = appIcon,
+              subcatId = subId,
+              subcatName = subName,
+              subcatIcon = subIcon,
+              modifiers = mods,
+              key = primaryKey,
+              keyComboText = combo,
+              description = desc,
+              source = "custom",
+              searchIndex = string.lower(appName .. " " .. subName .. " " .. desc .. " " .. combo),
+            })
+          end
         end
       end
     end
@@ -266,18 +332,25 @@ local function refreshAllBinds()
             desc = b.dispatcher .. (b.arg and (" " .. b.arg) or "")
           end
           local catKey, catIcon = categorizeBind(desc, rawKey, b.dispatcher)
+          local info = HYPRLAND_SUBCAT_INFO[catKey]
+          local subcatName = (info and tr(info.labelKey)) or catKey
+          local subcatIcon = (info and info.icon) or catIcon
           local combo = buildKeyComboText(mods, normKey)
 
           table.insert(items, {
             id = "hypr-" .. tostring(idx),
-            category = catKey,
-            categoryIcon = catIcon,
+            appId = "hyprland",
+            appName = "Hyprland",
+            appIcon = "layout-grid",
+            subcatId = catKey,
+            subcatName = subcatName,
+            subcatIcon = subcatIcon,
             modifiers = mods,
             key = normKey,
             keyComboText = combo,
             description = desc,
             source = "hyprland",
-            searchIndex = string.lower(catKey .. " " .. desc .. " " .. combo),
+            searchIndex = string.lower("hyprland " .. subcatName .. " " .. desc .. " " .. combo),
           })
         end
       end
@@ -286,6 +359,48 @@ local function refreshAllBinds()
     end
     render()
   end, 3000)
+end
+
+-- App list collection
+local function getAppList(): { { id: string, name: string, icon: string, count: number } }
+  local apps = {}
+  local seen = {}
+
+  local hyprCount = 0
+  for _, item in ipairs(items) do
+    if item.appId == "hyprland" then
+      hyprCount = hyprCount + 1
+    end
+  end
+  if hyprCount > 0 or hyprAvailable then
+    table.insert(apps, {
+      id = "hyprland",
+      name = "Hyprland",
+      icon = "layout-grid",
+      count = hyprCount,
+    })
+    seen["hyprland"] = true
+  end
+
+  for _, item in ipairs(items) do
+    if not seen[item.appId] then
+      seen[item.appId] = true
+      local cnt = 0
+      for _, it in ipairs(items) do
+        if it.appId == item.appId then
+          cnt = cnt + 1
+        end
+      end
+      table.insert(apps, {
+        id = item.appId,
+        name = item.appName,
+        icon = item.appIcon,
+        count = cnt,
+      })
+    end
+  end
+
+  return apps
 end
 
 -- UI Building Blocks
@@ -312,7 +427,7 @@ local function renderHeader(): any
         color = "on_surface_variant",
       }),
     }),
-    -- Center: Compact Search Input (integrated directly, no bulky double background)
+    -- Center: Compact Search Input (integrated directly into header)
     ui.row({
       align = "center",
       gap = 6,
@@ -369,111 +484,130 @@ local function renderHeader(): any
   })
 end
 
-local function getCategoryCounts(): { [string]: number }
-  local counts = { all = #items }
-  for _, item in ipairs(items) do
-    counts[item.category] = (counts[item.category] or 0) + 1
+local function renderAppTabs(): any
+  local apps = getAppList()
+  if #apps == 0 then
+    return ui.row({})
   end
-  return counts
-end
 
-local function renderCategoryPills(): any
-  local counts = getCategoryCounts()
+  -- Validate activeApp
+  local activeFound = false
+  for _, app in ipairs(apps) do
+    if app.id == activeApp then
+      activeFound = true
+      break
+    end
+  end
+  if not activeFound and #apps > 0 then
+    activeApp = apps[1].id
+  end
 
-  -- Base categories
-  local cats = {
-    { id = "all", label = tr("panel.categories.all"), icon = "layout-grid" },
-    { id = "window", label = tr("panel.categories.window"), icon = "app-window" },
-    { id = "workspaces", label = tr("panel.categories.workspaces"), icon = "layout-grid" },
-    { id = "apps", label = tr("panel.categories.apps"), icon = "rocket" },
-    { id = "media", label = tr("panel.categories.media"), icon = "volume-2" },
-    { id = "screen", label = tr("panel.categories.screen"), icon = "camera" },
-    { id = "system", label = tr("panel.categories.system"), icon = "power" },
-  }
+  local q = string.lower(noctalia.string.trim(searchQuery))
+  local qWords = {}
+  for w in string.gmatch(q, "%S+") do
+    table.insert(qWords, w)
+  end
 
-  -- Collect custom categories present in items
-  local customCatsSeen = {}
-  for _, item in ipairs(items) do
-    if item.source == "custom" and not customCatsSeen[item.category] then
-      customCatsSeen[item.category] = true
-      table.insert(cats, {
-        id = item.category,
-        label = item.category,
-        icon = item.categoryIcon or "terminal",
-      })
+  -- Calculate match count per app if searching
+  local matchCounts = {}
+  if #qWords > 0 then
+    for _, item in ipairs(items) do
+      local matched = true
+      for _, w in ipairs(qWords) do
+        if not string.find(item.searchIndex, w, 1, true) then
+          matched = false
+          break
+        end
+      end
+      if matched then
+        matchCounts[item.appId] = (matchCounts[item.appId] or 0) + 1
+      end
     end
   end
 
-  local pillNodes = {}
-  for _, cat in ipairs(cats) do
-    local cnt = counts[cat.id] or 0
-    if cnt > 0 or cat.id == "all" then
-      local isSelected = (activeCategory == cat.id)
-      table.insert(pillNodes, ui.row({
-        key = "pill-" .. cat.id,
-        paddingV = 4,
-        paddingH = 8,
-        radius = 14 * cornerRadiusScale,
-        fill = isSelected and "primary" or "surface",
-        onClick = function()
-          activeCategory = cat.id
-          render()
-        end,
-      }, {
-        ui.row({ gap = 5, align = "center" }, {
-          ui.glyph({
-            name = cat.icon,
-            size = 13,
-            color = isSelected and "on_primary" or "on_surface_variant",
-          }),
+  local tabNodes = {}
+  for _, app in ipairs(apps) do
+    local isSelected = (activeApp == app.id)
+    local displayCount = (#qWords > 0) and (matchCounts[app.id] or 0) or app.count
+    table.insert(tabNodes, ui.row({
+      key = "app-tab-" .. app.id,
+      paddingV = 5,
+      paddingH = 12,
+      radius = 16 * cornerRadiusScale,
+      fill = isSelected and "primary" or "surface",
+      onClick = function()
+        activeApp = app.id
+        render()
+      end,
+    }, {
+      ui.row({ gap = 6, align = "center" }, {
+        ui.glyph({
+          name = app.icon,
+          size = 14,
+          color = isSelected and "on_primary" or "on_surface_variant",
+        }),
+        ui.label({
+          text = app.name,
+          fontSize = 12,
+          fontWeight = isSelected and "bold" or "normal",
+          color = isSelected and "on_primary" or "on_surface",
+        }),
+        ui.row({
+          paddingV = 1,
+          paddingH = 6,
+          radius = 8,
+          fill = isSelected and "on_primary" or "surface_variant",
+        }, {
           ui.label({
-            text = cat.label,
-            fontSize = 11,
-            fontWeight = isSelected and "bold" or "normal",
-            color = isSelected and "on_primary" or "on_surface",
-          }),
-          ui.row({
-            paddingV = 1,
-            paddingH = 5,
-            radius = 8,
-            fill = isSelected and "on_primary" or "surface_variant",
-          }, {
-            ui.label({
-              text = tostring(cnt),
-              fontSize = 9,
-              fontWeight = "bold",
-              color = isSelected and "primary" or "on_surface_variant",
-            }),
+            text = tostring(displayCount),
+            fontSize = 9,
+            fontWeight = "bold",
+            color = isSelected and "primary" or "on_surface_variant",
           }),
         }),
-      }))
-    end
+      }),
+    }))
   end
 
-  local maxPerRow = 7
-  if #pillNodes <= maxPerRow then
-    return ui.row({
-      gap = 6,
-      align = "center",
-    }, pillNodes)
-  end
+  return ui.row({
+    gap = 8,
+    align = "center",
+  }, tabNodes)
+end
 
-  local pillRows = {}
-  local currentRow = {}
-  for _, pill in ipairs(pillNodes) do
-    table.insert(currentRow, pill)
-    if #currentRow >= maxPerRow then
-      table.insert(pillRows, ui.row({ gap = 6, align = "center" }, currentRow))
-      currentRow = {}
-    end
-  end
-  if #currentRow > 0 then
-    table.insert(pillRows, ui.row({ gap = 6, align = "center" }, currentRow))
-  end
-
-  return ui.column({
-    gap = 4,
-  }, pillRows)
+local function renderSubcategoryHeading(title: string, icon: string, count: number): any
+  return ui.row({
+    gap = 8,
+    align = "center",
+    paddingV = 4,
+    paddingH = 2,
+  }, {
+    ui.glyph({ name = icon, size = 13, color = "primary" }),
+    ui.label({
+      text = title,
+      fontSize = 12,
+      fontWeight = "bold",
+      color = "primary",
+    }),
+    ui.row({
+      paddingV = 1,
+      paddingH = 6,
+      radius = 8,
+      fill = "surface_variant",
+    }, {
+      ui.label({
+        text = tostring(count),
+        fontSize = 9,
+        fontWeight = "bold",
+        color = "on_surface_variant",
+      }),
+    }),
+    ui.box({
+      flexGrow = 1,
+      height = 1,
+      fill = "surface_variant",
+    }),
+  })
 end
 
 local function renderKbdBadge(text: string, isPrimary: boolean): any
@@ -517,14 +651,14 @@ local function renderKeybindCard(item: KeybindItem): any
     onClick = function()
       local copyEnabled = noctalia.getConfig("copy_on_click") ~= false
       if copyEnabled then
-        noctalia.copyToClipboard(item.keyComboText, "text/plain")
+        noctalia.copyToClipboard(item.keyComboText)
         copiedId = item.id
         render()
       end
     end,
   }, {
     ui.row({ gap = 6, align = "center", flexGrow = 1 }, {
-      ui.glyph({ name = item.categoryIcon, size = 11, color = "on_surface_variant" }),
+      ui.glyph({ name = item.subcatIcon, size = 11, color = "on_surface_variant" }),
       ui.label({
         text = isCopied and tr("panel.copied") or item.description,
         fontSize = 11,
@@ -546,8 +680,7 @@ local function filterItems(): { KeybindItem }
   end
 
   for _, item in ipairs(items) do
-    local matchCat = (activeCategory == "all") or (item.category == activeCategory)
-    if matchCat then
+    if item.appId == activeApp then
       if #qWords == 0 then
         table.insert(filtered, item)
       else
@@ -586,31 +719,75 @@ local function renderCardGrid(filtered: { KeybindItem }): any
   end
 
   local cols = tonumber(gridColumns) or 3
-  local rows = {}
+  local scrollContent = {}
 
-  if cols == 3 then
-    for i = 1, #filtered, 3 do
-      local col1 = renderKeybindCard(filtered[i])
-      local col2 = (i + 1 <= #filtered) and renderKeybindCard(filtered[i + 1]) or ui.spacer({ flexGrow = 1 })
-      local col3 = (i + 2 <= #filtered) and renderKeybindCard(filtered[i + 2]) or ui.spacer({ flexGrow = 1 })
-      table.insert(rows, ui.row({ gap = 6, align = "center" }, { col1, col2, col3 }))
+  -- Group items by subcategory while preserving defined order
+  local groups = {}
+  local groupMap = {}
+
+  if activeApp == "hyprland" then
+    for _, catKey in ipairs(HYPRLAND_ORDER) do
+      local info = HYPRLAND_SUBCAT_INFO[catKey]
+      local grp = {
+        id = catKey,
+        name = info and tr(info.labelKey) or catKey,
+        icon = (info and info.icon) or "command",
+        items = {},
+      }
+      groupMap[catKey] = grp
+      table.insert(groups, grp)
     end
-  elseif cols == 2 then
-    for i = 1, #filtered, 2 do
-      local col1 = renderKeybindCard(filtered[i])
-      local col2 = (i + 1 <= #filtered) and renderKeybindCard(filtered[i + 1]) or ui.spacer({ flexGrow = 1 })
-      table.insert(rows, ui.row({ gap = 6, align = "center" }, { col1, col2 }))
+  end
+
+  for _, item in ipairs(filtered) do
+    local grp = groupMap[item.subcatId]
+    if not grp then
+      grp = {
+        id = item.subcatId,
+        name = item.subcatName,
+        icon = item.subcatIcon,
+        items = {},
+      }
+      groupMap[item.subcatId] = grp
+      table.insert(groups, grp)
     end
-  else
-    for _, item in ipairs(filtered) do
-      table.insert(rows, renderKeybindCard(item))
+    table.insert(grp.items, item)
+  end
+
+  for _, grp in ipairs(groups) do
+    if #grp.items > 0 then
+      -- Subcategory Section Heading
+      table.insert(scrollContent, renderSubcategoryHeading(grp.name, grp.icon, #grp.items))
+
+      -- Cards in N columns
+      if cols == 3 then
+        for i = 1, #grp.items, 3 do
+          local col1 = renderKeybindCard(grp.items[i])
+          local col2 = (i + 1 <= #grp.items) and renderKeybindCard(grp.items[i + 1]) or ui.spacer({ flexGrow = 1 })
+          local col3 = (i + 2 <= #grp.items) and renderKeybindCard(grp.items[i + 2]) or ui.spacer({ flexGrow = 1 })
+          table.insert(scrollContent, ui.row({ gap = 6, align = "center" }, { col1, col2, col3 }))
+        end
+      elseif cols == 2 then
+        for i = 1, #grp.items, 2 do
+          local col1 = renderKeybindCard(grp.items[i])
+          local col2 = (i + 1 <= #grp.items) and renderKeybindCard(grp.items[i + 1]) or ui.spacer({ flexGrow = 1 })
+          table.insert(scrollContent, ui.row({ gap = 6, align = "center" }, { col1, col2 }))
+        end
+      else
+        for _, item in ipairs(grp.items) do
+          table.insert(scrollContent, renderKeybindCard(item))
+        end
+      end
+
+      -- Subtle gap after section
+      table.insert(scrollContent, ui.spacer({ height = 4 }))
     end
   end
 
   return ui.scroll({
     flexGrow = 1,
     gap = 4,
-  }, rows)
+  }, scrollContent)
 end
 
 local function renderFooter(): any
@@ -642,7 +819,7 @@ render = function()
     padding = 12,
   }, {
     renderHeader(),
-    renderCategoryPills(),
+    renderAppTabs(),
     renderCardGrid(filtered),
     renderFooter(),
   }))
@@ -652,11 +829,11 @@ end
 
 function onOpen(_context)
   cornerRadiusScale = noctalia.getSetting("shell.corner_radius_scale") or 1.0
-  gridColumns = tostring(noctalia.getConfig("grid_columns") or "2")
+  gridColumns = tostring(noctalia.getConfig("grid_columns") or "3")
   customFilePath = noctalia.getConfig("custom_file_path") or "~/.config/noctalia/custom_keybinds.json"
 
   searchQuery = ""
-  activeCategory = "all"
+  activeApp = "hyprland"
   copiedId = nil
 
   refreshAllBinds()

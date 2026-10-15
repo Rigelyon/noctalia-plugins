@@ -33,6 +33,11 @@ class TestKeybindsPanel(unittest.TestCase):
         self.assertIn("noctalia.readFile", content)
         self.assertIn("noctalia.copyToClipboard", content)
 
+        # Per-app and subcategory architecture
+        self.assertIn("renderAppTabs", content)
+        self.assertIn("renderSubcategoryHeading", content)
+        self.assertNotIn('activeCategory = "all"', content)
+
     def test_no_lua_syntax_gotchas(self):
         with open(PANEL_FILE, "r", encoding="utf-8") as f:
             lines = f.readlines()
