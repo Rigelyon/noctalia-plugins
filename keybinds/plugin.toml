@@ -1,0 +1,48 @@
+id = "rigelyon/keybinds"
+name = "Keybinds Cheatsheet"
+version = "1.0.0"
+plugin_api = 28
+author = "rigelyon"
+license = "MIT"
+dependencies = []
+tags = ["utility", "hyprland", "keybinds", "cheatsheet", "panel", "bar"]
+icon = "keyboard"
+description = "Aesthetic keybindings cheatsheet panel for Hyprland shell with custom shortcut registry."
+
+[[setting]]
+key = "custom_file_path"
+type = "string"
+label_key = "settings.custom_file_path.label"
+description_key = "settings.custom_file_path.description"
+default = "~/.config/noctalia/custom_keybinds.json"
+
+[[setting]]
+key = "copy_on_click"
+type = "bool"
+label_key = "settings.copy_on_click.label"
+description_key = "settings.copy_on_click.description"
+default = true
+
+[[setting]]
+key = "grid_columns"
+type = "select"
+label_key = "settings.grid_columns.label"
+description_key = "settings.grid_columns.description"
+default = "2"
+options = [
+  { value = "1", label_key = "settings.grid_columns.options.1" },
+  { value = "2", label_key = "settings.grid_columns.options.2" },
+]
+
+[[panel]]
+id = "panel"
+entry = "panel.luau"
+placement = "floating"
+position = "center"
+width = 820
+height = 640
+capture_keys = ["Escape"]
+
+[[widget]]
+id = "widget"
+entry = "widget.luau"

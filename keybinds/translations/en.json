@@ -1,0 +1,44 @@
+{
+  "plugin_name": "Keybinds Cheatsheet",
+  "plugin_desc": "Aesthetic keybindings cheatsheet panel for Hyprland shell with custom shortcut registry.",
+  "settings": {
+    "custom_file_path": {
+      "label": "Custom Keybinds File Path",
+      "description": "Path to the JSON file containing manually registered custom shortcuts."
+    },
+    "copy_on_click": {
+      "label": "Copy on Click",
+      "description": "Clicking any shortcut card automatically copies the key combination to clipboard."
+    },
+    "grid_columns": {
+      "label": "Grid Columns",
+      "description": "Number of columns to display in the shortcuts grid.",
+      "options": {
+        "1": "1 Column",
+        "2": "2 Columns"
+      }
+    }
+  },
+  "panel": {
+    "title": "Keybinds Cheatsheet",
+    "subtitle": "{count} active shortcuts",
+    "search_placeholder": "Search shortcut, key, or category...",
+    "no_results": "No shortcuts matching \"{query}\"",
+    "copied": "Copied to clipboard!",
+    "hypr_unavailable": "Hyprctl not detected — showing custom keybinds only",
+    "footer_hint": "Esc: Close • Click: Copy • Config: {path}",
+    "categories": {
+      "all": "All",
+      "window": "Window",
+      "workspaces": "Workspaces",
+      "apps": "Apps",
+      "media": "Media",
+      "screen": "Screen & Tools",
+      "system": "System",
+      "other": "Other"
+    }
+  },
+  "widget": {
+    "tooltip": "Keybinds Cheatsheet (Click to open)"
+  }
+}

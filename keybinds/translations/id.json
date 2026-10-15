@@ -1,0 +1,44 @@
+{
+  "plugin_name": "Keybinds Cheatsheet",
+  "plugin_desc": "Panel cheatsheet daftar keybinds Hyprland yang rapi dan cantik dengan custom shortcut registry.",
+  "settings": {
+    "custom_file_path": {
+      "label": "Jalur File Custom Keybinds",
+      "description": "Lokasi file JSON berisi daftar shortcut kustom yang didaftarkan manual."
+    },
+    "copy_on_click": {
+      "label": "Salin Saat Diklik",
+      "description": "Mengklik kartu shortcut akan otomatis menyalin kombinasi tombol ke clipboard."
+    },
+    "grid_columns": {
+      "label": "Jumlah Kolom Grid",
+      "description": "Jumlah kolom yang ditampilkan pada grid daftar shortcut.",
+      "options": {
+        "1": "1 Kolom",
+        "2": "2 Kolom"
+      }
+    }
+  },
+  "panel": {
+    "title": "Keybinds Cheatsheet",
+    "subtitle": "{count} shortcut aktif",
+    "search_placeholder": "Cari shortcut, tombol, atau kategori...",
+    "no_results": "Tidak ada shortcut yang cocok dengan \"{query}\"",
+    "copied": "Berhasil disalin ke clipboard!",
+    "hypr_unavailable": "Hyprctl tidak terdeteksi — hanya menampilkan custom keybinds",
+    "footer_hint": "Esc: Tutup • Klik: Salin • Config: {path}",
+    "categories": {
+      "all": "Semua",
+      "window": "Window",
+      "workspaces": "Workspace",
+      "apps": "Aplikasi",
+      "media": "Media",
+      "screen": "Layar & Alat",
+      "system": "Sistem",
+      "other": "Lainnya"
+    }
+  },
+  "widget": {
+    "tooltip": "Keybinds Cheatsheet (Klik untuk membuka)"
+  }
+}
