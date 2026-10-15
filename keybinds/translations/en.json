@@ -15,7 +15,8 @@
       "description": "Number of columns to display in the shortcuts grid.",
       "options": {
         "1": "1 Column",
-        "2": "2 Columns"
+        "2": "2 Columns",
+        "3": "3 Columns"
       }
     }
   },

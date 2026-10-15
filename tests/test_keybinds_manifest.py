@@ -44,8 +44,8 @@ class TestKeybindsManifest(unittest.TestCase):
         self.assertEqual(panels[0].get("entry"), "panel.luau")
         self.assertEqual(panels[0].get("placement"), "floating")
         self.assertEqual(panels[0].get("position"), "center")
-        self.assertEqual(panels[0].get("width"), 820)
-        self.assertEqual(panels[0].get("height"), 640)
+        self.assertEqual(panels[0].get("width"), 1120)
+        self.assertEqual(panels[0].get("height"), 700)
         self.assertIn("Escape", panels[0].get("capture_keys", []))
 
         # Verify widget

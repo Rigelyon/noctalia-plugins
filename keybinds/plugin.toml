@@ -28,10 +28,11 @@ key = "grid_columns"
 type = "select"
 label_key = "settings.grid_columns.label"
 description_key = "settings.grid_columns.description"
-default = "2"
+default = "3"
 options = [
   { value = "1", label_key = "settings.grid_columns.options.1" },
   { value = "2", label_key = "settings.grid_columns.options.2" },
+  { value = "3", label_key = "settings.grid_columns.options.3" },
 ]
 
 [[panel]]
@@ -39,8 +40,8 @@ id = "panel"
 entry = "panel.luau"
 placement = "floating"
 position = "center"
-width = 820
-height = 640
+width = 1120
+height = 700
 capture_keys = ["Escape"]
 
 [[widget]]

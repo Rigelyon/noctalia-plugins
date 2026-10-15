@@ -293,26 +293,54 @@ local function renderHeader(): any
   return ui.row({
     justify = "space_between",
     align = "center",
-    paddingV = 4,
+    gap = 12,
+    paddingV = 2,
   }, {
-    ui.row({ gap = 10, align = "center" }, {
+    -- Left: Title & Count
+    ui.row({ gap = 8, align = "center" }, {
       ui.row({
-        padding = 8,
-        radius = 8 * cornerRadiusScale,
+        padding = 5,
+        radius = 6 * cornerRadiusScale,
         fill = "surface_variant",
       }, {
-        ui.glyph({ name = "keyboard", size = 22, color = "primary" }),
+        ui.glyph({ name = "keyboard", size = 16, color = "primary" }),
       }),
-      ui.column({ gap = 2 }, {
-        ui.label({ text = tr("panel.title"), fontSize = 16, fontWeight = "bold" }),
-        ui.label({
-          text = tr("panel.subtitle", { count = #items }),
-          fontSize = 11,
-          color = "on_surface_variant",
-        }),
+      ui.label({ text = tr("panel.title"), fontSize = 14, fontWeight = "bold" }),
+      ui.label({
+        text = "(" .. tostring(#items) .. ")",
+        fontSize = 11,
+        color = "on_surface_variant",
       }),
     }),
-    ui.row({ gap = 6, align = "center" }, {
+    -- Center: Compact Search Input (integrated directly, no bulky double background)
+    ui.row({
+      align = "center",
+      gap = 6,
+      flexGrow = 1,
+      paddingH = 12,
+    }, {
+      ui.input({
+        key = "search-input",
+        flexGrow = 1,
+        placeholder = tr("panel.search_placeholder"),
+        value = searchQuery,
+        onChange = function(val)
+          searchQuery = val
+          render()
+        end,
+      }),
+      (#searchQuery > 0) and ui.button({
+        glyph = "x",
+        variant = "ghost",
+        tooltip = "Clear search",
+        onClick = function()
+          searchQuery = ""
+          render()
+        end,
+      }) or nil,
+    }),
+    -- Right: Action Buttons
+    ui.row({ gap = 4, align = "center" }, {
       ui.button({
         glyph = "refresh",
         variant = "ghost",
@@ -332,43 +360,12 @@ local function renderHeader(): any
       ui.button({
         glyph = "x",
         variant = "ghost",
-        tooltip = "Close",
+        tooltip = "Close (Esc)",
         onClick = function()
           panel.close()
         end,
       }),
     }),
-  })
-end
-
-local function renderSearchBar(): any
-  return ui.row({
-    align = "center",
-    gap = 8,
-    padding = 6,
-    paddingH = 12,
-    radius = 8 * cornerRadiusScale,
-    fill = "surface_variant",
-  }, {
-    ui.glyph({ name = "search", size = 16, color = "on_surface_variant" }),
-    ui.input({
-      key = "search-input",
-      flexGrow = 1,
-      placeholder = tr("panel.search_placeholder"),
-      value = searchQuery,
-      onChange = function(val)
-        searchQuery = val
-        render()
-      end,
-    }),
-    (#searchQuery > 0) and ui.button({
-      glyph = "x",
-      variant = "ghost",
-      onClick = function()
-        searchQuery = ""
-        render()
-      end,
-    }) or nil,
   })
 end
 
@@ -414,36 +411,36 @@ local function renderCategoryPills(): any
       local isSelected = (activeCategory == cat.id)
       table.insert(pillNodes, ui.row({
         key = "pill-" .. cat.id,
-        paddingV = 6,
-        paddingH = 12,
-        radius = 20 * cornerRadiusScale,
+        paddingV = 4,
+        paddingH = 8,
+        radius = 14 * cornerRadiusScale,
         fill = isSelected and "primary" or "surface",
         onClick = function()
           activeCategory = cat.id
           render()
         end,
       }, {
-        ui.row({ gap = 6, align = "center" }, {
+        ui.row({ gap = 5, align = "center" }, {
           ui.glyph({
             name = cat.icon,
-            size = 14,
+            size = 13,
             color = isSelected and "on_primary" or "on_surface_variant",
           }),
           ui.label({
             text = cat.label,
-            fontSize = 12,
+            fontSize = 11,
             fontWeight = isSelected and "bold" or "normal",
             color = isSelected and "on_primary" or "on_surface",
           }),
           ui.row({
             paddingV = 1,
-            paddingH = 6,
-            radius = 10,
+            paddingH = 5,
+            radius = 8,
             fill = isSelected and "on_primary" or "surface_variant",
           }, {
             ui.label({
               text = tostring(cnt),
-              fontSize = 10,
+              fontSize = 9,
               fontWeight = "bold",
               color = isSelected and "primary" or "on_surface_variant",
             }),
@@ -453,21 +450,42 @@ local function renderCategoryPills(): any
     end
   end
 
-  return ui.row({
-    gap = 6,
-  }, pillNodes)
+  local maxPerRow = 7
+  if #pillNodes <= maxPerRow then
+    return ui.row({
+      gap = 6,
+      align = "center",
+    }, pillNodes)
+  end
+
+  local pillRows = {}
+  local currentRow = {}
+  for _, pill in ipairs(pillNodes) do
+    table.insert(currentRow, pill)
+    if #currentRow >= maxPerRow then
+      table.insert(pillRows, ui.row({ gap = 6, align = "center" }, currentRow))
+      currentRow = {}
+    end
+  end
+  if #currentRow > 0 then
+    table.insert(pillRows, ui.row({ gap = 6, align = "center" }, currentRow))
+  end
+
+  return ui.column({
+    gap = 4,
+  }, pillRows)
 end
 
 local function renderKbdBadge(text: string, isPrimary: boolean): any
   return ui.row({
-    paddingV = 3,
-    paddingH = 7,
+    paddingV = 2,
+    paddingH = 5,
     radius = 4 * cornerRadiusScale,
     fill = isPrimary and "surface_variant" or "surface",
   }, {
     ui.label({
       text = text,
-      fontSize = 11,
+      fontSize = 10,
       fontWeight = "bold",
       color = isPrimary and "primary" or "on_surface",
     }),
@@ -480,18 +498,22 @@ local function renderKeybindCard(item: KeybindItem): any
   local kbdBadges = {}
   for _, m in ipairs(item.modifiers) do
     table.insert(kbdBadges, renderKbdBadge(m, false))
-    table.insert(kbdBadges, ui.label({ text = "+", fontSize = 10, color = "on_surface_variant" }))
+    table.insert(kbdBadges, ui.label({ text = "+", fontSize = 9, color = "on_surface_variant" }))
   end
   if item.key ~= "" then
     table.insert(kbdBadges, renderKbdBadge(item.key, true))
   end
 
-  return ui.column({
+  return ui.row({
     key = "card-" .. item.id,
     flexGrow = 1,
-    padding = 10,
-    radius = 8 * cornerRadiusScale,
+    paddingV = 5,
+    paddingH = 8,
+    radius = 6 * cornerRadiusScale,
     fill = isCopied and "primary_container" or "surface",
+    align = "center",
+    justify = "space_between",
+    gap = 6,
     onClick = function()
       local copyEnabled = noctalia.getConfig("copy_on_click") ~= false
       if copyEnabled then
@@ -501,30 +523,17 @@ local function renderKeybindCard(item: KeybindItem): any
       end
     end,
   }, {
-    ui.row({
-      align = "center",
-      justify = "space_between",
-      gap = 8,
-    }, {
-      ui.column({ gap = 2, flexGrow = 1 }, {
-        ui.label({
-          text = isCopied and tr("panel.copied") or item.description,
-          fontSize = 12,
-          fontWeight = isCopied and "bold" or "normal",
-          color = isCopied and "on_primary_container" or "on_surface",
-          maxLines = 1,
-        }),
-        ui.row({ gap = 4, align = "center" }, {
-          ui.glyph({ name = item.categoryIcon, size = 11, color = "on_surface_variant" }),
-          ui.label({
-            text = item.category,
-            fontSize = 10,
-            color = "on_surface_variant",
-          }),
-        }),
+    ui.row({ gap = 6, align = "center", flexGrow = 1 }, {
+      ui.glyph({ name = item.categoryIcon, size = 11, color = "on_surface_variant" }),
+      ui.label({
+        text = isCopied and tr("panel.copied") or item.description,
+        fontSize = 11,
+        fontWeight = isCopied and "bold" or "normal",
+        color = isCopied and "on_primary_container" or "on_surface",
+        maxLines = 1,
       }),
-      ui.row({ gap = 4, align = "center" }, kbdBadges),
     }),
+    ui.row({ gap = 2, align = "center" }, kbdBadges),
   })
 end
 
@@ -564,26 +573,33 @@ local function renderCardGrid(filtered: { KeybindItem }): any
       flexGrow = 1,
       align = "center",
       justify = "center",
-      gap = 12,
-      padding = 40,
+      gap = 10,
+      padding = 30,
     }, {
-      ui.glyph({ name = "search", size = 48, color = "on_surface_variant" }),
+      ui.glyph({ name = "search", size = 36, color = "on_surface_variant" }),
       ui.label({
         text = tr("panel.no_results", { query = searchQuery }),
-        fontSize = 13,
+        fontSize = 12,
         color = "on_surface_variant",
       }),
     })
   end
 
-  local isTwoCols = (gridColumns == "2")
+  local cols = tonumber(gridColumns) or 3
   local rows = {}
 
-  if isTwoCols then
+  if cols == 3 then
+    for i = 1, #filtered, 3 do
+      local col1 = renderKeybindCard(filtered[i])
+      local col2 = (i + 1 <= #filtered) and renderKeybindCard(filtered[i + 1]) or ui.spacer({ flexGrow = 1 })
+      local col3 = (i + 2 <= #filtered) and renderKeybindCard(filtered[i + 2]) or ui.spacer({ flexGrow = 1 })
+      table.insert(rows, ui.row({ gap = 6, align = "center" }, { col1, col2, col3 }))
+    end
+  elseif cols == 2 then
     for i = 1, #filtered, 2 do
       local col1 = renderKeybindCard(filtered[i])
       local col2 = (i + 1 <= #filtered) and renderKeybindCard(filtered[i + 1]) or ui.spacer({ flexGrow = 1 })
-      table.insert(rows, ui.row({ gap = 8, align = "center" }, { col1, col2 }))
+      table.insert(rows, ui.row({ gap = 6, align = "center" }, { col1, col2 }))
     end
   else
     for _, item in ipairs(filtered) do
@@ -593,7 +609,7 @@ local function renderCardGrid(filtered: { KeybindItem }): any
 
   return ui.scroll({
     flexGrow = 1,
-    gap = 8,
+    gap = 4,
   }, rows)
 end
 
@@ -602,16 +618,16 @@ local function renderFooter(): any
   return ui.row({
     justify = "space_between",
     align = "center",
-    paddingV = 4,
+    paddingV = 2,
   }, {
     ui.label({
       text = tr("panel.footer_hint", { path = path }),
-      fontSize = 11,
+      fontSize = 10,
       color = "on_surface_variant",
     }),
     (not hyprAvailable) and ui.label({
       text = tr("panel.hypr_unavailable"),
-      fontSize = 11,
+      fontSize = 10,
       color = "error",
     }) or nil,
   })
@@ -621,12 +637,11 @@ render = function()
   local filtered = filterItems()
   panel.render(ui.column({
     flexGrow = 1,
-    gap = 12,
+    gap = 10,
     align = "stretch",
-    padding = 16,
+    padding = 12,
   }, {
     renderHeader(),
-    renderSearchBar(),
     renderCategoryPills(),
     renderCardGrid(filtered),
     renderFooter(),

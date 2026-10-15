@@ -15,7 +15,8 @@
       "description": "Jumlah kolom yang ditampilkan pada grid daftar shortcut.",
       "options": {
         "1": "1 Kolom",
-        "2": "2 Kolom"
+        "2": "2 Kolom",
+        "3": "3 Kolom"
       }
     }
   },
