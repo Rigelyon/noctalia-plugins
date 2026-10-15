@@ -188,7 +188,17 @@ end
 
 local function loadCustomKeybinds(): { KeybindItem }
   local customItems: { KeybindItem } = {}
-  local path = noctalia.expandPath(customFilePath)
+  local rawPath = customFilePath
+  if rawPath == "" then
+    local cfgPath = noctalia.getConfig("custom_file_path")
+    if cfgPath and cfgPath ~= "" then
+      rawPath = cfgPath
+    else
+      local dataDir = noctalia.pluginDataDir()
+      rawPath = (dataDir and dataDir ~= "") and (dataDir .. "/custom_keybinds.json") or "~/.local/state/noctalia/plugins/data/rigelyon/keybinds/custom_keybinds.json"
+    end
+  end
+  local path = noctalia.expandPath(rawPath)
 
   -- Create default file if absent
   if not noctalia.fileExists(path) then
@@ -848,7 +858,14 @@ end
 function onOpen(_context)
   cornerRadiusScale = noctalia.getSetting("shell.corner_radius_scale") or 1.0
   gridColumns = tostring(noctalia.getConfig("grid_columns") or "3")
-  customFilePath = noctalia.getConfig("custom_file_path") or "~/.config/noctalia/custom_keybinds.json"
+
+  local cfgPath = noctalia.getConfig("custom_file_path")
+  if cfgPath and cfgPath ~= "" then
+    customFilePath = cfgPath
+  else
+    local dataDir = noctalia.pluginDataDir()
+    customFilePath = (dataDir and dataDir ~= "") and (dataDir .. "/custom_keybinds.json") or "~/.local/state/noctalia/plugins/data/rigelyon/keybinds/custom_keybinds.json"
+  end
 
   searchQuery = ""
   activeApp = "hyprland"

@@ -37,21 +37,27 @@ hl.bind("SUPER + F1", hl.dsp.exec_cmd("noctalia msg panel-toggle rigelyon/keybin
 - **Physical `<kbd>` Visual Styling**: Displays modifier combinations (`SUPER`, `CTRL`, `ALT`, `SHIFT`) and special keys formatted like physical mechanical keyboard keys.
 - **Instant Multi-Word Search**: Filter shortcuts by description, key name, or category in real-time.
 - **Click to Copy**: Click any shortcut card to instantly copy the key combination string to your clipboard.
-- **Decoupled Custom Registry**: Includes built-in presets for Kitty Terminal, Shell CLI, and Neovim in `~/.config/noctalia/custom_keybinds.json`.
+- **Decoupled Custom Registry**: Includes built-in presets for Kitty Terminal, Shell CLI, and Neovim in `~/.local/state/noctalia/plugins/data/rigelyon/keybinds/custom_keybinds.json`.
 
 ### Custom Keybinds
 
-Edit `~/.config/noctalia/custom_keybinds.json` to register custom shortcuts:
+Edit `~/.local/state/noctalia/plugins/data/rigelyon/keybinds/custom_keybinds.json` to register custom shortcuts:
 
 ```json
 {
-  "categories": [
+  "apps": [
     {
       "name": "Kitty Terminal",
       "icon": "terminal",
-      "binds": [
-        { "keys": ["CTRL", "SHIFT", "Enter"], "description": "New Pane" },
-        { "keys": ["CTRL", "SHIFT", "T"], "description": "New Tab" }
+      "subcategories": [
+        {
+          "name": "Tabs & Windows",
+          "icon": "app-window",
+          "binds": [
+            { "keys": ["CTRL", "SHIFT", "Enter"], "description": "New Pane" },
+            { "keys": ["CTRL", "SHIFT", "T"], "description": "New Tab" }
+          ]
+        }
       ]
     }
   ]
@@ -62,9 +68,9 @@ Edit `~/.config/noctalia/custom_keybinds.json` to register custom shortcuts:
 
 | Setting | Type | Default | Description |
 | --- | --- | --- | --- |
-| `custom_file_path` | `string` | `~/.config/noctalia/custom_keybinds.json` | Path to manual JSON shortcut definitions. |
+| `custom_file_path` | `string` | `~/.local/state/noctalia/plugins/data/rigelyon/keybinds/custom_keybinds.json` | Path to manual JSON shortcut definitions. |
 | `copy_on_click` | `bool` | `true` | Automatically copies the key combination to clipboard when clicking a card. |
-| `grid_columns` | `select` | `2` | Number of columns to display in the shortcuts grid (`1` or `2`). |
+| `grid_columns` | `select` | `3` | Number of columns to display in the shortcuts grid (`1`, `2`, or `3`). |
 
 ## Notes
 

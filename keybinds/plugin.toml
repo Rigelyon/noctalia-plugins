@@ -14,7 +14,7 @@ key = "custom_file_path"
 type = "string"
 label_key = "settings.custom_file_path.label"
 description_key = "settings.custom_file_path.description"
-default = "~/.config/noctalia/custom_keybinds.json"
+default = "~/.local/state/noctalia/plugins/data/rigelyon/keybinds/custom_keybinds.json"
 
 [[setting]]
 key = "copy_on_click"
