@@ -147,5 +147,25 @@ class TestKeybindsParser(unittest.TestCase):
         self.assertIn("Tabs & Windows", content)
 
 
+    def test_natural_sorting(self):
+        import re
+        def natural_sort_key(s):
+            return re.sub(r'\d+', lambda m: f"{int(m.group(0)):08d}", s.lower())
+
+        items = [
+            "Move Window Silently to Workspace 1",
+            "Move Window Silently to Workspace 10",
+            "Move Window Silently to Workspace 2",
+            "Move Window Silently to Workspace 3",
+            "Move Window Silently to Workspace 9",
+        ]
+        sorted_items = sorted(items, key=natural_sort_key)
+        self.assertEqual(sorted_items[0], "Move Window Silently to Workspace 1")
+        self.assertEqual(sorted_items[1], "Move Window Silently to Workspace 2")
+        self.assertEqual(sorted_items[2], "Move Window Silently to Workspace 3")
+        self.assertEqual(sorted_items[3], "Move Window Silently to Workspace 9")
+        self.assertEqual(sorted_items[4], "Move Window Silently to Workspace 10")
+
+
 if __name__ == "__main__":
     unittest.main()

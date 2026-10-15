@@ -19,6 +19,7 @@ type KeybindItem = {
   description: string,
   source: string,
   searchIndex: string,
+  sortKey: string,
   bindIndex: number?,
 }
 
@@ -111,6 +112,15 @@ local KEY_TRANSLATIONS = {
 local function normalizeKey(key: string): string
   local lower = string.lower(noctalia.string.trim(key))
   return KEY_TRANSLATIONS[lower] or key
+end
+
+local function naturalSortKey(str: string?): string
+  if not str or str == "" then return "" end
+  local lower = string.lower(str)
+  local res = string.gsub(lower, "%d+", function(digits)
+    return string.format("%08d", tonumber(digits) or 0)
+  end)
+  return res
 end
 
 local function decodeModmask(modmask: number): { string }
@@ -303,6 +313,7 @@ local function loadCustomKeybinds(): { KeybindItem }
                   description = desc,
                   source = "custom",
                   searchIndex = string.lower(appName .. " " .. subName .. " " .. desc .. " " .. combo),
+                  sortKey = naturalSortKey(desc),
                   bindIndex = bIdx,
                 })
               end
@@ -338,6 +349,7 @@ local function loadCustomKeybinds(): { KeybindItem }
               description = desc,
               source = "custom",
               searchIndex = string.lower(appName .. " " .. subName .. " " .. desc .. " " .. combo),
+              sortKey = naturalSortKey(desc),
               bindIndex = bIdx,
             })
           end
@@ -415,6 +427,7 @@ local function refreshAllBinds()
             description = desc,
             source = "hyprland",
             searchIndex = string.lower("hyprland " .. subcatName .. " " .. desc .. " " .. combo),
+            sortKey = naturalSortKey(desc),
           })
         end
       end
@@ -900,16 +913,16 @@ local function renderCardGrid(filtered: { KeybindItem }): any
     table.insert(grp.items, item)
   end
 
-  -- Sort subcategories alphabetically by name (A to Z)
+  -- Sort subcategories naturally by name (A to Z)
   table.sort(groups, function(a, b)
-    return string.lower(a.name) < string.lower(b.name)
+    return naturalSortKey(a.name) < naturalSortKey(b.name)
   end)
 
   for _, grp in ipairs(groups) do
     if #grp.items > 0 then
-      -- Sort items within subcategory alphabetically by description (A to Z)
+      -- Sort items within subcategory naturally (A to Z, 1..10)
       table.sort(grp.items, function(a, b)
-        return string.lower(a.description) < string.lower(b.description)
+        return (a.sortKey or "") < (b.sortKey or "")
       end)
 
       -- Subcategory Section Heading
