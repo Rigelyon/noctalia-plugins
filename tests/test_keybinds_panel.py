@@ -32,6 +32,15 @@ class TestKeybindsPanel(unittest.TestCase):
         self.assertIn("noctalia.readFile", content)
         self.assertIn("noctalia.copyToClipboard", content)
 
+    def test_no_lua_syntax_gotchas(self):
+        with open(PANEL_FILE, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+        for idx, line in enumerate(lines[1:], start=2):
+            trimmed = line.strip()
+            # Lua does not use ! for negation (e.g. !var, (!var))
+            self.assertNotIn("(!", trimmed, f"Line {idx} uses '(!' instead of '(not '")
+            self.assertFalse(trimmed.startswith("!"), f"Line {idx} starts with '!' instead of 'not '")
+
 
 if __name__ == "__main__":
     unittest.main()

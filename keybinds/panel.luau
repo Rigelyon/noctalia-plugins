@@ -606,7 +606,7 @@ local function renderFooter(): any
       fontSize = 11,
       color = "on_surface_variant",
     }),
-    (!hyprAvailable) and ui.label({
+    (not hyprAvailable) and ui.label({
       text = tr("panel.hypr_unavailable"),
       fontSize = 11,
       color = "error",
