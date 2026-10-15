@@ -42,7 +42,8 @@
   "actions": {
     "add_keybind": "Add Keybind",
     "edit_keybind": "Edit Keybind",
-    "delete_keybind": "Delete Keybind"
+    "delete_keybind": "Delete Keybind",
+    "toggle_edit_mode": "Toggle Edit Mode"
   },
   "modal": {
     "title_add": "Add New Keybind",

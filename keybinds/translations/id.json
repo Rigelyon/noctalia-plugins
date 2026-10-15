@@ -42,7 +42,8 @@
   "actions": {
     "add_keybind": "Tambah Keybind",
     "edit_keybind": "Edit Keybind",
-    "delete_keybind": "Hapus Keybind"
+    "delete_keybind": "Hapus Keybind",
+    "toggle_edit_mode": "Mode Edit"
   },
   "modal": {
     "title_add": "Tambah Keybind Baru",

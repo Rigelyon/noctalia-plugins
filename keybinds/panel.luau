@@ -32,7 +32,8 @@ local cornerRadiusScale = 1.0
 local gridColumns = "3"
 local customFilePath = ""
 
--- Modal form state
+-- Edit mode & Modal form state
+local isEditMode = false
 local isModalOpen = false
 local modalMode = "create" -- "create" or "edit"
 local editTarget = {
@@ -520,6 +521,15 @@ local function renderHeader(): any
     -- Right: Action Buttons
     ui.row({ gap = 4, align = "center" }, {
       ui.button({
+        glyph = "pencil",
+        variant = isEditMode and "primary" or "ghost",
+        tooltip = tr("actions.toggle_edit_mode"),
+        onClick = function()
+          isEditMode = not isEditMode
+          render()
+        end,
+      }),
+      ui.button({
         glyph = "plus",
         variant = "ghost",
         tooltip = tr("actions.add_keybind"),
@@ -649,8 +659,11 @@ local function renderAppTabs(): any
   end
 
   return ui.row({
+    key = "app-tabs-bar",
     gap = 8,
     align = "center",
+    justify = "start",
+    flexGrow = 0,
   }, tabNodes)
 end
 
@@ -718,7 +731,9 @@ local function renderKeybindCard(item: KeybindItem): any
   end
 
   -- Prevent text overflowing under badges; calculate safe max description length
-  local maxDescLen = 40 - (#item.modifiers * 5) - (string.len(item.key) > 6 and 4 or 0)
+  local maxDescLen = if isEditMode
+    then (34 - (#item.modifiers * 5) - (string.len(item.key) > 6 and 4 or 0))
+    else (46 - (#item.modifiers * 5) - (string.len(item.key) > 6 and 4 or 0))
   if maxDescLen < 16 then maxDescLen = 16 end
 
   local displayDesc = item.description
@@ -729,7 +744,7 @@ local function renderKeybindCard(item: KeybindItem): any
   local fullTooltip = item.description .. " (" .. item.keyComboText .. ")"
 
   local cardActions = nil
-  if item.source == "custom" and item.bindIndex ~= nil then
+  if isEditMode and item.source == "custom" and item.bindIndex ~= nil then
     cardActions = ui.row({ gap = 2, align = "center" }, {
       ui.button({
         glyph = "pencil",
@@ -1159,21 +1174,22 @@ local function renderModalOverlay(): any
 end
 
 render = function()
+  local contentNode
   if isModalOpen then
-    panel.render(ui.column({
+    contentNode = renderModalOverlay()
+  else
+    local filtered = filterItems()
+    contentNode = ui.column({
+      key = "cheatsheet-content",
       flexGrow = 1,
       gap = 10,
       align = "stretch",
-      padding = 12,
     }, {
-      renderHeader(),
-      renderModalOverlay(),
-      renderFooter(),
-    }))
-    return
+      renderAppTabs(),
+      renderCardGrid(filtered),
+    })
   end
 
-  local filtered = filterItems()
   panel.render(ui.column({
     flexGrow = 1,
     gap = 10,
@@ -1181,8 +1197,7 @@ render = function()
     padding = 12,
   }, {
     renderHeader(),
-    renderAppTabs(),
-    renderCardGrid(filtered),
+    contentNode,
     renderFooter(),
   }))
 end
@@ -1204,6 +1219,7 @@ function onOpen(_context)
   searchQuery = ""
   activeApp = "hyprland"
   copiedId = nil
+  isEditMode = false
   isModalOpen = false
   formError = ""
 
@@ -1218,6 +1234,9 @@ function onKey(chord, pressed)
       render()
     elseif #searchQuery > 0 then
       searchQuery = ""
+      render()
+    elseif isEditMode then
+      isEditMode = false
       render()
     else
       panel.close()
