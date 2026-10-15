@@ -793,7 +793,7 @@ local function renderKeybindCard(item: KeybindItem): any
     onClick = function()
       local copyEnabled = noctalia.getConfig("copy_on_click") ~= false
       if copyEnabled then
-        noctalia.copyToClipboard(item.keyComboText)
+        noctalia.copyToClipboard(item.keyComboText, "text/plain")
         copiedId = item.id
         render()
       end

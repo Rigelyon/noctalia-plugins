@@ -31,7 +31,7 @@ class TestKeybindsPanel(unittest.TestCase):
         self.assertIn("hyprctl", content)
         self.assertIn("noctalia.runAsync", content)
         self.assertIn("noctalia.readFile", content)
-        self.assertIn("noctalia.copyToClipboard", content)
+        self.assertIn('noctalia.copyToClipboard(item.keyComboText, "text/plain")', content)
 
         # Per-app and subcategory architecture
         self.assertIn("renderAppTabs", content)
