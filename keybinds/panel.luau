@@ -3,6 +3,7 @@
 -- Displays active Hyprland bindings and manual custom shortcuts categorized per app with subcategories.
 
 local presets = require("./presets.luau")
+local crud = require("./crud.luau")
 
 type KeybindItem = {
   id: string,
@@ -18,6 +19,7 @@ type KeybindItem = {
   description: string,
   source: string,
   searchIndex: string,
+  bindIndex: number?,
 }
 
 local items: { KeybindItem } = {}
@@ -29,6 +31,26 @@ local isLoading = false
 local cornerRadiusScale = 1.0
 local gridColumns = "3"
 local customFilePath = ""
+
+-- Modal form state
+local isModalOpen = false
+local modalMode = "create" -- "create" or "edit"
+local editTarget = {
+  origApp = "",
+  origSubcat = "",
+  origBindIdx = 0,
+}
+local formApp = ""
+local formSubcat = ""
+local formDesc = ""
+local formKey = ""
+local formMods = {
+  SUPER = false,
+  CTRL = false,
+  ALT = false,
+  SHIFT = false,
+}
+local formError = ""
 
 local render
 
@@ -186,8 +208,7 @@ local function buildKeyComboText(modifiers: { string }, key: string): string
   return table.concat(parts, " + ")
 end
 
-local function loadCustomKeybinds(): { KeybindItem }
-  local customItems: { KeybindItem } = {}
+local function getCustomFilePath(): string
   local rawPath = customFilePath
   if rawPath == "" then
     local cfgPath = noctalia.getConfig("custom_file_path")
@@ -198,7 +219,27 @@ local function loadCustomKeybinds(): { KeybindItem }
       rawPath = (dataDir and dataDir ~= "") and (dataDir .. "/custom_keybinds.json") or "~/.local/state/noctalia/plugins/data/rigelyon/keybinds/custom_keybinds.json"
     end
   end
-  local path = noctalia.expandPath(rawPath)
+  return noctalia.expandPath(rawPath)
+end
+
+local function saveCustomJson(store: any): boolean
+  local path = getCustomFilePath()
+  local ok, encoded = pcall(function()
+    return noctalia.json.encode(store, true)
+  end)
+  if not ok or not encoded then
+    return false
+  end
+  local dir = string.match(path, "^(.*)/[^/]+$")
+  if dir then
+    noctalia.mkdirAll(dir)
+  end
+  return noctalia.writeFile(path, encoded)
+end
+
+local function loadCustomKeybinds(): { KeybindItem }
+  local customItems: { KeybindItem } = {}
+  local path = getCustomFilePath()
 
   -- Create default file if absent
   if not noctalia.fileExists(path) then
@@ -261,6 +302,7 @@ local function loadCustomKeybinds(): { KeybindItem }
                   description = desc,
                   source = "custom",
                   searchIndex = string.lower(appName .. " " .. subName .. " " .. desc .. " " .. combo),
+                  bindIndex = bIdx,
                 })
               end
             end
@@ -295,6 +337,7 @@ local function loadCustomKeybinds(): { KeybindItem }
               description = desc,
               source = "custom",
               searchIndex = string.lower(appName .. " " .. subName .. " " .. desc .. " " .. combo),
+              bindIndex = bIdx,
             })
           end
         end
@@ -476,6 +519,22 @@ local function renderHeader(): any
     }),
     -- Right: Action Buttons
     ui.row({ gap = 4, align = "center" }, {
+      ui.button({
+        glyph = "plus",
+        variant = "ghost",
+        tooltip = tr("actions.add_keybind"),
+        onClick = function()
+          modalMode = "create"
+          formApp = if activeApp ~= "hyprland" then activeApp else "Custom"
+          formSubcat = "General"
+          formDesc = ""
+          formKey = ""
+          formMods = { SUPER = false, CTRL = false, ALT = false, SHIFT = false }
+          formError = ""
+          isModalOpen = true
+          render()
+        end,
+      }),
       ui.button({
         glyph = "refresh",
         variant = "ghost",
@@ -659,8 +718,8 @@ local function renderKeybindCard(item: KeybindItem): any
   end
 
   -- Prevent text overflowing under badges; calculate safe max description length
-  local maxDescLen = 32 - (#item.modifiers * 5) - (string.len(item.key) > 6 and 4 or 0)
-  if maxDescLen < 14 then maxDescLen = 14 end
+  local maxDescLen = 40 - (#item.modifiers * 5) - (string.len(item.key) > 6 and 4 or 0)
+  if maxDescLen < 16 then maxDescLen = 16 end
 
   local displayDesc = item.description
   if string.len(displayDesc) > maxDescLen then
@@ -668,6 +727,57 @@ local function renderKeybindCard(item: KeybindItem): any
   end
 
   local fullTooltip = item.description .. " (" .. item.keyComboText .. ")"
+
+  local cardActions = nil
+  if item.source == "custom" and item.bindIndex ~= nil then
+    cardActions = ui.row({ gap = 2, align = "center" }, {
+      ui.button({
+        glyph = "pencil",
+        variant = "ghost",
+        tooltip = tr("actions.edit_keybind"),
+        onClick = function()
+          modalMode = "edit"
+          editTarget = {
+            origApp = item.appName,
+            origSubcat = item.subcatName,
+            origBindIdx = item.bindIndex or 1,
+          }
+          formApp = item.appName
+          formSubcat = item.subcatName
+          formDesc = item.description
+          formKey = item.key
+          formMods = { SUPER = false, CTRL = false, ALT = false, SHIFT = false }
+          for _, m in ipairs(item.modifiers) do
+            local mu = string.upper(m)
+            if formMods[mu] ~= nil then
+              formMods[mu] = true
+            end
+          end
+          formError = ""
+          isModalOpen = true
+          render()
+        end,
+      }),
+      ui.button({
+        glyph = "trash",
+        variant = "ghost",
+        tooltip = tr("actions.delete_keybind"),
+        onClick = function()
+          local path = getCustomFilePath()
+          local raw = noctalia.readFile(path)
+          if raw then
+            local ok, store = pcall(function() return noctalia.json.decode(raw) end)
+            if ok and store then
+              crud.deleteKeybind(store, item.appName, item.subcatName, item.bindIndex or 1)
+              saveCustomJson(store)
+              noctalia.notify("Keybinds", tr("modal.deleted_notify"))
+              refreshAllBinds()
+            end
+          end
+        end,
+      }),
+    })
+  end
 
   return ui.row({
     key = "card-" .. item.id,
@@ -699,7 +809,10 @@ local function renderKeybindCard(item: KeybindItem): any
         maxLines = 1,
       }),
     }),
-    ui.row({ gap = 2, align = "center" }, kbdBadges),
+    ui.row({ gap = 4, align = "center" }, {
+      ui.row({ gap = 2, align = "center" }, kbdBadges),
+      cardActions,
+    }),
   })
 end
 
@@ -838,7 +951,228 @@ local function renderFooter(): any
   })
 end
 
+local function renderModalOverlay(): any
+  local isEdit = (modalMode == "edit")
+  local modalTitle = if isEdit then tr("modal.title_edit") else tr("modal.title_add")
+
+  -- Modifier Chips
+  local modButtons = {}
+  local modNames = { "SUPER", "CTRL", "ALT", "SHIFT" }
+  for _, m in ipairs(modNames) do
+    local isSelected = (formMods[m] == true)
+    table.insert(modButtons, ui.row({
+      paddingV = 6,
+      paddingH = 14,
+      radius = 6 * cornerRadiusScale,
+      fill = isSelected and "primary" or "surface_variant",
+      onClick = function()
+        formMods[m] = not isSelected
+        render()
+      end,
+    }, {
+      ui.label({
+        text = m,
+        fontSize = 11,
+        fontWeight = "bold",
+        color = isSelected and "on_primary" or "on_surface_variant",
+      }),
+    }))
+  end
+
+  return ui.column({
+    flexGrow = 1,
+    align = "center",
+    justify = "center",
+    padding = 16,
+  }, {
+    ui.column({
+      width = 540,
+      radius = 12 * cornerRadiusScale,
+      fill = "surface",
+      padding = 20,
+      gap = 12,
+    }, {
+      -- Modal Header
+      ui.row({
+        justify = "space_between",
+        align = "center",
+      }, {
+        ui.row({ gap = 8, align = "center" }, {
+          ui.glyph({
+            name = isEdit and "pencil" or "plus",
+            size = 16,
+            color = "primary",
+          }),
+          ui.label({
+            text = modalTitle,
+            fontSize = 15,
+            fontWeight = "bold",
+            color = "on_surface",
+          }),
+        }),
+        ui.button({
+          glyph = "x",
+          variant = "ghost",
+          tooltip = tr("modal.cancel"),
+          onClick = function()
+            isModalOpen = false
+            formError = ""
+            render()
+          end,
+        }),
+      }),
+
+      -- App Name Field
+      ui.column({ gap = 4 }, {
+        ui.label({ text = tr("modal.app_label"), fontSize = 11, color = "on_surface_variant", fontWeight = "bold" }),
+        ui.input({
+          key = "modal-app-input",
+          placeholder = tr("modal.app_placeholder"),
+          value = formApp,
+          onChange = function(val)
+            formApp = val
+          end,
+        }),
+      }),
+
+      -- Subcategory Field
+      ui.column({ gap = 4 }, {
+        ui.label({ text = tr("modal.subcat_label"), fontSize = 11, color = "on_surface_variant", fontWeight = "bold" }),
+        ui.input({
+          key = "modal-subcat-input",
+          placeholder = tr("modal.subcat_placeholder"),
+          value = formSubcat,
+          onChange = function(val)
+            formSubcat = val
+          end,
+        }),
+      }),
+
+      -- Description Field
+      ui.column({ gap = 4 }, {
+        ui.label({ text = tr("modal.desc_label"), fontSize = 11, color = "on_surface_variant", fontWeight = "bold" }),
+        ui.input({
+          key = "modal-desc-input",
+          placeholder = tr("modal.desc_placeholder"),
+          value = formDesc,
+          onChange = function(val)
+            formDesc = val
+          end,
+        }),
+      }),
+
+      -- Modifier Keys Row
+      ui.column({ gap = 4 }, {
+        ui.label({ text = tr("modal.modifiers_label"), fontSize = 11, color = "on_surface_variant", fontWeight = "bold" }),
+        ui.row({ gap = 8, align = "center" }, modButtons),
+      }),
+
+      -- Primary Key Field
+      ui.column({ gap = 4 }, {
+        ui.label({ text = tr("modal.key_label"), fontSize = 11, color = "on_surface_variant", fontWeight = "bold" }),
+        ui.input({
+          key = "modal-key-input",
+          placeholder = tr("modal.key_placeholder"),
+          value = formKey,
+          onChange = function(val)
+            formKey = string.upper(val)
+          end,
+        }),
+      }),
+
+      -- Error Message (if any)
+      (#formError > 0) and ui.label({
+        text = formError,
+        fontSize = 11,
+        color = "error",
+      }) or nil,
+
+      -- Action Buttons (Footer)
+      ui.row({
+        justify = "flex_end",
+        gap = 8,
+        align = "center",
+      }, {
+        ui.button({
+          text = tr("modal.cancel"),
+          variant = "ghost",
+          onClick = function()
+            isModalOpen = false
+            formError = ""
+            render()
+          end,
+        }),
+        ui.button({
+          text = tr("modal.save"),
+          variant = "primary",
+          onClick = function()
+            local activeMods = {}
+            if formMods.SUPER then table.insert(activeMods, "SUPER") end
+            if formMods.CTRL then table.insert(activeMods, "CTRL") end
+            if formMods.ALT then table.insert(activeMods, "ALT") end
+            if formMods.SHIFT then table.insert(activeMods, "SHIFT") end
+
+            local path = getCustomFilePath()
+            local raw = noctalia.readFile(path) or "{}"
+            local ok, store = pcall(function() return noctalia.json.decode(raw) end)
+            store = crud.ensureStore(if ok and type(store) == "table" then store else {})
+
+            local success, errMsg
+            if modalMode == "create" then
+              success, errMsg = crud.addKeybind(store, formApp, formSubcat, formDesc, activeMods, formKey)
+            else
+              success, errMsg = crud.updateKeybind(
+                store,
+                editTarget.origApp,
+                editTarget.origSubcat,
+                editTarget.origBindIdx,
+                formApp,
+                formSubcat,
+                formDesc,
+                activeMods,
+                formKey
+              )
+            end
+
+            if not success then
+              formError = errMsg or tr("modal.err_validation")
+              render()
+              return
+            end
+
+            local saved = saveCustomJson(store)
+            if not saved then
+              formError = "Failed to write to file"
+              render()
+              return
+            end
+
+            isModalOpen = false
+            formError = ""
+            noctalia.notify("Keybinds", tr("modal.saved_notify"))
+            refreshAllBinds()
+          end,
+        }),
+      }),
+    }),
+  })
+end
+
 render = function()
+  if isModalOpen then
+    panel.render(ui.column({
+      flexGrow = 1,
+      gap = 10,
+      align = "stretch",
+      padding = 12,
+    }, {
+      renderHeader(),
+      renderModalOverlay(),
+      renderFooter(),
+    }))
+    return
+  end
+
   local filtered = filterItems()
   panel.render(ui.column({
     flexGrow = 1,
@@ -870,13 +1204,19 @@ function onOpen(_context)
   searchQuery = ""
   activeApp = "hyprland"
   copiedId = nil
+  isModalOpen = false
+  formError = ""
 
   refreshAllBinds()
 end
 
 function onKey(chord, pressed)
   if pressed and chord == "Escape" then
-    if #searchQuery > 0 then
+    if isModalOpen then
+      isModalOpen = false
+      formError = ""
+      render()
+    elseif #searchQuery > 0 then
       searchQuery = ""
       render()
     else

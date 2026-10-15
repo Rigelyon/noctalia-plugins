@@ -48,5 +48,15 @@ class TestKeybindsPanel(unittest.TestCase):
             self.assertFalse(trimmed.startswith("!"), f"Line {idx} starts with '!' instead of 'not '")
 
 
+    def test_crud_components_present(self):
+        with open(PANEL_FILE, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn("crud.addKeybind", content)
+        self.assertIn("crud.updateKeybind", content)
+        self.assertIn("crud.deleteKeybind", content)
+        self.assertIn("isModalOpen", content)
+        self.assertIn("renderModalOverlay", content)
+
+
 if __name__ == "__main__":
     unittest.main()
