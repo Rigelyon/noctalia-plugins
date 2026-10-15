@@ -27,7 +27,7 @@
     "no_results": "Tidak ada shortcut yang cocok dengan \"{query}\"",
     "copied": "Berhasil disalin ke clipboard!",
     "hypr_unavailable": "Hyprctl tidak terdeteksi — hanya menampilkan custom keybinds",
-    "footer_hint": "Esc: Tutup • Klik: Salin • Config: {path}",
+    "footer_hint": "Esc: Tutup • Klik: Salin • Sorot: Nama lengkap • Config: {path}",
     "categories": {
       "all": "Semua",
       "window": "Window",

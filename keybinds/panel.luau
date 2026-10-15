@@ -165,10 +165,6 @@ local function categorizeBind(description: string, key: string, dispatcher: stri
   return "other", "hash"
 end
 
-local HYPRLAND_ORDER = {
-  "window", "workspaces", "apps", "media", "screen", "system", "other"
-}
-
 local HYPRLAND_SUBCAT_INFO = {
   window = { icon = "app-window", labelKey = "panel.categories.window" },
   workspaces = { icon = "layout-grid", labelKey = "panel.categories.workspaces" },
@@ -182,10 +178,10 @@ local HYPRLAND_SUBCAT_INFO = {
 local function buildKeyComboText(modifiers: { string }, key: string): string
   local parts = {}
   for _, m in ipairs(modifiers) do
-    table.insert(parts, m)
+    table.insert(parts, string.upper(m))
   end
   if key ~= "" then
-    table.insert(parts, key)
+    table.insert(parts, string.upper(key))
   end
   return table.concat(parts, " + ")
 end
@@ -235,9 +231,9 @@ local function loadCustomKeybinds(): { KeybindItem }
                 local primaryKey = ""
                 if #keys > 0 then
                   for kIdx = 1, #keys - 1 do
-                    table.insert(mods, keys[kIdx])
+                    table.insert(mods, string.upper(keys[kIdx]))
                   end
-                  primaryKey = keys[#keys]
+                  primaryKey = string.upper(keys[#keys])
                 end
                 local desc = b.description or ""
                 local combo = buildKeyComboText(mods, primaryKey)
@@ -266,9 +262,9 @@ local function loadCustomKeybinds(): { KeybindItem }
             local primaryKey = ""
             if #keys > 0 then
               for kIdx = 1, #keys - 1 do
-                table.insert(mods, keys[kIdx])
+                table.insert(mods, string.upper(keys[kIdx]))
               end
-              primaryKey = keys[#keys]
+              primaryKey = string.upper(keys[#keys])
             end
             local desc = b.description or ""
             local subName = b.subcategory or b.subcat or b.category or "General"
@@ -322,16 +318,30 @@ local function refreshAllBinds()
       if ok and type(rawBinds) == "table" then
         for idx, b in ipairs(rawBinds) do
           local rawKey = b.key or ""
-          if rawKey == "" and b.keycode and b.keycode > 0 then
-            rawKey = "code:" .. tostring(b.keycode)
-          end
-          local normKey = normalizeKey(rawKey)
-          local mods = decodeModmask(b.modmask or 0)
           local desc = b.description or ""
           if desc == "" and b.dispatcher then
             desc = b.dispatcher .. (b.arg and (" " .. b.arg) or "")
           end
-          local catKey, catIcon = categorizeBind(desc, rawKey, b.dispatcher)
+
+          -- If key is missing from JSON serialization, restore key from keycode or description
+          if rawKey == "" and b.keycode and b.keycode > 0 then
+            rawKey = "code:" .. tostring(b.keycode)
+          end
+          if rawKey == "" then
+            local specNum = string.match(desc, "Special Workspace (%d+)")
+            if specNum then
+              rawKey = "Num " .. specNum
+            else
+              local wsNum = string.match(desc, "Workspace (%d+)")
+              if wsNum then
+                rawKey = (wsNum == "10") and "0" or wsNum
+              end
+            end
+          end
+
+          local normKey = string.upper(normalizeKey(rawKey))
+          local mods = decodeModmask(b.modmask or 0)
+          local catKey, catIcon = categorizeBind(desc, normKey, b.dispatcher)
           local info = HYPRLAND_SUBCAT_INFO[catKey]
           local subcatName = (info and tr(info.labelKey)) or catKey
           local subcatIcon = (info and info.icon) or catIcon
@@ -618,7 +628,7 @@ local function renderKbdBadge(text: string, isPrimary: boolean): any
     fill = isPrimary and "surface_variant" or "surface",
   }, {
     ui.label({
-      text = text,
+      text = string.upper(text),
       fontSize = 10,
       fontWeight = "bold",
       color = isPrimary and "primary" or "on_surface",
@@ -631,12 +641,23 @@ local function renderKeybindCard(item: KeybindItem): any
 
   local kbdBadges = {}
   for _, m in ipairs(item.modifiers) do
-    table.insert(kbdBadges, renderKbdBadge(m, false))
+    table.insert(kbdBadges, renderKbdBadge(string.upper(m), false))
     table.insert(kbdBadges, ui.label({ text = "+", fontSize = 9, color = "on_surface_variant" }))
   end
   if item.key ~= "" then
-    table.insert(kbdBadges, renderKbdBadge(item.key, true))
+    table.insert(kbdBadges, renderKbdBadge(string.upper(item.key), true))
   end
+
+  -- Prevent text overflowing under badges; calculate safe max description length
+  local maxDescLen = 32 - (#item.modifiers * 5) - (string.len(item.key) > 6 and 4 or 0)
+  if maxDescLen < 14 then maxDescLen = 14 end
+
+  local displayDesc = item.description
+  if string.len(displayDesc) > maxDescLen then
+    displayDesc = string.sub(displayDesc, 1, maxDescLen - 1) .. "…"
+  end
+
+  local fullTooltip = item.description .. " (" .. item.keyComboText .. ")"
 
   return ui.row({
     key = "card-" .. item.id,
@@ -648,6 +669,7 @@ local function renderKeybindCard(item: KeybindItem): any
     align = "center",
     justify = "space_between",
     gap = 6,
+    tooltip = fullTooltip,
     onClick = function()
       local copyEnabled = noctalia.getConfig("copy_on_click") ~= false
       if copyEnabled then
@@ -657,10 +679,10 @@ local function renderKeybindCard(item: KeybindItem): any
       end
     end,
   }, {
-    ui.row({ gap = 6, align = "center", flexGrow = 1 }, {
+    ui.row({ gap = 6, align = "center", flexGrow = 1, tooltip = fullTooltip }, {
       ui.glyph({ name = item.subcatIcon, size = 11, color = "on_surface_variant" }),
       ui.label({
-        text = isCopied and tr("panel.copied") or item.description,
+        text = isCopied and tr("panel.copied") or displayDesc,
         fontSize = 11,
         fontWeight = isCopied and "bold" or "normal",
         color = isCopied and "on_primary_container" or "on_surface",
@@ -721,23 +743,9 @@ local function renderCardGrid(filtered: { KeybindItem }): any
   local cols = tonumber(gridColumns) or 3
   local scrollContent = {}
 
-  -- Group items by subcategory while preserving defined order
+  -- Group items by subcategory
   local groups = {}
   local groupMap = {}
-
-  if activeApp == "hyprland" then
-    for _, catKey in ipairs(HYPRLAND_ORDER) do
-      local info = HYPRLAND_SUBCAT_INFO[catKey]
-      local grp = {
-        id = catKey,
-        name = info and tr(info.labelKey) or catKey,
-        icon = (info and info.icon) or "command",
-        items = {},
-      }
-      groupMap[catKey] = grp
-      table.insert(groups, grp)
-    end
-  end
 
   for _, item in ipairs(filtered) do
     local grp = groupMap[item.subcatId]
@@ -754,8 +762,18 @@ local function renderCardGrid(filtered: { KeybindItem }): any
     table.insert(grp.items, item)
   end
 
+  -- Sort subcategories alphabetically by name (A to Z)
+  table.sort(groups, function(a, b)
+    return string.lower(a.name) < string.lower(b.name)
+  end)
+
   for _, grp in ipairs(groups) do
     if #grp.items > 0 then
+      -- Sort items within subcategory alphabetically by description (A to Z)
+      table.sort(grp.items, function(a, b)
+        return string.lower(a.description) < string.lower(b.description)
+      end)
+
       -- Subcategory Section Heading
       table.insert(scrollContent, renderSubcategoryHeading(grp.name, grp.icon, #grp.items))
 

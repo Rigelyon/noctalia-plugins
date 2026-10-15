@@ -27,7 +27,7 @@
     "no_results": "No shortcuts matching \"{query}\"",
     "copied": "Copied to clipboard!",
     "hypr_unavailable": "Hyprctl not detected — showing custom keybinds only",
-    "footer_hint": "Esc: Close • Click: Copy • Config: {path}",
+    "footer_hint": "Esc: Close • Click: Copy • Hover: Full name • Config: {path}",
     "categories": {
       "all": "All",
       "window": "Window",
