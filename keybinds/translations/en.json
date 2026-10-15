@@ -39,6 +39,29 @@
       "other": "Other"
     }
   },
+  "actions": {
+    "add_keybind": "Add Keybind",
+    "edit_keybind": "Edit Keybind",
+    "delete_keybind": "Delete Keybind"
+  },
+  "modal": {
+    "title_add": "Add New Keybind",
+    "title_edit": "Edit Keybind",
+    "app_label": "Application",
+    "app_placeholder": "e.g. Kitty, Neovim, Browser",
+    "subcat_label": "Subcategory",
+    "subcat_placeholder": "e.g. Navigation, Windows, General",
+    "desc_label": "Description",
+    "desc_placeholder": "e.g. New Tab, Split Horizontal",
+    "modifiers_label": "Modifiers",
+    "key_label": "Primary Key",
+    "key_placeholder": "e.g. T, Enter, Space, F1",
+    "cancel": "Cancel",
+    "save": "Save",
+    "err_validation": "Description and primary key are required",
+    "saved_notify": "Keybind saved successfully",
+    "deleted_notify": "Keybind removed"
+  },
   "widget": {
     "tooltip": "Keybinds Cheatsheet (Click to open)"
   }

@@ -39,6 +39,29 @@
       "other": "Lainnya"
     }
   },
+  "actions": {
+    "add_keybind": "Tambah Keybind",
+    "edit_keybind": "Edit Keybind",
+    "delete_keybind": "Hapus Keybind"
+  },
+  "modal": {
+    "title_add": "Tambah Keybind Baru",
+    "title_edit": "Edit Keybind",
+    "app_label": "Aplikasi",
+    "app_placeholder": "misal: Kitty, Neovim, Browser",
+    "subcat_label": "Subkategori",
+    "subcat_placeholder": "misal: Navigasi, Windows, General",
+    "desc_label": "Deskripsi",
+    "desc_placeholder": "misal: Tab Baru, Split Horizontal",
+    "modifiers_label": "Tombol Pengubah",
+    "key_label": "Tombol Utama",
+    "key_placeholder": "misal: T, Enter, Space, F1",
+    "cancel": "Batal",
+    "save": "Simpan",
+    "err_validation": "Deskripsi dan tombol utama wajib diisi",
+    "saved_notify": "Keybind berhasil disimpan",
+    "deleted_notify": "Keybind berhasil dihapus"
+  },
   "widget": {
     "tooltip": "Keybinds Cheatsheet (Klik untuk membuka)"
   }
