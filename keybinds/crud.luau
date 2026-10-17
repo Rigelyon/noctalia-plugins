@@ -68,7 +68,9 @@ function crud.addKeybind(
   subcatName: string,
   description: string,
   modifiers: { string },
-  primaryKey: string
+  primaryKey: string,
+  appIcon: string?,
+  subcatIcon: string?
 ): (boolean, string?)
   local cleanApp = safeTrim(appName)
   local cleanSub = safeTrim(subcatName)
@@ -96,22 +98,28 @@ function crud.addKeybind(
 
   local app = crud.findApp(store, cleanApp)
   if not app then
+    local chosenAppIcon = if appIcon and safeTrim(appIcon) ~= "" then safeTrim(appIcon) else "terminal"
     app = {
       name = cleanApp,
-      icon = "terminal",
+      icon = chosenAppIcon,
       subcategories = {},
     }
     table.insert(store.apps, app)
+  elseif appIcon and safeTrim(appIcon) ~= "" then
+    app.icon = safeTrim(appIcon)
   end
 
   local sub = crud.findSubcategory(app, cleanSub)
   if not sub then
+    local chosenSubIcon = if subcatIcon and safeTrim(subcatIcon) ~= "" then safeTrim(subcatIcon) else "command"
     sub = {
       name = cleanSub,
-      icon = "command",
+      icon = chosenSubIcon,
       binds = {},
     }
     table.insert(app.subcategories, sub)
+  elseif subcatIcon and safeTrim(subcatIcon) ~= "" then
+    sub.icon = safeTrim(subcatIcon)
   end
 
   table.insert(sub.binds, {
@@ -172,14 +180,76 @@ function crud.updateKeybind(
   newSubcat: string,
   newDesc: string,
   newModifiers: { string },
-  newKey: string
+  newKey: string,
+  newAppIcon: string?,
+  newSubcatIcon: string?
 ): (boolean, string?)
   local deleted = crud.deleteKeybind(store, origApp, origSubcat, origBindIdx)
   if not deleted then
     return false, "Original keybind not found"
   end
 
-  return crud.addKeybind(store, newApp, newSubcat, newDesc, newModifiers, newKey)
+  return crud.addKeybind(store, newApp, newSubcat, newDesc, newModifiers, newKey, newAppIcon, newSubcatIcon)
+end
+
+function crud.renameApp(
+  store: CustomStore,
+  oldName: string,
+  newName: string,
+  newIcon: string?
+): (boolean, string?)
+  local app = crud.findApp(store, oldName)
+  if not app then
+    return false, "Application not found"
+  end
+  local cleanNew = safeTrim(newName)
+  if cleanNew == "" then
+    return false, "Application name cannot be empty"
+  end
+  if string.lower(cleanNew) ~= string.lower(app.name) then
+    local existing = crud.findApp(store, cleanNew)
+    if existing then
+      return false, "An application with this name already exists"
+    end
+  end
+  app.name = cleanNew
+  if newIcon and safeTrim(newIcon) ~= "" then
+    app.icon = safeTrim(newIcon)
+  end
+  return true, nil
+end
+
+function crud.renameSubcategory(
+  store: CustomStore,
+  appName: string,
+  oldSubcatName: string,
+  newSubcatName: string,
+  newIcon: string?
+): (boolean, string?)
+  local app = crud.findApp(store, appName)
+  if not app then
+    return false, "Application not found"
+  end
+  local sub = crud.findSubcategory(app, oldSubcatName)
+  if not sub then
+    return false, "Subcategory not found"
+  end
+  local cleanNew = safeTrim(newSubcatName)
+  if cleanNew == "" then
+    return false, "Subcategory name cannot be empty"
+  end
+  if string.lower(cleanNew) ~= string.lower(sub.name) then
+    local existing = crud.findSubcategory(app, cleanNew)
+    if existing then
+      return false, "A subcategory with this name already exists in this application"
+    end
+  end
+  sub.name = cleanNew
+  if newIcon and safeTrim(newIcon) ~= "" then
+    sub.icon = safeTrim(newIcon)
+  end
+  return true, nil
 end
 
 return crud
+
