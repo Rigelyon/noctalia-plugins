@@ -5,7 +5,7 @@ plugin_api = 28
 author = "rigelyon"
 license = "MIT"
 dependencies = ["hyprland"]
-tags = ["hyprland", "layout", "utility", "bar", "panel", "productivity"]
+tags = ["hyprland", "utility", "bar", "panel", "productivity"]
 icon = "layout-grid"
 description = "Aesthetic Hyprland layout switcher with status bar widget, dual scope (global/workspace), and schematic wireframe hub."
 

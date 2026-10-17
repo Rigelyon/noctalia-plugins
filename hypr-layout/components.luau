@@ -11,11 +11,11 @@ end
 -- Generates schematic miniature window layout wireframes (56px x 40px)
 function components.renderWireframe(layoutId: string, isActive: boolean): any
   local tileFill = isActive and "primary" or "outline"
-  local tileMuted = isActive and "primary_container" or "surface_variant"
+  local tileMuted = isActive and "primary" or "surface_variant"
 
   if layoutId == "dwindle" then
     -- Fibonacci Spiral: Left 50% window, Right 50% split into Top and Bottom windows
-    return ui.box({
+    return ui.row({
       width = 56,
       height = 40,
       radius = 4,
@@ -38,7 +38,7 @@ function components.renderWireframe(layoutId: string, isActive: boolean): any
     })
   elseif layoutId == "master" then
     -- Master & Stack: Dominant 60% Left Master window, Right 40% two stacked slave windows
-    return ui.box({
+    return ui.row({
       width = 56,
       height = 40,
       radius = 4,
@@ -61,7 +61,7 @@ function components.renderWireframe(layoutId: string, isActive: boolean): any
     })
   elseif layoutId == "hy3" then
     -- Hy3: Tabbed top indicator with two vertical columns
-    return ui.box({
+    return ui.row({
       width = 56,
       height = 40,
       radius = 4,
@@ -83,7 +83,7 @@ function components.renderWireframe(layoutId: string, isActive: boolean): any
     })
   elseif layoutId == "scroller" then
     -- Scroller: 3 horizontal columns with center active
-    return ui.box({
+    return ui.row({
       width = 56,
       height = 40,
       radius = 4,
@@ -99,7 +99,7 @@ function components.renderWireframe(layoutId: string, isActive: boolean): any
   end
 
   -- Default generic tile fallback
-  return ui.box({
+  return ui.row({
     width = 56,
     height = 40,
     radius = 4,
@@ -134,7 +134,7 @@ function components.renderLayoutCard(def: any, isActive: boolean, onSelect: () -
   return ui.row({
     padding = 10,
     radius = 8,
-    fill = isActive and "primary_container" or "surface_variant",
+    fill = isActive and "surface" or "surface_variant",
     align = "center",
     gap = 12,
     flexGrow = 1,
@@ -171,7 +171,7 @@ function components.renderSubActionsBar(layoutDef: any, onDispatch: (string) -> 
     table.insert(buttons, ui.button({
       glyph = action.icon,
       text = label,
-      variant = "tonal",
+      variant = "secondary",
       onClick = function()
         onDispatch(action.cmd)
       end,

@@ -41,14 +41,14 @@ local function render()
       }, {
         ui.button({
           text = tr("panel.scope_global"),
-          variant = (state.currentScope == "global") and "filled" or "ghost",
+          variant = (state.currentScope == "global") and "primary" or "ghost",
           onClick = function()
             state.setScope("global")
           end,
         }),
         ui.button({
           text = tr("panel.scope_workspace", { id = tostring(state.activeWorkspaceId) }),
-          variant = (state.currentScope == "workspace") and "filled" or "ghost",
+          variant = (state.currentScope == "workspace") and "primary" or "ghost",
           onClick = function()
             state.setScope("workspace")
           end,
@@ -126,7 +126,7 @@ local function render()
       color = "on_surface_variant",
     }),
     ui.button({
-      glyph = "gear",
+      glyph = "settings",
       text = tr("panel.open_settings"),
       variant = "ghost",
       onClick = function()

@@ -60,7 +60,7 @@ tags = ["launcher", "productivity", "utility"]
 id = "rigelyon/ai-sidebar"
 name = "AI Sidebar"
 version = "1.2.0"
-updated_at = 1791041044
+updated_at = 1791102195
 added_at = 1791019194
 author = "rigelyon"
 license = "MIT"
@@ -68,3 +68,29 @@ icon = "sparkles"
 description = "Streamlined AI chat sidebar for Noctalia with multi-provider streaming, history, and settings."
 plugin_api = 28
 tags = ["ai", "productivity", "utility", "panel", "bar"]
+
+[[plugin]]
+id = "rigelyon/keybinds"
+name = "Keybinds Cheatsheet"
+version = "1.0.0"
+updated_at = 1792092284
+added_at = 1792088262
+author = "rigelyon"
+license = "MIT"
+icon = "keyboard"
+description = "Aesthetic keybindings cheatsheet panel for Hyprland shell with custom shortcut registry."
+plugin_api = 28
+tags = ["utility", "hyprland", "panel", "bar", "shortcut", "productivity"]
+
+[[plugin]]
+id = "rigelyon/hypr-layout"
+name = "Hyprland Layout Switcher"
+version = "1.0.0"
+updated_at = 1792234423
+added_at = 1792234423
+author = "rigelyon"
+license = "MIT"
+icon = "layout-grid"
+description = "Aesthetic Hyprland layout switcher with status bar widget, dual scope (global/workspace), and schematic wireframe hub."
+plugin_api = 28
+tags = ["hyprland", "utility", "bar", "panel", "productivity"]

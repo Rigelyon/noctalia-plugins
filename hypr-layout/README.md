@@ -1,14 +1,37 @@
 # Hyprland Layout Switcher
 
-<p align="center">
-  <img src="thumbnail.webp" alt="Hyprland Layout Switcher" style="width: 100%; max-width: 600px; border-radius: 12px;" />
-</p>
+![Hyprland Layout Switcher](thumbnail.webp)
 
-An aesthetic, intuitive layout switcher plugin for **Noctalia** on **Hyprland**. Switch seamlessly between tiling layouts globally or specifically for your active workspace with real-time feedback and schematic window wireframe previews.
+An aesthetic, intuitive layout switcher plugin for Noctalia on Hyprland. Switch seamlessly between tiling layouts globally or specifically for your active workspace with real-time feedback and schematic window wireframe previews.
 
----
+## Plugin
 
-## ✨ Features
+| Field | Value |
+| --- | --- |
+| ID | `rigelyon/hypr-layout` |
+| Entries | Bar widget: `widget`; panel: `panel` |
+
+## Requirements
+
+- `hyprland`: The Wayland compositor (`hyprctl`).
+- `socat` *(optional, recommended)*: Enables instantaneous socket2 event streaming.
+- Noctalia v5 (Plugin API 28+).
+
+## Usage
+
+Add the `widget` bar widget to your status bar layout in Noctalia Settings, or click it to cycle layouts or open the layout hub. You can also toggle the `panel` directly from a Hyprland keybind or terminal command:
+
+```sh
+noctalia msg panel-toggle rigelyon/hypr-layout:panel
+```
+
+To bind this in your Hyprland configuration:
+
+```ini
+bind = $mainMod, L, exec, noctalia msg panel-toggle rigelyon/hypr-layout:panel
+```
+
+### Features
 
 - **Dual-Action Status Bar Widget**:
   - **Left Click**: Instantly cycle to the next enabled layout (`dwindle` → `master` → optional plugins).
@@ -37,29 +60,16 @@ An aesthetic, intuitive layout switcher plugin for **Noctalia** on **Hyprland**.
   - Listens to Hyprland's UNIX domain socket stream (`.socket2.sock`) for instant zero-latency updates when workspaces change or configurations reload.
   - Graceful fallback when running in non-Hyprland environments.
 
----
-
-## 📦 Dependencies
-
-- `hyprland`: The Wayland compositor (`hyprctl`).
-- `socat` *(optional, recommended)*: Enables instantaneous socket2 event streaming.
-
----
-
-## ⚙️ Configuration
-
-Configure via Noctalia Settings (`Settings` → `Plugins` → `Hyprland Layout Switcher`):
+## Settings
 
 | Setting | Type | Default | Description |
-| :--- | :--- | :--- | :--- |
-| `default_scope` | Select | `global` | Default target scope (`global` or `workspace`). |
-| `show_label_in_bar` | Bool | `true` | Show layout text name next to the icon in status bar. |
-| `notify_on_change` | Bool | `true` | Display desktop notification when layout changes. |
-| `enable_hy3` | Bool | `false` | Enable hy3 plugin manual tiling layout. |
-| `enable_scroller` | Bool | `false` | Enable hyprscroller PaperWM layout. |
+| --- | --- | --- | --- |
+| `default_scope` | `select` | `global` | Default target scope (`global` or `workspace`). |
+| `show_label_in_bar` | `bool` | `true` | Show layout text name next to the icon in status bar. |
+| `notify_on_change` | `bool` | `true` | Display desktop notification when layout changes. |
+| `enable_hy3` | `bool` | `false` | Enable hy3 plugin manual tiling layout. |
+| `enable_scroller` | `bool` | `false` | Enable hyprscroller PaperWM layout. |
 
----
-
-## 📄 License
+## License
 
 MIT © [rigelyon](https://github.com/rigelyon)
