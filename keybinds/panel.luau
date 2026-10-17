@@ -43,7 +43,13 @@ local editTarget = {
   origBindIdx = 0,
 }
 local formApp = ""
+local formAppIcon = "terminal"
+local formAppSelectedIdx = 0
+local formAppIsNew = false
 local formSubcat = ""
+local formSubcatIcon = "command"
+local formSubcatSelectedIdx = 0
+local formSubcatIsNew = false
 local formDesc = ""
 local formKey = ""
 local formMods = {
@@ -267,6 +273,13 @@ local function getCustomFilePath(): string
     end
   end
   return noctalia.expandPath(rawPath)
+end
+
+local function getCustomStore(): any
+  local path = getCustomFilePath()
+  local raw = noctalia.readFile(path) or "{}"
+  local ok, store = pcall(function() return noctalia.json.decode(raw) end)
+  return crud.ensureStore(if ok and type(store) == "table" then store else {})
 end
 
 local function saveCustomJson(store: any): boolean
@@ -615,8 +628,66 @@ local function renderHeader(): any
         tooltip = tr("actions.add_keybind"),
         onClick = function()
           modalMode = "create"
-          formApp = if activeApp ~= "hyprland" then activeApp else "Custom"
-          formSubcat = "General"
+          local store = getCustomStore()
+          local defaultAppName = if activeApp ~= "hyprland" then activeApp else "Custom"
+          local matchedAppIdx = nil
+          if store and type(store.apps) == "table" then
+            for idx, a in ipairs(store.apps) do
+              if string.lower(a.name) == string.lower(defaultAppName) then
+                matchedAppIdx = idx
+                break
+              end
+            end
+          end
+
+          if matchedAppIdx then
+            local a = store.apps[matchedAppIdx]
+            formAppSelectedIdx = matchedAppIdx - 1
+            formAppIsNew = false
+            formApp = a.name
+            formAppIcon = a.icon or "terminal"
+            if a.subcategories and #a.subcategories > 0 then
+              formSubcatSelectedIdx = 0
+              formSubcatIsNew = false
+              formSubcat = a.subcategories[1].name
+              formSubcatIcon = a.subcategories[1].icon or "command"
+            else
+              formSubcatSelectedIdx = 0
+              formSubcatIsNew = true
+              formSubcat = "General"
+              formSubcatIcon = "command"
+            end
+          else
+            local totalApps = if store and type(store.apps) == "table" then #store.apps else 0
+            if totalApps > 0 and activeApp == "hyprland" then
+              local a = store.apps[1]
+              formAppSelectedIdx = 0
+              formAppIsNew = false
+              formApp = a.name
+              formAppIcon = a.icon or "terminal"
+              if a.subcategories and #a.subcategories > 0 then
+                formSubcatSelectedIdx = 0
+                formSubcatIsNew = false
+                formSubcat = a.subcategories[1].name
+                formSubcatIcon = a.subcategories[1].icon or "command"
+              else
+                formSubcatSelectedIdx = 0
+                formSubcatIsNew = true
+                formSubcat = "General"
+                formSubcatIcon = "command"
+              end
+            else
+              formAppSelectedIdx = totalApps
+              formAppIsNew = true
+              formApp = defaultAppName
+              formAppIcon = "terminal"
+              formSubcatSelectedIdx = 0
+              formSubcatIsNew = true
+              formSubcat = "General"
+              formSubcatIcon = "command"
+            end
+          end
+
           formDesc = ""
           formKey = ""
           formMods = { SUPER = false, CTRL = false, ALT = false, SHIFT = false }
@@ -838,8 +909,56 @@ local function renderKeybindCard(item: KeybindItem): any
             origSubcat = item.subcatName,
             origBindIdx = item.bindIndex or 1,
           }
-          formApp = item.appName
-          formSubcat = item.subcatName
+          local store = getCustomStore()
+          local appFoundIdx = nil
+          local subFoundIdx = nil
+          if store and type(store.apps) == "table" then
+            for aIdx, a in ipairs(store.apps) do
+              if string.lower(a.name) == string.lower(item.appName) then
+                appFoundIdx = aIdx
+                if type(a.subcategories) == "table" then
+                  for sIdx, s in ipairs(a.subcategories) do
+                    if string.lower(s.name) == string.lower(item.subcatName) then
+                      subFoundIdx = sIdx
+                      break
+                    end
+                  end
+                end
+                break
+              end
+            end
+          end
+
+          if appFoundIdx then
+            local a = store.apps[appFoundIdx]
+            formAppSelectedIdx = appFoundIdx - 1
+            formAppIsNew = false
+            formApp = a.name
+            formAppIcon = a.icon or "terminal"
+            if subFoundIdx then
+              formSubcatSelectedIdx = subFoundIdx - 1
+              formSubcatIsNew = false
+              formSubcat = a.subcategories[subFoundIdx].name
+              formSubcatIcon = a.subcategories[subFoundIdx].icon or "command"
+            else
+              local totalSubs = if type(a.subcategories) == "table" then #a.subcategories else 0
+              formSubcatSelectedIdx = totalSubs
+              formSubcatIsNew = true
+              formSubcat = item.subcatName
+              formSubcatIcon = item.subcatIcon or "command"
+            end
+          else
+            local totalApps = if store and type(store.apps) == "table" then #store.apps else 0
+            formAppSelectedIdx = totalApps
+            formAppIsNew = true
+            formApp = item.appName
+            formAppIcon = item.appIcon or "terminal"
+            formSubcatSelectedIdx = 0
+            formSubcatIsNew = true
+            formSubcat = item.subcatName
+            formSubcatIcon = item.subcatIcon or "command"
+          end
+
           formDesc = item.description
           formKey = item.key
           formMods = { SUPER = false, CTRL = false, ALT = false, SHIFT = false }
@@ -1061,6 +1180,43 @@ local function renderModalOverlay(): any
   local isEdit = (modalMode == "edit")
   local modalTitle = if isEdit then tr("modal.title_edit") else tr("modal.title_add")
 
+  local store = getCustomStore()
+  local customApps = (type(store.apps) == "table") and store.apps or {}
+
+  -- Build app options
+  local appOptions = {}
+  for _, a in ipairs(customApps) do
+    table.insert(appOptions, a.name)
+  end
+  table.insert(appOptions, tr("modal.app_new_option"))
+
+  if formAppSelectedIdx >= #appOptions then
+    formAppSelectedIdx = 0
+  end
+
+  local isNewApp = (formAppSelectedIdx == #appOptions - 1)
+  formAppIsNew = isNewApp
+
+  local chosenApp = (not isNewApp) and customApps[formAppSelectedIdx + 1] or nil
+
+  -- Build subcat options
+  local subcatOptions = {}
+  if chosenApp and type(chosenApp.subcategories) == "table" then
+    for _, s in ipairs(chosenApp.subcategories) do
+      table.insert(subcatOptions, s.name)
+    end
+  end
+  table.insert(subcatOptions, tr("modal.subcat_new_option"))
+
+  if formSubcatSelectedIdx >= #subcatOptions then
+    formSubcatSelectedIdx = 0
+  end
+
+  local isNewSubcat = isNewApp or (formSubcatSelectedIdx == #subcatOptions - 1)
+  formSubcatIsNew = isNewSubcat
+
+  local chosenSubcat = (not isNewSubcat and chosenApp and type(chosenApp.subcategories) == "table") and chosenApp.subcategories[formSubcatSelectedIdx + 1] or nil
+
   -- Modifier Chips
   local modButtons = {}
   local modNames = { "SUPER", "CTRL", "ALT", "SHIFT" }
@@ -1128,30 +1284,85 @@ local function renderModalOverlay(): any
         }),
       }),
 
-      -- App Name Field
-      ui.column({ gap = 4 }, {
-        ui.label({ text = tr("modal.app_label"), fontSize = 11, color = "on_surface_variant", fontWeight = "bold" }),
-        ui.input({
-          key = "modal-app-input",
-          placeholder = tr("modal.app_placeholder"),
-          value = formApp,
-          onChange = function(val)
-            formApp = val
+      -- App Selection Field
+      ui.column({ gap = 6 }, {
+        ui.row({ justify = "space_between", align = "center" }, {
+          ui.label({ text = tr("modal.app_label"), fontSize = 11, color = "on_surface_variant", fontWeight = "bold" }),
+          (not isNewApp and chosenApp) and ui.row({ gap = 4, align = "center" }, {
+            ui.glyph({ name = chosenApp.icon or "terminal", size = 12, color = "primary" }),
+            ui.label({ text = chosenApp.icon or "terminal", fontSize = 10, color = "on_surface_variant" }),
+          }) or nil,
+        }),
+        ui.select({
+          options = appOptions,
+          selectedIndex = formAppSelectedIdx,
+          onChange = function(idx)
+            formAppSelectedIdx = tonumber(idx) or 0
+            formSubcatSelectedIdx = 0
+            render()
           end,
         }),
+        isNewApp and ui.row({ gap = 6, align = "center" }, {
+          ui.input({
+            key = "modal-app-input",
+            placeholder = tr("modal.app_placeholder"),
+            value = formApp,
+            onChange = function(val)
+              formApp = val
+            end,
+          }),
+          ui.button({
+            glyph = formAppIcon,
+            variant = "secondary",
+            tooltip = tr("modal.pick_icon"),
+            onClick = function()
+              openIconPicker(formAppIcon, function(newIcon)
+                formAppIcon = newIcon
+                render()
+              end)
+            end,
+          }),
+        }) or nil,
       }),
 
-      -- Subcategory Field
-      ui.column({ gap = 4 }, {
-        ui.label({ text = tr("modal.subcat_label"), fontSize = 11, color = "on_surface_variant", fontWeight = "bold" }),
-        ui.input({
-          key = "modal-subcat-input",
-          placeholder = tr("modal.subcat_placeholder"),
-          value = formSubcat,
-          onChange = function(val)
-            formSubcat = val
-          end,
+      -- Subcategory Selection Field
+      ui.column({ gap = 6 }, {
+        ui.row({ justify = "space_between", align = "center" }, {
+          ui.label({ text = tr("modal.subcat_label"), fontSize = 11, color = "on_surface_variant", fontWeight = "bold" }),
+          (not isNewSubcat and chosenSubcat) and ui.row({ gap = 4, align = "center" }, {
+            ui.glyph({ name = chosenSubcat.icon or "command", size = 12, color = "primary" }),
+            ui.label({ text = chosenSubcat.icon or "command", fontSize = 10, color = "on_surface_variant" }),
+          }) or nil,
         }),
+        (not isNewApp) and ui.select({
+          options = subcatOptions,
+          selectedIndex = formSubcatSelectedIdx,
+          onChange = function(idx)
+            formSubcatSelectedIdx = tonumber(idx) or 0
+            render()
+          end,
+        }) or nil,
+        isNewSubcat and ui.row({ gap = 6, align = "center" }, {
+          ui.input({
+            key = "modal-subcat-input",
+            placeholder = tr("modal.subcat_placeholder"),
+            value = formSubcat,
+            onChange = function(val)
+              formSubcat = val
+            end,
+          }),
+          ui.button({
+            glyph = formSubcatIcon,
+            variant = "secondary",
+            tooltip = tr("modal.pick_icon"),
+            onClick = function()
+              openIconPicker(formSubcatIcon, function(newIcon)
+                formSubcatIcon = newIcon
+                render()
+              end)
+            end,
+          }),
+        }) or nil,
       }),
 
       -- Description Field
@@ -1218,25 +1429,35 @@ local function renderModalOverlay(): any
             if formMods.ALT then table.insert(activeMods, "ALT") end
             if formMods.SHIFT then table.insert(activeMods, "SHIFT") end
 
-            local path = getCustomFilePath()
-            local raw = noctalia.readFile(path) or "{}"
-            local ok, store = pcall(function() return noctalia.json.decode(raw) end)
-            store = crud.ensureStore(if ok and type(store) == "table" then store else {})
+            local effectiveApp = if isNewApp then formApp else (appOptions[formAppSelectedIdx + 1] or formApp)
+            local effectiveSubcat = if isNewSubcat then formSubcat else (subcatOptions[formSubcatSelectedIdx + 1] or formSubcat)
 
+            local currentStore = getCustomStore()
             local success, errMsg
             if modalMode == "create" then
-              success, errMsg = crud.addKeybind(store, formApp, formSubcat, formDesc, activeMods, formKey)
+              success, errMsg = crud.addKeybind(
+                currentStore,
+                effectiveApp,
+                effectiveSubcat,
+                formDesc,
+                activeMods,
+                formKey,
+                formAppIcon,
+                formSubcatIcon
+              )
             else
               success, errMsg = crud.updateKeybind(
-                store,
+                currentStore,
                 editTarget.origApp,
                 editTarget.origSubcat,
                 editTarget.origBindIdx,
-                formApp,
-                formSubcat,
+                effectiveApp,
+                effectiveSubcat,
                 formDesc,
                 activeMods,
-                formKey
+                formKey,
+                formAppIcon,
+                formSubcatIcon
               )
             end
 
@@ -1246,7 +1467,7 @@ local function renderModalOverlay(): any
               return
             end
 
-            local saved = saveCustomJson(store)
+            local saved = saveCustomJson(currentStore)
             if not saved then
               formError = "Failed to write to file"
               render()

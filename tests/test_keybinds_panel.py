@@ -85,7 +85,15 @@ class TestKeybindsPanel(unittest.TestCase):
         self.assertIn("openIconPicker", content, "openIconPicker must be defined")
         self.assertIn("isIconPickerOpen", content, "isIconPickerOpen state must be defined")
 
+    def test_modal_uses_select_dropdowns(self):
+        with open(PANEL_FILE, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn("modal.app_new_option", content, "Modal must support + New App option")
+        self.assertIn("modal.subcat_new_option", content, "Modal must support + New Subcategory option")
+        self.assertIn("ui.select", content, "Modal must use ui.select for apps and subcategories")
+
 
 if __name__ == "__main__":
     unittest.main()
+
 
