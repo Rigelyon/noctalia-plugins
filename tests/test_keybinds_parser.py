@@ -167,5 +167,20 @@ class TestKeybindsParser(unittest.TestCase):
         self.assertEqual(sorted_items[4], "Move Window Silently to Workspace 10")
 
 
+    def test_parser_module_exists(self):
+        parser_path = os.path.join(PLUGIN_DIR, "parser.luau")
+        self.assertTrue(os.path.isfile(parser_path), "parser.luau must exist")
+        with open(parser_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn("KEY_TRANSLATIONS", content)
+        self.assertIn("normalizeKey", content)
+        self.assertIn("decodeModmask", content)
+        self.assertIn("categorizeBind", content)
+        self.assertIn("naturalSortKey", content)
+        self.assertIn("buildKeyComboText", content)
+        self.assertIn("parseCustomKeybinds", content)
+
+
 if __name__ == "__main__":
     unittest.main()
+
