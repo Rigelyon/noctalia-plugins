@@ -41,8 +41,8 @@ layouts.LAYOUT_DEFS = {
     glyph = "app-window",
     isPlugin = false,
     subactions = {
-      { id = "swapwithmaster", labelKey = "subactions.swapwithmaster", icon = "command", cmd = "swapwithmaster" },
-      { id = "cyclenext", labelKey = "subactions.cyclenext", icon = "play", cmd = "cyclenext" },
+      { id = "swapwithmaster", labelKey = "subactions.swapwithmaster", icon = "command", cmd = "swapwithmaster auto" },
+      { id = "cyclenext", labelKey = "subactions.cyclenext", icon = "arrow-right", cmd = "cyclenext" },
       { id = "addmaster", labelKey = "subactions.addmaster", icon = "plus", cmd = "addmaster" },
       { id = "removemaster", labelKey = "subactions.removemaster", icon = "minus", cmd = "removemaster" },
     },
@@ -57,7 +57,7 @@ layouts.LAYOUT_DEFS = {
     subactions = {
       { id = "makegroup_h", labelKey = "subactions.makegroup_h", icon = "app-window", cmd = "hy3:makegroup,h" },
       { id = "makegroup_v", labelKey = "subactions.makegroup_v", icon = "app-window", cmd = "hy3:makegroup,v" },
-      { id = "makegroup_tab", labelKey = "subactions.makegroup_tab", icon = "layers", cmd = "hy3:makegroup,tab" },
+      { id = "makegroup_tab", labelKey = "subactions.makegroup_tab", icon = "folder", cmd = "hy3:makegroup,tab" },
     },
   },
   scroller = {
@@ -65,7 +65,7 @@ layouts.LAYOUT_DEFS = {
     nameKey = "layouts.scroller.name",
     categoryKey = "layouts.scroller.category",
     descKey = "layouts.scroller.description",
-    glyph = "sliders",
+    glyph = "maximize",
     isPlugin = true,
     subactions = {
       { id = "cyclesize", labelKey = "subactions.cyclesize", icon = "maximize", cmd = "scroller:cyclesize" },

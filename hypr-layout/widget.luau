@@ -65,12 +65,6 @@ function onRightClick()
   noctalia.togglePanel("rigelyon/hypr-layout:panel")
 end
 
--- Initialize default scope from config
-local defaultScope = noctalia.getConfig("default_scope")
-if defaultScope == "workspace" or defaultScope == "global" then
-  state.currentScope = defaultScope
-end
-
 -- Initialize IPC and widget presentation
 hypr.init()
 updateWidgetPresentation()

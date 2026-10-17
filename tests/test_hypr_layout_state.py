@@ -15,6 +15,9 @@ class TestHyprLayoutState(unittest.TestCase):
         self.assertIn("function state.notify", content)
         self.assertIn("function state.getEffectiveLayout", content)
         self.assertIn("function state.setScope", content)
+        self.assertIn("noctalia.state.watch", content)
+        self.assertIn("hypr_layout.scope", content)
+        self.assertIn("saveDurableState", content)
 
 
 if __name__ == "__main__":

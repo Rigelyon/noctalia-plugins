@@ -16,6 +16,9 @@ class TestHyprLayoutIPC(unittest.TestCase):
         self.assertIn("function hypr.setLayout", content)
         self.assertIn("function hypr.dispatchSubAction", content)
         self.assertIn("socket2.sock", content)
+        self.assertIn("hl.config", content)
+        self.assertIn("hl.workspace_rule", content)
+        self.assertIn("tiledLayout", content)
 
 
 if __name__ == "__main__":

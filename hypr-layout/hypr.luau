@@ -44,6 +44,9 @@ function hypr.refreshActiveWorkspace(onDone: ((number?, string?) -> ())?)
         local wsName = tostring(data.name or wsId)
         local monitor = tostring(data.monitor or "")
         state.setActiveWorkspace(wsId, wsName, monitor)
+        if data.tiledLayout and type(data.tiledLayout) == "string" and data.tiledLayout ~= "" then
+          state.setWorkspaceLayout(wsId, data.tiledLayout)
+        end
         if onDone then onDone(wsId, wsName) end
         return
       end
@@ -58,48 +61,89 @@ function hypr.refresh()
 end
 
 function hypr.setLayout(layoutName: string, scope: string?, onDone: ((boolean) -> ())?)
-  if not noctalia or not noctalia.runAsync or not layoutName or layoutName == "" then return end
+  if not noctalia or not noctalia.runAsync or not layoutName or layoutName == "" then
+    if onDone then onDone(false) end
+    return
+  end
   local targetScope = scope or state.currentScope
 
   if targetScope == "workspace" then
     local wsId = state.activeWorkspaceId or 1
-    local cmd = { "hyprctl", "keyword", "workspace", tostring(wsId) .. ",layout:" .. layoutName }
-    noctalia.runAsync(cmd, function(res)
-      local success = (res.exitCode == 0)
-      if success then
+    -- Try modern Lua Hyprland workspace rule first via hyprctl eval
+    local evalCmd = { "hyprctl", "eval", string.format("hl.workspace_rule({ workspace = %d, layout = '%s' })", wsId, layoutName) }
+    noctalia.runAsync(evalCmd, function(res)
+      local isOk = (res.exitCode == 0 and string.find(res.stdout, "ok", 1, true) ~= nil)
+      if isOk then
         state.setWorkspaceLayout(wsId, layoutName)
+        if onDone then onDone(true) end
+      else
+        -- Fallback to legacy keyword parser for standard hyprland.conf
+        local legacyCmd = { "hyprctl", "keyword", "workspace", tostring(wsId) .. ",layout:" .. layoutName }
+        noctalia.runAsync(legacyCmd, function(legacyRes)
+          local ok = (legacyRes.exitCode == 0
+            and string.find(legacyRes.stdout, "Use eval", 1, true) == nil
+            and string.find(legacyRes.stdout, "non-legacy", 1, true) == nil)
+          if ok then
+            state.setWorkspaceLayout(wsId, layoutName)
+          end
+          if onDone then onDone(ok) end
+        end)
       end
-      if onDone then onDone(success) end
     end)
   else
-    local cmd = { "hyprctl", "keyword", "general:layout", layoutName }
-    noctalia.runAsync(cmd, function(res)
-      local success = (res.exitCode == 0)
-      if success then
+    -- Try modern Lua Hyprland global config first via hyprctl eval
+    local evalCmd = { "hyprctl", "eval", string.format("hl.config({ general = { layout = '%s' } })", layoutName) }
+    noctalia.runAsync(evalCmd, function(res)
+      local isOk = (res.exitCode == 0 and string.find(res.stdout, "ok", 1, true) ~= nil)
+      if isOk then
         state.setGlobalLayout(layoutName)
+        if onDone then onDone(true) end
+      else
+        -- Fallback to legacy keyword parser for standard hyprland.conf
+        local legacyCmd = { "hyprctl", "keyword", "general:layout", layoutName }
+        noctalia.runAsync(legacyCmd, function(legacyRes)
+          local ok = (legacyRes.exitCode == 0
+            and string.find(legacyRes.stdout, "Use eval", 1, true) == nil
+            and string.find(legacyRes.stdout, "non-legacy", 1, true) == nil)
+          if ok then
+            state.setGlobalLayout(layoutName)
+          end
+          if onDone then onDone(ok) end
+        end)
       end
-      if onDone then onDone(success) end
     end)
   end
 end
 
 function hypr.dispatchSubAction(command: string, onDone: ((boolean) -> ())?)
-  if not noctalia or not noctalia.runAsync or not command or command == "" then return end
-  local cmd = {}
-  if string.find(command, ":", 1, true) then
-    -- Custom plugin dispatcher, e.g. "hy3:makegroup,h" or "scroller:cyclesize"
-    local colonIdx = string.find(command, ":", 1, true)
-    local dispatcher = string.sub(command, 1, colonIdx - 1)
-    local arg = string.sub(command, colonIdx + 1)
-    cmd = { "hyprctl", "dispatch", dispatcher, arg }
-  else
-    -- Standard Hyprland layoutmsg dispatcher
-    cmd = { "hyprctl", "dispatch", "layoutmsg", command }
+  if not noctalia or not noctalia.runAsync or not command or command == "" then
+    if onDone then onDone(false) end
+    return
   end
 
-  noctalia.runAsync(cmd, function(res)
-    local success = (res.exitCode == 0)
-    if onDone then onDone(success) end
+  -- Try modern Lua Hyprland layout dispatcher first via hyprctl eval
+  local evalCmd = { "hyprctl", "eval", string.format("hl.dispatch(hl.dsp.layout('%s'))", command) }
+  noctalia.runAsync(evalCmd, function(res)
+    local isOk = (res.exitCode == 0 and string.find(res.stdout, "error:", 1, true) == nil)
+    if isOk then
+      if onDone then onDone(true) end
+    else
+      -- Fallback to legacy dispatch
+      local legacyCmd = {}
+      if string.find(command, ":", 1, true) then
+        local colonIdx = string.find(command, ":", 1, true)
+        local dispatcher = string.sub(command, 1, colonIdx - 1)
+        local arg = string.sub(command, colonIdx + 1)
+        legacyCmd = { "hyprctl", "dispatch", dispatcher, arg }
+      else
+        legacyCmd = { "hyprctl", "dispatch", "layoutmsg", command }
+      end
+
+      noctalia.runAsync(legacyCmd, function(legacyRes)
+        local ok = (legacyRes.exitCode == 0 and string.find(legacyRes.stdout, "error:", 1, true) == nil)
+        if onDone then onDone(ok) end
+      end)
+    end
   end)
 end
 
