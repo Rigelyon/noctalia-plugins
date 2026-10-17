@@ -242,7 +242,9 @@ local function refreshAllBinds()
       hyprAvailable = false
     end
     if render then
-      render()
+      noctalia.runAsync({ "sleep", "0.01" }, function()
+        render()
+      end)
     end
   end)
 end
