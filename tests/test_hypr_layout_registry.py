@@ -17,6 +17,7 @@ class TestHyprLayoutRegistry(unittest.TestCase):
         self.assertIn('"hy3"', content)
         self.assertIn('"scroller"', content)
         self.assertIn('"scrolling"', content)
+        self.assertIn('"monocle"', content)
         self.assertIn("function layouts.getAvailableLayouts", content)
         self.assertIn("function layouts.getNextLayout", content)
 

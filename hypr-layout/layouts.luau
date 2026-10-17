@@ -74,6 +74,18 @@ layouts.LAYOUT_DEFS = {
       { id = "swapcol", labelKey = "subactions.swapcol", icon = "arrow-right", cmd = "swapcol r" },
     },
   },
+  monocle = {
+    id = "monocle",
+    nameKey = "layouts.monocle.name",
+    categoryKey = "layouts.monocle.category",
+    descKey = "layouts.monocle.description",
+    glyph = "app-window",
+    isPlugin = false,
+    subactions = {
+      { id = "cyclenext", labelKey = "subactions.cyclenext", icon = "arrow-right", cmd = "cyclenext" },
+      { id = "cycleprev", labelKey = "subactions.cycleprev", icon = "refresh-cw", cmd = "cycleprev" },
+    },
+  },
 }
 
 -- Backward compatibility alias
@@ -93,6 +105,7 @@ function layouts.getAvailableLayouts(configGetter: ((string) -> any)?): { Layout
     layouts.LAYOUT_DEFS.dwindle,
     layouts.LAYOUT_DEFS.master,
     layouts.LAYOUT_DEFS.scrolling,
+    layouts.LAYOUT_DEFS.monocle,
   }
   local enableHy3 = false
 

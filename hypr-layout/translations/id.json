@@ -67,6 +67,11 @@
       "name": "Scrolling",
       "category": "Pita PaperWM",
       "description": "Kolom jendela yang berjejer menyamping di atas pita tak terbatas ala PaperWM."
+    },
+    "monocle": {
+      "name": "Monocle",
+      "category": "Layar Penuh",
+      "description": "Jendela aktif memenuhi seluruh layar workspace dan berganti secara berurutan."
     }
   },
   "subactions": {
@@ -75,6 +80,7 @@
     "swapsplit": "Swap Split",
     "swapwithmaster": "Swap Master",
     "cyclenext": "Cycle Next",
+    "cycleprev": "Sebelumnya",
     "addmaster": "+ Master",
     "removemaster": "- Master",
     "makegroup_h": "Grup H",

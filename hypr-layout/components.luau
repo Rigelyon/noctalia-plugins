@@ -96,6 +96,21 @@ function components.renderWireframe(layoutId: string, isActive: boolean): any
         ui.box({ flexGrow = 1, radius = 3, fill = tileMuted }),
       }),
     })
+  elseif layoutId == "monocle" then
+    -- Monocle: single full-size window deck taking up the entire workspace
+    return ui.row({
+      width = 56,
+      height = 40,
+      radius = 4,
+      fill = "surface",
+      padding = 3,
+    }, {
+      ui.box({
+        flexGrow = 1,
+        radius = 3,
+        fill = tileFill,
+      }),
+    })
   end
 
   -- Default generic tile fallback

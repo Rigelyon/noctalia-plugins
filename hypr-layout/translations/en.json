@@ -67,6 +67,11 @@
       "name": "Scrolling",
       "category": "PaperWM Tape",
       "description": "Infinite horizontal carousel tape of window columns."
+    },
+    "monocle": {
+      "name": "Monocle",
+      "category": "Fullscreen Deck",
+      "description": "Single-window focus where windows expand to fill the entire workspace."
     }
   },
   "subactions": {
@@ -75,6 +80,7 @@
     "swapsplit": "Swap Split",
     "swapwithmaster": "Swap Master",
     "cyclenext": "Cycle Next",
+    "cycleprev": "Cycle Prev",
     "addmaster": "+ Master",
     "removemaster": "- Master",
     "makegroup_h": "Group H",
