@@ -311,32 +311,37 @@ local function renderHeader(): any
       }),
     }),
     -- Center: Compact Search Input
-    ui.row({
-      align = "center",
-      gap = 6,
-      flexGrow = 1,
-      paddingH = 12,
-    }, {
-      ui.input({
-        key = "search-input",
+    (function()
+      local searchNodes = {
+        ui.input({
+          key = "search-input",
+          flexGrow = 1,
+          placeholder = tr("panel.search_placeholder"),
+          value = searchQuery,
+          onChange = function(val)
+            searchQuery = val
+            render()
+          end,
+        }),
+      }
+      if #searchQuery > 0 then
+        table.insert(searchNodes, ui.button({
+          glyph = "x",
+          variant = "ghost",
+          tooltip = "Clear search",
+          onClick = function()
+            searchQuery = ""
+            render()
+          end,
+        }))
+      end
+      return ui.row({
+        align = "center",
+        gap = 6,
         flexGrow = 1,
-        placeholder = tr("panel.search_placeholder"),
-        value = searchQuery,
-        onChange = function(val)
-          searchQuery = val
-          render()
-        end,
-      }),
-      (#searchQuery > 0) and ui.button({
-        glyph = "x",
-        variant = "ghost",
-        tooltip = "Clear search",
-        onClick = function()
-          searchQuery = ""
-          render()
-        end,
-      }) or nil,
-    }),
+        paddingH = 12,
+      }, searchNodes)
+    end)(),
     -- Right: Action Buttons
     ui.row({ gap = 4, align = "center" }, {
       ui.button({
@@ -493,19 +498,7 @@ local function renderAppTabs(): any
   for _, app in ipairs(apps) do
     local isSelected = (activeApp == app.id)
     local displayCount = (#qWords > 0) and (matchCounts[app.id] or 0) or app.count
-    table.insert(tabNodes, ui.row({
-      key = "app-tab-" .. app.id,
-      paddingV = 5,
-      paddingH = 12,
-      radius = 16 * cornerRadiusScale,
-      fill = isSelected and "primary" or "surface",
-      onClick = function()
-        activeApp = app.id
-        saveState()
-        render()
-      end,
-    }, {
-      ui.row({ gap = 6, align = "center" }, {
+      local innerTabChildren = {
         ui.glyph({
           name = app.icon,
           size = 14,
@@ -530,7 +523,9 @@ local function renderAppTabs(): any
             color = isSelected and "primary" or "on_surface_variant",
           }),
         }),
-        (isSelected and isEditMode and app.id ~= "hyprland") and ui.button({
+      }
+      if isSelected and isEditMode and app.id ~= "hyprland" then
+        table.insert(innerTabChildren, ui.button({
           glyph = "pencil",
           variant = "ghost",
           tooltip = tr("modal.edit_app_title"),
@@ -543,9 +538,23 @@ local function renderAppTabs(): any
             isModalOpen = true
             render()
           end,
-        }) or nil,
-      }),
-    }))
+        }))
+      end
+
+      table.insert(tabNodes, ui.row({
+        key = "app-tab-" .. app.id,
+        paddingV = 5,
+        paddingH = 12,
+        radius = 16 * cornerRadiusScale,
+        fill = isSelected and "primary" or "surface",
+        onClick = function()
+          activeApp = app.id
+          saveState()
+          render()
+        end,
+      }, {
+        ui.row({ gap = 6, align = "center" }, innerTabChildren),
+      }))
   end
 
   return ui.row({
@@ -558,12 +567,7 @@ local function renderAppTabs(): any
 end
 
 local function renderSubcategoryHeading(title: string, icon: string, count: number, isCustom: boolean?, appName: string?): any
-  return ui.row({
-    gap = 8,
-    align = "center",
-    paddingV = 4,
-    paddingH = 2,
-  }, {
+  local headingChildren = {
     ui.glyph({ name = icon, size = 13, color = "primary" }),
     ui.label({
       text = title,
@@ -584,7 +588,10 @@ local function renderSubcategoryHeading(title: string, icon: string, count: numb
         color = "on_surface_variant",
       }),
     }),
-    (isEditMode and isCustom) and ui.button({
+  }
+
+  if isEditMode and isCustom then
+    table.insert(headingChildren, ui.button({
       glyph = "pencil",
       variant = "ghost",
       tooltip = tr("modal.edit_subcat_title"),
@@ -599,13 +606,21 @@ local function renderSubcategoryHeading(title: string, icon: string, count: numb
         isModalOpen = true
         render()
       end,
-    }) or nil,
-    ui.box({
-      flexGrow = 1,
-      height = 1,
-      fill = "surface_variant",
-    }),
-  })
+    }))
+  end
+
+  table.insert(headingChildren, ui.box({
+    flexGrow = 1,
+    height = 1,
+    fill = "surface_variant",
+  }))
+
+  return ui.row({
+    gap = 8,
+    align = "center",
+    paddingV = 4,
+    paddingH = 2,
+  }, headingChildren)
 end
 
 local function renderKeybindCard(item: KeybindItem): any
@@ -817,23 +832,27 @@ local function renderKeybindsGrid(): any
 end
 
 local function renderFooter(): any
-  return ui.row({
-    justify = "space_between",
-    align = "center",
-    paddingV = 4,
-    paddingH = 4,
-  }, {
+  local footerChildren = {
     ui.label({
       text = tr("panel.footer_hint") .. " · Config: " .. getCustomFilePath(),
       fontSize = 10,
       color = "on_surface_variant",
     }),
-    (not hyprAvailable) and ui.label({
+  }
+  if not hyprAvailable then
+    table.insert(footerChildren, ui.label({
       text = tr("panel.hypr_unavailable"),
       fontSize = 10,
       color = "error",
-    }) or nil,
-  })
+    }))
+  end
+
+  return ui.row({
+    justify = "space_between",
+    align = "center",
+    paddingV = 4,
+    paddingH = 4,
+  }, footerChildren)
 end
 
 local function renderIconPickerOverlay(): any
@@ -1070,40 +1089,36 @@ local function renderModalOverlay(): any
 end
 
 render = function()
-  cornerRadiusScale = noctalia.getSetting("theme.corner_radius_scale") or 1.0
+  cornerRadiusScale = noctalia.getSetting("shell.corner_radius_scale") or 1.0
   gridColumns = tostring(noctalia.getConfig("grid_columns") or "3")
 
-  local mainPanel = ui.column({
+  local contentNode
+  if isIconPickerOpen then
+    contentNode = renderIconPickerOverlay()
+  elseif isModalOpen then
+    contentNode = renderModalOverlay()
+  else
+    contentNode = ui.column({
+      key = "cheatsheet-content",
+      flexGrow = 1,
+      gap = 10,
+      align = "stretch",
+    }, {
+      renderAppTabs(),
+      renderKeybindsGrid(),
+    })
+  end
+
+  panel.render(ui.column({
     padding = 16,
     gap = 10,
     flexGrow = 1,
     align = "stretch",
   }, {
     renderHeader(),
-    renderAppTabs(),
-    renderKeybindsGrid(),
+    contentNode,
     renderFooter(),
-  })
-
-  if isIconPickerOpen then
-    panel.render(ui.box({
-      flexGrow = 1,
-      align = "stretch",
-    }, {
-      mainPanel,
-      renderIconPickerOverlay(),
-    }))
-  elseif isModalOpen then
-    panel.render(ui.box({
-      flexGrow = 1,
-      align = "stretch",
-    }, {
-      mainPanel,
-      renderModalOverlay(),
-    }))
-  else
-    panel.render(mainPanel)
-  end
+  }))
 end
 
 function onOpen(_context)
