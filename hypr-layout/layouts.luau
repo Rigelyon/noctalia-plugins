@@ -70,7 +70,7 @@ layouts.LAYOUT_DEFS = {
     subactions = {
       { id = "center", labelKey = "subactions.center", icon = "maximize", cmd = "center" },
       { id = "fit_active", labelKey = "subactions.fit", icon = "app-window", cmd = "fit active" },
-      { id = "colresize", labelKey = "subactions.colresize", icon = "refresh-cw", cmd = "colresize +conf" },
+      { id = "colresize", labelKey = "subactions.colresize", icon = "arrows-horizontal", cmd = "colresize +conf" },
       { id = "swapcol", labelKey = "subactions.swapcol", icon = "arrow-right", cmd = "swapcol r" },
     },
   },
@@ -83,7 +83,7 @@ layouts.LAYOUT_DEFS = {
     isPlugin = false,
     subactions = {
       { id = "cyclenext", labelKey = "subactions.cyclenext", icon = "arrow-right", cmd = "cyclenext" },
-      { id = "cycleprev", labelKey = "subactions.cycleprev", icon = "refresh-cw", cmd = "cycleprev" },
+      { id = "cycleprev", labelKey = "subactions.cycleprev", icon = "arrow-left", cmd = "cycleprev" },
     },
   },
 }
