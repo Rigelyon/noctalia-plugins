@@ -1,0 +1,138 @@
+--!nonstrict
+-- Hyprland IPC communication & socket2 event streaming
+local state = require("./state.luau")
+
+local hypr = {
+  isStreaming = false,
+  isAvailable = true,
+}
+
+local function safeJsonDecode(str: string): any
+  if not str or str == "" then return nil end
+  local ok, res = pcall(function()
+    return noctalia.json.decode(str)
+  end)
+  return ok and res or nil
+end
+
+function hypr.refreshGlobalLayout(onDone: ((string?) -> ())?)
+  if not noctalia or not noctalia.runAsync then return end
+  noctalia.runAsync({ "hyprctl", "getoption", "general:layout", "-j" }, function(res)
+    if res.exitCode == 0 and res.stdout ~= "" then
+      hypr.isAvailable = true
+      local data = safeJsonDecode(res.stdout)
+      if data and data.str then
+        state.setGlobalLayout(data.str)
+        if onDone then onDone(data.str) end
+        return
+      end
+    else
+      hypr.isAvailable = false
+    end
+    if onDone then onDone(nil) end
+  end)
+end
+
+function hypr.refreshActiveWorkspace(onDone: ((number?, string?) -> ())?)
+  if not noctalia or not noctalia.runAsync then return end
+  noctalia.runAsync({ "hyprctl", "activeworkspace", "-j" }, function(res)
+    if res.exitCode == 0 and res.stdout ~= "" then
+      hypr.isAvailable = true
+      local data = safeJsonDecode(res.stdout)
+      if data and data.id then
+        local wsId = tonumber(data.id) or 1
+        local wsName = tostring(data.name or wsId)
+        local monitor = tostring(data.monitor or "")
+        state.setActiveWorkspace(wsId, wsName, monitor)
+        if onDone then onDone(wsId, wsName) end
+        return
+      end
+    end
+    if onDone then onDone(nil, nil) end
+  end)
+end
+
+function hypr.refresh()
+  hypr.refreshGlobalLayout()
+  hypr.refreshActiveWorkspace()
+end
+
+function hypr.setLayout(layoutName: string, scope: string?, onDone: ((boolean) -> ())?)
+  if not noctalia or not noctalia.runAsync or not layoutName or layoutName == "" then return end
+  local targetScope = scope or state.currentScope
+
+  if targetScope == "workspace" then
+    local wsId = state.activeWorkspaceId or 1
+    local cmd = { "hyprctl", "keyword", "workspace", tostring(wsId) .. ",layout:" .. layoutName }
+    noctalia.runAsync(cmd, function(res)
+      local success = (res.exitCode == 0)
+      if success then
+        state.setWorkspaceLayout(wsId, layoutName)
+      end
+      if onDone then onDone(success) end
+    end)
+  else
+    local cmd = { "hyprctl", "keyword", "general:layout", layoutName }
+    noctalia.runAsync(cmd, function(res)
+      local success = (res.exitCode == 0)
+      if success then
+        state.setGlobalLayout(layoutName)
+      end
+      if onDone then onDone(success) end
+    end)
+  end
+end
+
+function hypr.dispatchSubAction(command: string, onDone: ((boolean) -> ())?)
+  if not noctalia or not noctalia.runAsync or not command or command == "" then return end
+  local cmd = {}
+  if string.find(command, ":", 1, true) then
+    -- Custom plugin dispatcher, e.g. "hy3:makegroup,h" or "scroller:cyclesize"
+    local colonIdx = string.find(command, ":", 1, true)
+    local dispatcher = string.sub(command, 1, colonIdx - 1)
+    local arg = string.sub(command, colonIdx + 1)
+    cmd = { "hyprctl", "dispatch", dispatcher, arg }
+  else
+    -- Standard Hyprland layoutmsg dispatcher
+    cmd = { "hyprctl", "dispatch", "layoutmsg", command }
+  end
+
+  noctalia.runAsync(cmd, function(res)
+    local success = (res.exitCode == 0)
+    if onDone then onDone(success) end
+  end)
+end
+
+function hypr.startSocketStream()
+  if hypr.isStreaming or not noctalia or not noctalia.runStream or not noctalia.getenv then
+    return
+  end
+
+  local xdgRuntime = noctalia.getenv("XDG_RUNTIME_DIR") or "/run/user/" .. tostring(noctalia.getenv("UID") or "1000")
+  local his = noctalia.getenv("HYPRLAND_INSTANCE_SIGNATURE")
+  if not his or his == "" then
+    return
+  end
+
+  local sockPath = xdgRuntime .. "/hypr/" .. his .. "/.socket2.sock"
+  local streamCmd = "socat -U - UNIX-CONNECT:\"" .. sockPath .. "\""
+
+  hypr.isStreaming = true
+  noctalia.runStream(streamCmd, function(line)
+    if not line or line == "" then return end
+    if string.sub(line, 1, 11) == "workspace>>" then
+      hypr.refreshActiveWorkspace()
+    elseif string.sub(line, 1, 12) == "focusedmon>>" then
+      hypr.refreshActiveWorkspace()
+    elseif string.sub(line, 1, 16) == "configreloaded>>" then
+      hypr.refreshGlobalLayout()
+    end
+  end)
+end
+
+function hypr.init()
+  hypr.refresh()
+  hypr.startSocketStream()
+end
+
+return hypr
