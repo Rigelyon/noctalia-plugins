@@ -61,7 +61,23 @@
     "save": "Simpan",
     "err_validation": "Deskripsi dan tombol utama wajib diisi",
     "saved_notify": "Keybind berhasil disimpan",
-    "deleted_notify": "Keybind berhasil dihapus"
+    "deleted_notify": "Keybind berhasil dihapus",
+    "app_new_option": "+ Tambah Aplikasi Baru...",
+    "subcat_new_option": "+ Tambah Subkategori Baru...",
+    "pick_icon": "Pilih Icon",
+    "icon_picker_title": "Pilih Icon",
+    "icon_search_placeholder": "Cari nama icon...",
+    "category_all": "Semua",
+    "category_dev": "Dev",
+    "category_system": "Sistem",
+    "category_media": "Media",
+    "category_navigation": "Navigasi",
+    "category_files": "Berkas",
+    "category_tools": "Alat",
+    "edit_app_title": "Edit Aplikasi",
+    "edit_subcat_title": "Edit Subkategori",
+    "err_duplicate_app": "Aplikasi dengan nama ini sudah ada",
+    "err_duplicate_subcat": "Subkategori dengan nama ini sudah ada"
   },
   "widget": {
     "tooltip": "Keybinds Cheatsheet (Klik untuk membuka)"

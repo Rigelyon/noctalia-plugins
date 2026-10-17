@@ -61,7 +61,23 @@
     "save": "Save",
     "err_validation": "Description and primary key are required",
     "saved_notify": "Keybind saved successfully",
-    "deleted_notify": "Keybind removed"
+    "deleted_notify": "Keybind removed",
+    "app_new_option": "+ Add New Application...",
+    "subcat_new_option": "+ Add New Subcategory...",
+    "pick_icon": "Choose Icon",
+    "icon_picker_title": "Choose Icon",
+    "icon_search_placeholder": "Search icon name...",
+    "category_all": "All",
+    "category_dev": "Dev",
+    "category_system": "System",
+    "category_media": "Media",
+    "category_navigation": "Navigation",
+    "category_files": "Files",
+    "category_tools": "Tools",
+    "edit_app_title": "Edit Application",
+    "edit_subcat_title": "Edit Subcategory",
+    "err_duplicate_app": "An application with this name already exists",
+    "err_duplicate_subcat": "A subcategory with this name already exists"
   },
   "widget": {
     "tooltip": "Keybinds Cheatsheet (Click to open)"
