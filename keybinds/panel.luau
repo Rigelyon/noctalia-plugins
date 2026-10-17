@@ -1229,6 +1229,7 @@ local function renderModalOverlay(): any
         fill = "surface",
         padding = 20,
         gap = 12,
+        align = "stretch",
       }, {
         -- Header
         ui.row({
@@ -1257,13 +1258,14 @@ local function renderModalOverlay(): any
         }),
 
         -- App Name Input + Icon Picker Trigger
-        ui.column({ gap = 6 }, {
+        ui.column({ gap = 6, align = "stretch" }, {
           ui.label({ text = tr("modal.app_label"), fontSize = 11, color = "on_surface_variant", fontWeight = "bold" }),
-          ui.row({ gap = 6, align = "center" }, {
+          ui.row({ gap = 6, align = "center", flexGrow = 1 }, {
             ui.input({
               key = "modal-edit-app-input",
               placeholder = tr("modal.app_placeholder"),
               value = editAppName,
+              flexGrow = 1,
               onChange = function(val)
                 editAppName = val
               end,
@@ -1352,6 +1354,7 @@ local function renderModalOverlay(): any
         fill = "surface",
         padding = 20,
         gap = 12,
+        align = "stretch",
       }, {
         -- Header
         ui.row({
@@ -1380,13 +1383,14 @@ local function renderModalOverlay(): any
         }),
 
         -- Subcat Name Input + Icon Picker Trigger
-        ui.column({ gap = 6 }, {
+        ui.column({ gap = 6, align = "stretch" }, {
           ui.label({ text = tr("modal.subcat_label"), fontSize = 11, color = "on_surface_variant", fontWeight = "bold" }),
-          ui.row({ gap = 6, align = "center" }, {
+          ui.row({ gap = 6, align = "center", flexGrow = 1 }, {
             ui.input({
               key = "modal-edit-subcat-input",
               placeholder = tr("modal.subcat_placeholder"),
               value = editSubcatName,
+              flexGrow = 1,
               onChange = function(val)
                 editSubcatName = val
               end,
@@ -1539,6 +1543,7 @@ local function renderModalOverlay(): any
       fill = "surface",
       padding = 20,
       gap = 12,
+      align = "stretch",
     }, {
       -- Modal Header
       ui.row({
@@ -1571,7 +1576,7 @@ local function renderModalOverlay(): any
       }),
 
       -- App Selection Field
-      ui.column({ gap = 6 }, {
+      ui.column({ gap = 6, align = "stretch" }, {
         ui.row({ justify = "space_between", align = "center" }, {
           ui.label({ text = tr("modal.app_label"), fontSize = 11, color = "on_surface_variant", fontWeight = "bold" }),
           (not isNewApp and chosenApp) and ui.row({ gap = 4, align = "center" }, {
@@ -1588,11 +1593,12 @@ local function renderModalOverlay(): any
             render()
           end,
         }),
-        isNewApp and ui.row({ gap = 6, align = "center" }, {
+        isNewApp and ui.row({ gap = 6, align = "center", flexGrow = 1 }, {
           ui.input({
             key = "modal-app-input",
             placeholder = tr("modal.app_placeholder"),
             value = formApp,
+            flexGrow = 1,
             onChange = function(val)
               formApp = val
             end,
@@ -1612,7 +1618,7 @@ local function renderModalOverlay(): any
       }),
 
       -- Subcategory Selection Field
-      ui.column({ gap = 6 }, {
+      ui.column({ gap = 6, align = "stretch" }, {
         ui.row({ justify = "space_between", align = "center" }, {
           ui.label({ text = tr("modal.subcat_label"), fontSize = 11, color = "on_surface_variant", fontWeight = "bold" }),
           (not isNewSubcat and chosenSubcat) and ui.row({ gap = 4, align = "center" }, {
@@ -1628,11 +1634,12 @@ local function renderModalOverlay(): any
             render()
           end,
         }) or nil,
-        isNewSubcat and ui.row({ gap = 6, align = "center" }, {
+        isNewSubcat and ui.row({ gap = 6, align = "center", flexGrow = 1 }, {
           ui.input({
             key = "modal-subcat-input",
             placeholder = tr("modal.subcat_placeholder"),
             value = formSubcat,
+            flexGrow = 1,
             onChange = function(val)
               formSubcat = val
             end,
@@ -1652,7 +1659,7 @@ local function renderModalOverlay(): any
       }),
 
       -- Description Field
-      ui.column({ gap = 4 }, {
+      ui.column({ gap = 4, align = "stretch" }, {
         ui.label({ text = tr("modal.desc_label"), fontSize = 11, color = "on_surface_variant", fontWeight = "bold" }),
         ui.input({
           key = "modal-desc-input",
@@ -1665,13 +1672,13 @@ local function renderModalOverlay(): any
       }),
 
       -- Modifier Keys Row
-      ui.column({ gap = 4 }, {
+      ui.column({ gap = 4, align = "stretch" }, {
         ui.label({ text = tr("modal.modifiers_label"), fontSize = 11, color = "on_surface_variant", fontWeight = "bold" }),
         ui.row({ gap = 8, align = "center" }, modButtons),
       }),
 
       -- Primary Key Field
-      ui.column({ gap = 4 }, {
+      ui.column({ gap = 4, align = "stretch" }, {
         ui.label({ text = tr("modal.key_label"), fontSize = 11, color = "on_surface_variant", fontWeight = "bold" }),
         ui.input({
           key = "modal-key-input",
