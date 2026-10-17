@@ -60,6 +60,13 @@ local formMods = {
 }
 local formError = ""
 
+-- In-place edit state for App and Subcategory
+local editAppName = ""
+local editAppIcon = "terminal"
+local editSubcatName = ""
+local editSubcatIcon = "command"
+local editSubcatParentApp = ""
+
 -- Icon Picker state & Curated catalog
 local ICON_CATEGORIES = {
   { id = "all", labelKey = "modal.category_all" },
@@ -806,6 +813,20 @@ local function renderAppTabs(): any
             color = isSelected and "primary" or "on_surface_variant",
           }),
         }),
+        (isSelected and isEditMode and app.id ~= "hyprland") and ui.button({
+          glyph = "pencil",
+          variant = "ghost",
+          tooltip = tr("modal.edit_app_title"),
+          onClick = function()
+            modalMode = "edit_app"
+            editTarget.origApp = app.name
+            editAppName = app.name
+            editAppIcon = app.icon or "terminal"
+            formError = ""
+            isModalOpen = true
+            render()
+          end,
+        }) or nil,
       }),
     }))
   end
@@ -819,7 +840,7 @@ local function renderAppTabs(): any
   }, tabNodes)
 end
 
-local function renderSubcategoryHeading(title: string, icon: string, count: number): any
+local function renderSubcategoryHeading(title: string, icon: string, count: number, isCustom: boolean?, appName: string?): any
   return ui.row({
     gap = 8,
     align = "center",
@@ -846,6 +867,22 @@ local function renderSubcategoryHeading(title: string, icon: string, count: numb
         color = "on_surface_variant",
       }),
     }),
+    (isEditMode and isCustom) and ui.button({
+      glyph = "pencil",
+      variant = "ghost",
+      tooltip = tr("modal.edit_subcat_title"),
+      onClick = function()
+        modalMode = "edit_subcat"
+        editTarget.origApp = appName or activeApp
+        editTarget.origSubcat = title
+        editSubcatName = title
+        editSubcatIcon = icon or "command"
+        editSubcatParentApp = appName or activeApp
+        formError = ""
+        isModalOpen = true
+        render()
+      end,
+    }) or nil,
     ui.box({
       flexGrow = 1,
       height = 1,
@@ -1092,6 +1129,8 @@ local function renderCardGrid(filtered: { KeybindItem }): any
         id = item.subcatId,
         name = item.subcatName,
         icon = item.subcatIcon,
+        appName = item.appName,
+        isCustom = (item.source == "custom"),
         items = {},
       }
       groupMap[item.subcatId] = grp
@@ -1113,7 +1152,7 @@ local function renderCardGrid(filtered: { KeybindItem }): any
       end)
 
       -- Subcategory Section Heading
-      table.insert(scrollContent, renderSubcategoryHeading(grp.name, grp.icon, #grp.items))
+      table.insert(scrollContent, renderSubcategoryHeading(grp.name, grp.icon, #grp.items, grp.isCustom, grp.appName))
 
       -- Cards in N columns (flowing top-to-bottom down columns, then left-to-right)
       local totalItems = #grp.items
@@ -1177,6 +1216,253 @@ local function renderFooter(): any
 end
 
 local function renderModalOverlay(): any
+  if modalMode == "edit_app" then
+    return ui.column({
+      flexGrow = 1,
+      align = "center",
+      justify = "center",
+      padding = 16,
+    }, {
+      ui.column({
+        width = 460,
+        radius = 12 * cornerRadiusScale,
+        fill = "surface",
+        padding = 20,
+        gap = 12,
+      }, {
+        -- Header
+        ui.row({
+          justify = "space_between",
+          align = "center",
+        }, {
+          ui.row({ gap = 8, align = "center" }, {
+            ui.glyph({ name = "pencil", size = 16, color = "primary" }),
+            ui.label({
+              text = tr("modal.edit_app_title"),
+              fontSize = 15,
+              fontWeight = "bold",
+              color = "on_surface",
+            }),
+          }),
+          ui.button({
+            glyph = "x",
+            variant = "ghost",
+            tooltip = tr("modal.cancel"),
+            onClick = function()
+              isModalOpen = false
+              formError = ""
+              render()
+            end,
+          }),
+        }),
+
+        -- App Name Input + Icon Picker Trigger
+        ui.column({ gap = 6 }, {
+          ui.label({ text = tr("modal.app_label"), fontSize = 11, color = "on_surface_variant", fontWeight = "bold" }),
+          ui.row({ gap = 6, align = "center" }, {
+            ui.input({
+              key = "modal-edit-app-input",
+              placeholder = tr("modal.app_placeholder"),
+              value = editAppName,
+              onChange = function(val)
+                editAppName = val
+              end,
+            }),
+            ui.button({
+              glyph = editAppIcon,
+              variant = "secondary",
+              tooltip = tr("modal.pick_icon"),
+              onClick = function()
+                openIconPicker(editAppIcon, function(newIcon)
+                  editAppIcon = newIcon
+                  render()
+                end)
+              end,
+            }),
+          }),
+        }),
+
+        -- Error Message
+        (#formError > 0) and ui.label({
+          text = formError,
+          fontSize = 11,
+          color = "error",
+        }) or nil,
+
+        -- Footer
+        ui.row({
+          justify = "flex_end",
+          gap = 8,
+          align = "center",
+        }, {
+          ui.button({
+            text = tr("modal.cancel"),
+            variant = "ghost",
+            onClick = function()
+              isModalOpen = false
+              formError = ""
+              render()
+            end,
+          }),
+          ui.button({
+            text = tr("modal.save"),
+            variant = "primary",
+            onClick = function()
+              local currentStore = getCustomStore()
+              local ok, err = crud.renameApp(currentStore, editTarget.origApp, editAppName, editAppIcon)
+              if not ok then
+                formError = err or tr("modal.err_duplicate_app")
+                render()
+                return
+              end
+
+              local saved = saveCustomJson(currentStore)
+              if not saved then
+                formError = "Failed to write to file"
+                render()
+                return
+              end
+
+              if string.lower(activeApp) == string.lower(editTarget.origApp) or activeApp == editTarget.origApp then
+                activeApp = string.lower(editAppName)
+                saveState()
+              end
+
+              isModalOpen = false
+              formError = ""
+              noctalia.notify("Keybinds", tr("modal.saved_notify"))
+              refreshAllBinds()
+            end,
+          }),
+        }),
+      }),
+    })
+  end
+
+  if modalMode == "edit_subcat" then
+    return ui.column({
+      flexGrow = 1,
+      align = "center",
+      justify = "center",
+      padding = 16,
+    }, {
+      ui.column({
+        width = 460,
+        radius = 12 * cornerRadiusScale,
+        fill = "surface",
+        padding = 20,
+        gap = 12,
+      }, {
+        -- Header
+        ui.row({
+          justify = "space_between",
+          align = "center",
+        }, {
+          ui.row({ gap = 8, align = "center" }, {
+            ui.glyph({ name = "pencil", size = 16, color = "primary" }),
+            ui.label({
+              text = tr("modal.edit_subcat_title"),
+              fontSize = 15,
+              fontWeight = "bold",
+              color = "on_surface",
+            }),
+          }),
+          ui.button({
+            glyph = "x",
+            variant = "ghost",
+            tooltip = tr("modal.cancel"),
+            onClick = function()
+              isModalOpen = false
+              formError = ""
+              render()
+            end,
+          }),
+        }),
+
+        -- Subcat Name Input + Icon Picker Trigger
+        ui.column({ gap = 6 }, {
+          ui.label({ text = tr("modal.subcat_label"), fontSize = 11, color = "on_surface_variant", fontWeight = "bold" }),
+          ui.row({ gap = 6, align = "center" }, {
+            ui.input({
+              key = "modal-edit-subcat-input",
+              placeholder = tr("modal.subcat_placeholder"),
+              value = editSubcatName,
+              onChange = function(val)
+                editSubcatName = val
+              end,
+            }),
+            ui.button({
+              glyph = editSubcatIcon,
+              variant = "secondary",
+              tooltip = tr("modal.pick_icon"),
+              onClick = function()
+                openIconPicker(editSubcatIcon, function(newIcon)
+                  editSubcatIcon = newIcon
+                  render()
+                end)
+              end,
+            }),
+          }),
+        }),
+
+        -- Error Message
+        (#formError > 0) and ui.label({
+          text = formError,
+          fontSize = 11,
+          color = "error",
+        }) or nil,
+
+        -- Footer
+        ui.row({
+          justify = "flex_end",
+          gap = 8,
+          align = "center",
+        }, {
+          ui.button({
+            text = tr("modal.cancel"),
+            variant = "ghost",
+            onClick = function()
+              isModalOpen = false
+              formError = ""
+              render()
+            end,
+          }),
+          ui.button({
+            text = tr("modal.save"),
+            variant = "primary",
+            onClick = function()
+              local currentStore = getCustomStore()
+              local ok, err = crud.renameSubcategory(
+                currentStore,
+                editSubcatParentApp,
+                editTarget.origSubcat,
+                editSubcatName,
+                editSubcatIcon
+              )
+              if not ok then
+                formError = err or tr("modal.err_duplicate_subcat")
+                render()
+                return
+              end
+
+              local saved = saveCustomJson(currentStore)
+              if not saved then
+                formError = "Failed to write to file"
+                render()
+                return
+              end
+
+              isModalOpen = false
+              formError = ""
+              noctalia.notify("Keybinds", tr("modal.saved_notify"))
+              refreshAllBinds()
+            end,
+          }),
+        }),
+      }),
+    })
+  end
+
   local isEdit = (modalMode == "edit")
   local modalTitle = if isEdit then tr("modal.title_edit") else tr("modal.title_add")
 

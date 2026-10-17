@@ -92,8 +92,17 @@ class TestKeybindsPanel(unittest.TestCase):
         self.assertIn("modal.subcat_new_option", content, "Modal must support + New Subcategory option")
         self.assertIn("ui.select", content, "Modal must use ui.select for apps and subcategories")
 
+    def test_inplace_app_and_subcat_edit(self):
+        with open(PANEL_FILE, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn('modalMode == "edit_app"', content, "edit_app modal mode required")
+        self.assertIn('modalMode == "edit_subcat"', content, "edit_subcat modal mode required")
+        self.assertIn("crud.renameApp", content, "renameApp must be invoked in panel.luau")
+        self.assertIn("crud.renameSubcategory", content, "renameSubcategory must be invoked in panel.luau")
+
 
 if __name__ == "__main__":
     unittest.main()
+
 
 
