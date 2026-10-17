@@ -66,5 +66,16 @@ class TestKeybindsPanel(unittest.TestCase):
         self.assertIn("idx3 = r + numRows * 2", content)
 
 
+    def test_active_tab_state_persistence(self):
+        with open(PANEL_FILE, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn("saveState()", content)
+        self.assertIn("loadState()", content)
+        self.assertIn("state.json", content)
+        # Ensure onOpen does not unconditionally reset activeApp to hyprland
+        on_open_body = content.split("function onOpen(")[1].split("end")[0]
+        self.assertNotIn('activeApp = "hyprland"', on_open_body)
+
+
 if __name__ == "__main__":
     unittest.main()

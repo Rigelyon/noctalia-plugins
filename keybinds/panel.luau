@@ -248,6 +248,37 @@ local function saveCustomJson(store: any): boolean
   return noctalia.writeFile(path, encoded)
 end
 
+local function getStateFilePath(): string
+  local dataDir = noctalia.pluginDataDir()
+  local rawPath = (dataDir and dataDir ~= "") and (dataDir .. "/state.json") or "~/.local/state/noctalia/plugins/data/rigelyon/keybinds/state.json"
+  return noctalia.expandPath(rawPath)
+end
+
+local function saveState()
+  local path = getStateFilePath()
+  local ok, encoded = pcall(function()
+    return noctalia.json.encode({ activeApp = activeApp })
+  end)
+  if ok and encoded then
+    local dir = string.match(path, "^(.*)/[^/]+$")
+    if dir then
+      noctalia.mkdirAll(dir)
+    end
+    noctalia.writeFile(path, encoded)
+  end
+end
+
+local function loadState()
+  local path = getStateFilePath()
+  local raw = noctalia.readFile(path)
+  if raw then
+    local ok, data = pcall(function() return noctalia.json.decode(raw) end)
+    if ok and type(data) == "table" and type(data.activeApp) == "string" and data.activeApp ~= "" then
+      activeApp = data.activeApp
+    end
+  end
+end
+
 local function loadCustomKeybinds(): { KeybindItem }
   local customItems: { KeybindItem } = {}
   local path = getCustomFilePath()
@@ -639,6 +670,7 @@ local function renderAppTabs(): any
       fill = isSelected and "primary" or "surface",
       onClick = function()
         activeApp = app.id
+        saveState()
         render()
       end,
     }, {
@@ -1240,12 +1272,12 @@ function onOpen(_context)
   end
 
   searchQuery = ""
-  activeApp = "hyprland"
   copiedId = nil
   isEditMode = false
   isModalOpen = false
   formError = ""
 
+  loadState()
   refreshAllBinds()
 end
 
