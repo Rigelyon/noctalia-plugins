@@ -125,7 +125,7 @@ function components.renderWireframe(layoutId: string, isActive: boolean): any
   })
 end
 
-function components.renderLayoutCard(def: any, isActive: boolean, isOverride: boolean?, onSelect: () -> ()): any
+function components.renderLayoutCard(def: any, isActive: boolean, onSelect: () -> ()): any
   local wireframe = components.renderWireframe(def.id, isActive)
   local name = tr(def.nameKey)
   local category = tr(def.categoryKey)
@@ -133,20 +133,16 @@ function components.renderLayoutCard(def: any, isActive: boolean, isOverride: bo
 
   local activeBadge = nil
   if isActive then
-    local badgeFill = isOverride and "secondary" or "primary"
-    local badgeGlyph = isOverride and "pin" or "check"
-    local badgeText = isOverride and tr("panel.active_override_badge") or tr("panel.active_badge")
-
     activeBadge = ui.row({
       gap = 3,
       paddingV = 2,
       paddingH = 6,
       radius = 999,
-      fill = badgeFill,
+      fill = "primary",
       align = "center",
     }, {
-      ui.glyph({ name = badgeGlyph, size = 11, color = "on_" .. badgeFill }),
-      ui.label({ text = badgeText, fontSize = 10, fontWeight = "bold", color = "on_" .. badgeFill }),
+      ui.glyph({ name = "check", size = 11, color = "on_primary" }),
+      ui.label({ text = tr("panel.active_badge"), fontSize = 10, fontWeight = "bold", color = "on_primary" }),
     })
   end
 
@@ -161,7 +157,7 @@ function components.renderLayoutCard(def: any, isActive: boolean, isOverride: bo
   }, {
     wireframe,
     ui.column({ gap = 2, flexGrow = 1 }, {
-      ui.row({ justify = "space_between", align = "center" }, {
+      ui.row({ justify = "space_between", align = "center", flexGrow = 1 }, {
         ui.row({ gap = 6, align = "center" }, {
           ui.glyph({ name = def.glyph, size = 16, color = isActive and "primary" or "on_surface" }),
           ui.label({ text = name, fontSize = 14, fontWeight = "bold", color = "on_surface" }),

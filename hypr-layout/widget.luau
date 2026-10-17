@@ -47,6 +47,9 @@ function onClick()
     if ok then
       local notifyEnabled = noctalia.getConfig("notify_on_change")
       if notifyEnabled ~= false then
+        if targetScope == "global" and state.hasWorkspaceOverride() then
+          return
+        end
         local nextName = tr(nextDef.nameKey)
         local scopeDesc = (targetScope == "workspace")
           and ("Workspace " .. tostring(state.activeWorkspaceId))
