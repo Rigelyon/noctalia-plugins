@@ -41,13 +41,6 @@ label_key = "settings.enable_hy3.label"
 description_key = "settings.enable_hy3.description"
 default = false
 
-[[setting]]
-key = "enable_scroller"
-type = "bool"
-label_key = "settings.enable_scroller.label"
-description_key = "settings.enable_scroller.description"
-default = false
-
 [[panel]]
 id = "panel"
 entry = "panel.luau"

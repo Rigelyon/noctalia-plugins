@@ -42,19 +42,21 @@ bind = $mainMod, L, exec, noctalia msg panel-toggle rigelyon/hypr-layout:panel
   - Miniature diagrams illustrate how windows tile in each layout:
     - **Dwindle**: Fibonacci spiral arrangement.
     - **Master**: Dominant master column flanked by stacked slave windows.
-    - **Hy3**: Manual container groups and tabbed windows.
-    - **Scroller**: Horizontal carousel columns (PaperWM style).
+    - **Scrolling**: Horizontal carousel tape of window columns (PaperWM style).
+    - **Monocle**: Single-window focus filling the entire workspace.
+    - **Hy3**: Manual container groups and tabbed windows (optional plugin).
 
 - **Dual Scope Control**:
-  - **Global Session**: Applies layout changes compositor-wide via `hyprctl keyword general:layout <name>`.
-  - **Workspace Specific**: Applies layout changes targeting only the active workspace via `hyprctl keyword workspace <id>,layout:<name>`.
+  - **Global Session**: Applies layout changes compositor-wide via `hyprctl eval` / `hyprctl keyword`.
+  - **Workspace Specific**: Applies layout changes targeting only the active workspace.
 
 - **Context-Aware Sub-Actions**:
   - Quick buttons for layout-specific dispatcher messages:
     - *Dwindle*: Toggle Split, Pseudo-tile, Swap Split.
     - *Master*: Swap Master, Cycle Next, + Master, - Master.
+    - *Scrolling*: Center, Fit Active, Resize Col, Swap Col.
+    - *Monocle*: Cycle Next, Cycle Prev.
     - *Hy3*: Group Horizontal, Group Vertical, Tabs.
-    - *Scroller*: Cycle Size, Toggle Overview.
 
 - **Real-Time Hyprland Socket2 Sync**:
   - Listens to Hyprland's UNIX domain socket stream (`.socket2.sock`) for instant zero-latency updates when workspaces change or configurations reload.
@@ -68,7 +70,6 @@ bind = $mainMod, L, exec, noctalia msg panel-toggle rigelyon/hypr-layout:panel
 | `show_label_in_bar` | `bool` | `true` | Show layout text name next to the icon in status bar. |
 | `notify_on_change` | `bool` | `true` | Display desktop notification when layout changes. |
 | `enable_hy3` | `bool` | `false` | Enable hy3 plugin manual tiling layout. |
-| `enable_scroller` | `bool` | `false` | Enable hyprscroller PaperWM layout. |
 
 ## License
 

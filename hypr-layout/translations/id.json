@@ -23,10 +23,6 @@
     "enable_hy3": {
       "label": "Aktifkan Plugin Layout Hy3",
       "description": "Sertakan layout manual tiling gaya i3/sway hy3 pada rotasi switcher dan panel."
-    },
-    "enable_scroller": {
-      "label": "Aktifkan Plugin Layout Hyprscroller",
-      "description": "Sertakan layout PaperWM hyprscroller pada rotasi switcher dan panel."
     }
   },
   "widget": {
