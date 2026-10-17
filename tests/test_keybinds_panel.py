@@ -86,7 +86,9 @@ class TestKeybindsPanel(unittest.TestCase):
         self.assertIn("isIconPickerOpen", content, "isIconPickerOpen state must be defined")
 
     def test_modal_uses_select_dropdowns(self):
-        with open(PANEL_FILE, "r", encoding="utf-8") as f:
+        modals_file = os.path.join(PLUGIN_DIR, "modals.luau")
+        target_file = modals_file if os.path.isfile(modals_file) else PANEL_FILE
+        with open(target_file, "r", encoding="utf-8") as f:
             content = f.read()
         self.assertIn("modal.app_new_option", content, "Modal must support + New App option")
         self.assertIn("modal.subcat_new_option", content, "Modal must support + New Subcategory option")

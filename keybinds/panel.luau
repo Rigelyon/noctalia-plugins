@@ -1,27 +1,15 @@
 --!nonstrict
 -- Keybinds Cheatsheet Panel for Noctalia
--- Displays active Hyprland bindings and manual custom shortcuts categorized per app with subcategories.
+-- Orchestrates active Hyprland bindings and manual custom shortcuts per application.
 
 local presets = require("./presets.luau")
 local crud = require("./crud.luau")
+local icons = require("./icons.luau")
+local parser = require("./parser.luau")
+local components = require("./components.luau")
+local modals = require("./modals.luau")
 
-type KeybindItem = {
-  id: string,
-  appId: string,
-  appName: string,
-  appIcon: string,
-  subcatId: string,
-  subcatName: string,
-  subcatIcon: string,
-  modifiers: { string },
-  key: string,
-  keyComboText: string,
-  description: string,
-  source: string,
-  searchIndex: string,
-  sortKey: string,
-  bindIndex: number?,
-}
+type KeybindItem = parser.KeybindItem
 
 local items: { KeybindItem } = {}
 local activeApp = "hyprland"
@@ -36,7 +24,7 @@ local customFilePath = ""
 -- Edit mode & Modal form state
 local isEditMode = false
 local isModalOpen = false
-local modalMode = "create" -- "create" or "edit"
+local modalMode = "create" -- "create", "edit", "edit_app", "edit_subcat"
 local editTarget = {
   origApp = "",
   origSubcat = "",
@@ -67,17 +55,8 @@ local editSubcatName = ""
 local editSubcatIcon = "command"
 local editSubcatParentApp = ""
 
--- Icon Picker state & Curated catalog
-local ICON_CATEGORIES = {
-  { id = "all", labelKey = "modal.category_all" },
-  { id = "dev", labelKey = "modal.category_dev", icons = { "terminal", "code", "command", "cpu", "database", "server", "git-branch", "bug", "braces", "play", "package", "layers" } },
-  { id = "system", labelKey = "modal.category_system", icons = { "app-window", "monitor", "settings", "sliders", "power", "maximize", "minimize", "shield", "bell", "wifi", "sun", "moon", "lock" } },
-  { id = "media", labelKey = "modal.category_media", icons = { "music", "video", "volume-2", "volume-x", "camera", "image", "play", "pause", "disc", "mic", "headphones" } },
-  { id = "navigation", labelKey = "modal.category_navigation", icons = { "globe", "search", "bookmark", "compass", "external-link", "link", "map", "send", "home" } },
-  { id = "files", labelKey = "modal.category_files", icons = { "file-text", "folder", "clipboard", "typography", "file-code", "book-open", "archive", "paperclip" } },
-  { id = "tools", labelKey = "modal.category_tools", icons = { "sparkles", "star", "tool", "key", "keyboard", "zap", "flag", "tag", "activity", "layout-grid" } },
-}
-
+-- Icon Picker state & catalog reference
+local ICON_CATEGORIES = icons.ICON_CATEGORIES
 local isIconPickerOpen = false
 local iconPickerSearch = ""
 local iconPickerCategory = "all"
@@ -85,6 +64,10 @@ local iconPickerCurrent = ""
 local iconPickerCallback: ((string) -> ())? = nil
 
 local render
+
+local function tr(key: string, subst: { [string]: any }?): string
+  return noctalia.tr(key, subst)
+end
 
 local function openIconPicker(current: string?, callback: (string) -> ())
   isIconPickerOpen = true
@@ -103,169 +86,6 @@ local function closeIconPicker()
   if render then
     render()
   end
-end
-
-local function tr(key: string, subst: { [string]: any }?): string
-  return noctalia.tr(key, subst)
-end
-
--- Key translations mapping
-local KEY_TRANSLATIONS = {
-  ["code:10"] = "1",
-  ["code:11"] = "2",
-  ["code:12"] = "3",
-  ["code:13"] = "4",
-  ["code:14"] = "5",
-  ["code:15"] = "6",
-  ["code:16"] = "7",
-  ["code:17"] = "8",
-  ["code:18"] = "9",
-  ["code:19"] = "0",
-  ["code:90"] = "Num 0",
-  ["code:87"] = "Num 1",
-  ["code:88"] = "Num 2",
-  ["code:89"] = "Num 3",
-  ["code:83"] = "Num 4",
-  ["code:84"] = "Num 5",
-  ["code:85"] = "Num 6",
-  ["code:79"] = "Num 7",
-  ["code:80"] = "Num 8",
-  ["code:81"] = "Num 9",
-  ["mouse:272"] = "Left Click",
-  ["mouse:273"] = "Right Click",
-  ["mouse:274"] = "Middle Click",
-  ["mouse_up"] = "Scroll Up",
-  ["mouse_down"] = "Scroll Down",
-  ["bracketleft"] = "[",
-  ["bracketright"] = "]",
-  ["slash"] = "/",
-  ["grave"] = "`",
-  ["comma"] = ",",
-  ["period"] = ".",
-  ["equal"] = "=",
-  ["minus"] = "-",
-  ["xf86audioraisevolume"] = "Vol +",
-  ["xf86audiolowervolume"] = "Vol -",
-  ["xf86audiomute"] = "Mute",
-  ["xf86audiomicmute"] = "Mic Mute",
-  ["xf86monbrightnessup"] = "Bright +",
-  ["xf86monbrightnessdown"] = "Bright -",
-  ["xf86audioplay"] = "Play",
-  ["xf86audiostop"] = "Stop",
-  ["xf86audionext"] = "Next",
-  ["xf86audioprev"] = "Prev",
-  ["xf86sleep"] = "Sleep",
-  ["xf86rfkill"] = "Airplane",
-}
-
-local function normalizeKey(key: string): string
-  local lower = string.lower(noctalia.string.trim(key))
-  return KEY_TRANSLATIONS[lower] or key
-end
-
-local function naturalSortKey(str: string?): string
-  if not str or str == "" then return "" end
-  local lower = string.lower(str)
-  local res = string.gsub(lower, "%d+", function(digits)
-    return string.format("%08d", tonumber(digits) or 0)
-  end)
-  return res
-end
-
-local function decodeModmask(modmask: number): { string }
-  local mods = {}
-  if bit32.band(modmask, 64) ~= 0 then
-    table.insert(mods, "SUPER")
-  end
-  if bit32.band(modmask, 4) ~= 0 then
-    table.insert(mods, "CTRL")
-  end
-  if bit32.band(modmask, 8) ~= 0 then
-    table.insert(mods, "ALT")
-  end
-  if bit32.band(modmask, 1) ~= 0 then
-    table.insert(mods, "SHIFT")
-  end
-  return mods
-end
-
-local function categorizeBind(description: string, key: string, dispatcher: string?): (string, string)
-  local desc = string.lower(description or "")
-  local k = string.lower(key or "")
-  local disp = string.lower(dispatcher or "")
-
-  -- Window Management
-  local windowTerms = { "window", "float", "pin", "fullscreen", "maximize", "focus", "swap", "resize" }
-  for _, term in ipairs(windowTerms) do
-    if string.find(desc, term, 1, true) then
-      return "window", "app-window"
-    end
-  end
-  if disp == "closewindow" or disp == "killactive" or disp == "togglefloating" or disp == "fullscreen"
-    or disp == "pin" or disp == "movewindow" or disp == "resizeactive" or disp == "swapwindow" or disp == "movefocus" then
-    return "window", "app-window"
-  end
-
-  -- Workspaces
-  if string.find(desc, "workspace", 1, true) or disp == "workspace" or disp == "movetoworkspace"
-    or disp == "movetoworkspacesilent" or disp == "togglespecialworkspace" then
-    return "workspaces", "layout-grid"
-  end
-
-  -- Apps & Launchers
-  if string.sub(desc, 1, 5) == "open " or string.find(desc, "browser", 1, true) or string.find(desc, "terminal", 1, true)
-    or string.find(desc, "file manager", 1, true) or string.find(desc, "launcher", 1, true) or string.find(desc, "calculator", 1, true)
-    or string.find(desc, "settings", 1, true) then
-    return "apps", "rocket"
-  end
-
-  -- Media & Hardware
-  local mediaTerms = { "volume", "brightness", "mic", "play", "stop", "track", "mute", "airplane", "sleep" }
-  for _, term in ipairs(mediaTerms) do
-    if string.find(desc, term, 1, true) then
-      return "media", "volume-2"
-    end
-  end
-  if string.sub(k, 1, 4) == "xf86" then
-    return "media", "volume-2"
-  end
-
-  -- Screen & Tools
-  local screenTerms = { "screenshot", "record", "ocr", "qr", "annotation", "clipboard" }
-  for _, term in ipairs(screenTerms) do
-    if string.find(desc, term, 1, true) then
-      return "screen", "camera"
-    end
-  end
-
-  -- System
-  if string.find(desc, "exit", 1, true) or string.find(desc, "lock", 1, true) or string.find(desc, "power", 1, true)
-    or string.find(desc, "shutdown", 1, true) or string.find(desc, "reboot", 1, true) or disp == "exit" then
-    return "system", "power"
-  end
-
-  return "other", "hash"
-end
-
-local HYPRLAND_SUBCAT_INFO = {
-  window = { icon = "app-window", labelKey = "panel.categories.window" },
-  workspaces = { icon = "layout-grid", labelKey = "panel.categories.workspaces" },
-  apps = { icon = "rocket", labelKey = "panel.categories.apps" },
-  media = { icon = "volume-2", labelKey = "panel.categories.media" },
-  screen = { icon = "camera", labelKey = "panel.categories.screen" },
-  system = { icon = "power", labelKey = "panel.categories.system" },
-  other = { icon = "hash", labelKey = "panel.categories.other" },
-}
-
-local function buildKeyComboText(modifiers: { string }, key: string): string
-  local parts = {}
-  for _, m in ipairs(modifiers) do
-    table.insert(parts, string.upper(m))
-  end
-  if key ~= "" then
-    table.insert(parts, string.upper(key))
-  end
-  return table.concat(parts, " + ")
 end
 
 local function getCustomFilePath(): string
@@ -336,10 +156,7 @@ local function loadState()
 end
 
 local function loadCustomKeybinds(): { KeybindItem }
-  local customItems: { KeybindItem } = {}
   local path = getCustomFilePath()
-
-  -- Create default file if absent
   if not noctalia.fileExists(path) then
     local dir = string.match(path, "^(.*)/[^/]+$")
     if dir then
@@ -347,120 +164,23 @@ local function loadCustomKeybinds(): { KeybindItem }
     end
     noctalia.writeFile(path, presets.defaultJson)
   end
-
-  local raw = noctalia.readFile(path)
-  if not raw then
-    return customItems
-  end
-
-  local ok, data = pcall(function()
-    return noctalia.json.decode(raw)
-  end)
-
-  if ok and type(data) == "table" then
-    local appList = data.apps or data.categories
-    if type(appList) == "table" then
-      for appIdx, app in ipairs(appList) do
-        local appName = app.name or ("App " .. tostring(appIdx))
-        local appIcon = app.icon or "terminal"
-        if appIcon == "terminal_window" then
-          appIcon = "terminal"
-        end
-        local appId = string.lower(appName)
-
-        if type(app.subcategories) == "table" then
-          for subIdx, sub in ipairs(app.subcategories) do
-            local subName = sub.name or "General"
-            local subIcon = sub.icon or "command"
-            local subId = string.lower(subName)
-            if type(sub.binds) == "table" then
-              for bIdx, b in ipairs(sub.binds) do
-                local keys = b.keys or {}
-                local mods = {}
-                local primaryKey = ""
-                if #keys > 0 then
-                  for kIdx = 1, #keys - 1 do
-                    table.insert(mods, string.upper(keys[kIdx]))
-                  end
-                  primaryKey = string.upper(keys[#keys])
-                end
-                local desc = b.description or ""
-                local combo = buildKeyComboText(mods, primaryKey)
-                table.insert(customItems, {
-                  id = "custom-" .. appId .. "-" .. tostring(subIdx) .. "-" .. tostring(bIdx),
-                  appId = appId,
-                  appName = appName,
-                  appIcon = appIcon,
-                  subcatId = subId,
-                  subcatName = subName,
-                  subcatIcon = subIcon,
-                  modifiers = mods,
-                  key = primaryKey,
-                  keyComboText = combo,
-                  description = desc,
-                  source = "custom",
-                  searchIndex = string.lower(appName .. " " .. subName .. " " .. desc .. " " .. combo),
-                  sortKey = naturalSortKey(desc),
-                  bindIndex = bIdx,
-                })
-              end
-            end
-          end
-        elseif type(app.binds) == "table" then
-          for bIdx, b in ipairs(app.binds) do
-            local keys = b.keys or {}
-            local mods = {}
-            local primaryKey = ""
-            if #keys > 0 then
-              for kIdx = 1, #keys - 1 do
-                table.insert(mods, string.upper(keys[kIdx]))
-              end
-              primaryKey = string.upper(keys[#keys])
-            end
-            local desc = b.description or ""
-            local subName = b.subcategory or b.subcat or b.category or "General"
-            local subIcon = b.subcategoryIcon or b.icon or "command"
-            local subId = string.lower(subName)
-            local combo = buildKeyComboText(mods, primaryKey)
-            table.insert(customItems, {
-              id = "custom-" .. appId .. "-" .. tostring(bIdx),
-              appId = appId,
-              appName = appName,
-              appIcon = appIcon,
-              subcatId = subId,
-              subcatName = subName,
-              subcatIcon = subIcon,
-              modifiers = mods,
-              key = primaryKey,
-              keyComboText = combo,
-              description = desc,
-              source = "custom",
-              searchIndex = string.lower(appName .. " " .. subName .. " " .. desc .. " " .. combo),
-              sortKey = naturalSortKey(desc),
-              bindIndex = bIdx,
-            })
-          end
-        end
-      end
-    end
-  end
-
-  return customItems
+  local raw = noctalia.readFile(path) or ""
+  return parser.parseCustomKeybinds(raw)
 end
 
 local function refreshAllBinds()
   isLoading = true
-  render()
+  if render then
+    render()
+  end
 
   local customList = loadCustomKeybinds()
   items = {}
 
-  -- Append custom list first
   for _, item in ipairs(customList) do
     table.insert(items, item)
   end
 
-  -- Run hyprctl binds -j
   noctalia.runAsync({ "hyprctl", "binds", "-j" }, function(res)
     isLoading = false
     if res.exitCode == 0 and #res.stdout > 0 then
@@ -476,7 +196,6 @@ local function refreshAllBinds()
             desc = b.dispatcher .. (b.arg and (" " .. b.arg) or "")
           end
 
-          -- If key is missing from JSON serialization, restore key from keycode or description
           if rawKey == "" and b.keycode and b.keycode > 0 then
             rawKey = "code:" .. tostring(b.keycode)
           end
@@ -492,14 +211,14 @@ local function refreshAllBinds()
             end
           end
 
-          local normKey = string.upper(normalizeKey(rawKey))
-          local mods = decodeModmask(b.modmask or 0)
-          local catKey, catIcon = categorizeBind(desc, normKey, b.dispatcher)
-          local info = HYPRLAND_SUBCAT_INFO[catKey]
+          local normKey = string.upper(parser.normalizeKey(rawKey))
+          local mods = parser.decodeModmask(b.modmask or 0)
+          local catKey, catIcon = parser.categorizeBind(desc, normKey, b.dispatcher)
+          local info = parser.HYPRLAND_SUBCAT_INFO[catKey]
           local subcatName = (info and tr(info.labelKey)) or catKey
           local subcatIcon = (info and info.icon) or catIcon
-          local combo = buildKeyComboText(mods, normKey)
 
+          local combo = parser.buildKeyComboText(mods, normKey)
           table.insert(items, {
             id = "hypr-" .. tostring(idx),
             appId = "hyprland",
@@ -514,18 +233,20 @@ local function refreshAllBinds()
             description = desc,
             source = "hyprland",
             searchIndex = string.lower("hyprland " .. subcatName .. " " .. desc .. " " .. combo),
-            sortKey = naturalSortKey(desc),
+            sortKey = parser.naturalSortKey(desc),
+            bindIndex = nil,
           })
         end
       end
     else
       hyprAvailable = false
     end
-    render()
-  end, 3000)
+    if render then
+      render()
+    end
+  end)
 end
 
--- App list collection
 local function getAppList(): { { id: string, name: string, icon: string, count: number } }
   local apps = {}
   local seen = {}
@@ -536,15 +257,13 @@ local function getAppList(): { { id: string, name: string, icon: string, count: 
       hyprCount = hyprCount + 1
     end
   end
-  if hyprCount > 0 or hyprAvailable then
-    table.insert(apps, {
-      id = "hyprland",
-      name = "Hyprland",
-      icon = "layout-grid",
-      count = hyprCount,
-    })
-    seen["hyprland"] = true
-  end
+  table.insert(apps, {
+    id = "hyprland",
+    name = "Hyprland",
+    icon = "layout-grid",
+    count = hyprCount,
+  })
+  seen["hyprland"] = true
 
   for _, item in ipairs(items) do
     if not seen[item.appId] then
@@ -591,7 +310,7 @@ local function renderHeader(): any
         color = "on_surface_variant",
       }),
     }),
-    -- Center: Compact Search Input (integrated directly into header)
+    -- Center: Compact Search Input
     ui.row({
       align = "center",
       gap = 6,
@@ -737,7 +456,6 @@ local function renderAppTabs(): any
     return ui.row({})
   end
 
-  -- Validate activeApp
   local activeFound = false
   for _, app in ipairs(apps) do
     if app.id == activeApp then
@@ -755,7 +473,6 @@ local function renderAppTabs(): any
     table.insert(qWords, w)
   end
 
-  -- Calculate match count per app if searching
   local matchCounts = {}
   if #qWords > 0 then
     for _, item in ipairs(items) do
@@ -891,180 +608,94 @@ local function renderSubcategoryHeading(title: string, icon: string, count: numb
   })
 end
 
-local function renderKbdBadge(text: string, isPrimary: boolean): any
-  return ui.row({
-    paddingV = 2,
-    paddingH = 5,
-    radius = 4 * cornerRadiusScale,
-    fill = isPrimary and "surface_variant" or "surface",
-  }, {
-    ui.label({
-      text = string.upper(text),
-      fontSize = 10,
-      fontWeight = "bold",
-      color = isPrimary and "primary" or "on_surface",
-    }),
-  })
-end
-
 local function renderKeybindCard(item: KeybindItem): any
-  local isCopied = (copiedId == item.id)
-
-  local kbdBadges = {}
-  for _, m in ipairs(item.modifiers) do
-    table.insert(kbdBadges, renderKbdBadge(string.upper(m), false))
-    table.insert(kbdBadges, ui.label({ text = "+", fontSize = 9, color = "on_surface_variant" }))
-  end
-  if item.key ~= "" then
-    table.insert(kbdBadges, renderKbdBadge(string.upper(item.key), true))
-  end
-
-  -- Prevent text overflowing under badges; calculate safe max description length
-  local maxDescLen = if isEditMode
-    then (34 - (#item.modifiers * 5) - (string.len(item.key) > 6 and 4 or 0))
-    else (46 - (#item.modifiers * 5) - (string.len(item.key) > 6 and 4 or 0))
-  if maxDescLen < 16 then maxDescLen = 16 end
-
-  local displayDesc = item.description
-  if string.len(displayDesc) > maxDescLen then
-    displayDesc = string.sub(displayDesc, 1, maxDescLen - 1) .. "…"
-  end
-
-  local fullTooltip = item.description .. " (" .. item.keyComboText .. ")"
-
-  local cardActions = nil
-  if isEditMode and item.source == "custom" and item.bindIndex ~= nil then
-    cardActions = ui.row({ gap = 2, align = "center" }, {
-      ui.button({
-        glyph = "pencil",
-        variant = "ghost",
-        tooltip = tr("actions.edit_keybind"),
-        onClick = function()
-          modalMode = "edit"
-          editTarget = {
-            origApp = item.appName,
-            origSubcat = item.subcatName,
-            origBindIdx = item.bindIndex or 1,
-          }
-          local store = getCustomStore()
-          local appFoundIdx = nil
-          local subFoundIdx = nil
-          if store and type(store.apps) == "table" then
-            for aIdx, a in ipairs(store.apps) do
-              if string.lower(a.name) == string.lower(item.appName) then
-                appFoundIdx = aIdx
-                if type(a.subcategories) == "table" then
-                  for sIdx, s in ipairs(a.subcategories) do
-                    if string.lower(s.name) == string.lower(item.subcatName) then
-                      subFoundIdx = sIdx
-                      break
-                    end
-                  end
+  return components.renderKeybindCard(item, {
+    isEditMode = isEditMode,
+    copiedId = copiedId,
+    cornerRadiusScale = cornerRadiusScale,
+    tr = tr,
+    onCopy = function(comboText, id)
+      noctalia.copyToClipboard(item.keyComboText, "text/plain")
+      copiedId = id
+      render()
+    end,
+    onEdit = function(it)
+      modalMode = "edit"
+      editTarget = {
+        origApp = it.appName,
+        origSubcat = it.subcatName,
+        origBindIdx = it.bindIndex or 1,
+      }
+      local store = getCustomStore()
+      local appFoundIdx = nil
+      local subFoundIdx = nil
+      if store and type(store.apps) == "table" then
+        for aIdx, a in ipairs(store.apps) do
+          if string.lower(a.name) == string.lower(it.appName) then
+            appFoundIdx = aIdx
+            if type(a.subcategories) == "table" then
+              for sIdx, s in ipairs(a.subcategories) do
+                if string.lower(s.name) == string.lower(it.subcatName) then
+                  subFoundIdx = sIdx
+                  break
                 end
-                break
               end
             end
+            break
           end
-
-          if appFoundIdx then
-            local a = store.apps[appFoundIdx]
-            formAppSelectedIdx = appFoundIdx - 1
-            formAppIsNew = false
-            formApp = a.name
-            formAppIcon = a.icon or "terminal"
-            if subFoundIdx then
-              formSubcatSelectedIdx = subFoundIdx - 1
-              formSubcatIsNew = false
-              formSubcat = a.subcategories[subFoundIdx].name
-              formSubcatIcon = a.subcategories[subFoundIdx].icon or "command"
-            else
-              local totalSubs = if type(a.subcategories) == "table" then #a.subcategories else 0
-              formSubcatSelectedIdx = totalSubs
-              formSubcatIsNew = true
-              formSubcat = item.subcatName
-              formSubcatIcon = item.subcatIcon or "command"
-            end
-          else
-            local totalApps = if store and type(store.apps) == "table" then #store.apps else 0
-            formAppSelectedIdx = totalApps
-            formAppIsNew = true
-            formApp = item.appName
-            formAppIcon = item.appIcon or "terminal"
-            formSubcatSelectedIdx = 0
-            formSubcatIsNew = true
-            formSubcat = item.subcatName
-            formSubcatIcon = item.subcatIcon or "command"
-          end
-
-          formDesc = item.description
-          formKey = item.key
-          formMods = { SUPER = false, CTRL = false, ALT = false, SHIFT = false }
-          for _, m in ipairs(item.modifiers) do
-            local mu = string.upper(m)
-            if formMods[mu] ~= nil then
-              formMods[mu] = true
-            end
-          end
-          formError = ""
-          isModalOpen = true
-          render()
-        end,
-      }),
-      ui.button({
-        glyph = "trash",
-        variant = "ghost",
-        tooltip = tr("actions.delete_keybind"),
-        onClick = function()
-          local path = getCustomFilePath()
-          local raw = noctalia.readFile(path)
-          if raw then
-            local ok, store = pcall(function() return noctalia.json.decode(raw) end)
-            if ok and store then
-              crud.deleteKeybind(store, item.appName, item.subcatName, item.bindIndex or 1)
-              saveCustomJson(store)
-              noctalia.notify("Keybinds", tr("modal.deleted_notify"))
-              refreshAllBinds()
-            end
-          end
-        end,
-      }),
-    })
-  end
-
-  return ui.row({
-    key = "card-" .. item.id,
-    flexGrow = 1,
-    paddingV = 5,
-    paddingH = 8,
-    radius = 6 * cornerRadiusScale,
-    fill = isCopied and "primary_container" or "surface",
-    align = "center",
-    justify = "space_between",
-    gap = 6,
-    tooltip = fullTooltip,
-    onClick = function()
-      local copyEnabled = noctalia.getConfig("copy_on_click") ~= false
-      if copyEnabled then
-        noctalia.copyToClipboard(item.keyComboText, "text/plain")
-        copiedId = item.id
-        render()
+        end
       end
+
+      if appFoundIdx then
+        local a = store.apps[appFoundIdx]
+        formAppSelectedIdx = appFoundIdx - 1
+        formAppIsNew = false
+        formApp = a.name
+        formAppIcon = a.icon or "terminal"
+        if subFoundIdx then
+          formSubcatSelectedIdx = subFoundIdx - 1
+          formSubcatIsNew = false
+          formSubcat = a.subcategories[subFoundIdx].name
+          formSubcatIcon = a.subcategories[subFoundIdx].icon or "command"
+        else
+          local totalSubs = if type(a.subcategories) == "table" then #a.subcategories else 0
+          formSubcatSelectedIdx = totalSubs
+          formSubcatIsNew = true
+          formSubcat = it.subcatName
+          formSubcatIcon = it.subcatIcon or "command"
+        end
+      else
+        local totalApps = if store and type(store.apps) == "table" then #store.apps else 0
+        formAppSelectedIdx = totalApps
+        formAppIsNew = true
+        formApp = it.appName
+        formAppIcon = it.appIcon or "terminal"
+        formSubcatSelectedIdx = 0
+        formSubcatIsNew = true
+        formSubcat = it.subcatName
+        formSubcatIcon = it.subcatIcon or "command"
+      end
+
+      formDesc = it.description
+      formKey = it.key
+      formMods = { SUPER = false, CTRL = false, ALT = false, SHIFT = false }
+      for _, m in ipairs(it.modifiers) do
+        local mu = string.upper(m)
+        if formMods[mu] ~= nil then
+          formMods[mu] = true
+        end
+      end
+      formError = ""
+      isModalOpen = true
+      render()
     end,
-  }, {
-    ui.row({ gap = 6, align = "center", flexGrow = 1, tooltip = fullTooltip }, {
-      ui.glyph({ name = item.subcatIcon, size = 11, color = "on_surface_variant" }),
-      ui.label({
-        text = isCopied and tr("panel.copied") or displayDesc,
-        fontSize = 11,
-        fontWeight = isCopied and "bold" or "normal",
-        color = isCopied and "on_primary_container" or "on_surface",
-        maxLines = 1,
-      }),
-    }),
-    ui.row({ gap = 4, align = "center" }, {
-      ui.row({ gap = 2, align = "center" }, kbdBadges),
-      cardActions,
-    }),
+    onDelete = function(it)
+      local currentStore = getCustomStore()
+      crud.deleteKeybind(currentStore, it.appName, it.subcatName, it.bindIndex or 1)
+      saveCustomJson(currentStore)
+      noctalia.notify("Keybinds", tr("modal.deleted_notify"))
+      refreshAllBinds()
+    end,
   })
 end
 
@@ -1094,19 +725,22 @@ local function filterItems(): { KeybindItem }
       end
     end
   end
+
   return filtered
 end
 
-local function renderCardGrid(filtered: { KeybindItem }): any
-  if #filtered == 0 then
+local function renderKeybindsGrid(): any
+  local activeItems = filterItems()
+
+  if #activeItems == 0 then
     return ui.column({
       flexGrow = 1,
       align = "center",
       justify = "center",
-      gap = 10,
-      padding = 30,
+      gap = 8,
+      padding = 32,
     }, {
-      ui.glyph({ name = "search", size = 36, color = "on_surface_variant" }),
+      ui.glyph({ name = "search", size = 28, color = "on_surface_variant" }),
       ui.label({
         text = tr("panel.no_results", { query = searchQuery }),
         fontSize = 12,
@@ -1115,95 +749,82 @@ local function renderCardGrid(filtered: { KeybindItem }): any
     })
   end
 
-  local cols = tonumber(gridColumns) or 3
-  local scrollContent = {}
-
   -- Group items by subcategory
   local groups = {}
-  local groupMap = {}
-
-  for _, item in ipairs(filtered) do
-    local grp = groupMap[item.subcatId]
-    if not grp then
-      grp = {
+  local groupIndex = {}
+  for _, item in ipairs(activeItems) do
+    if not groupIndex[item.subcatId] then
+      local grp = {
         id = item.subcatId,
         name = item.subcatName,
         icon = item.subcatIcon,
-        appName = item.appName,
         isCustom = (item.source == "custom"),
+        appName = item.appName,
         items = {},
       }
-      groupMap[item.subcatId] = grp
       table.insert(groups, grp)
+      groupIndex[item.subcatId] = grp
     end
-    table.insert(grp.items, item)
+    table.insert(groupIndex[item.subcatId].items, item)
   end
 
-  -- Sort subcategories naturally by name (A to Z)
-  table.sort(groups, function(a, b)
-    return naturalSortKey(a.name) < naturalSortKey(b.name)
-  end)
-
+  local scrollContent = {}
   for _, grp in ipairs(groups) do
-    if #grp.items > 0 then
-      -- Sort items within subcategory naturally (A to Z, 1..10)
-      table.sort(grp.items, function(a, b)
-        return (a.sortKey or "") < (b.sortKey or "")
-      end)
-
-      -- Subcategory Section Heading
-      table.insert(scrollContent, renderSubcategoryHeading(grp.name, grp.icon, #grp.items, grp.isCustom, grp.appName))
-
-      -- Cards in N columns (flowing top-to-bottom down columns, then left-to-right)
-      local totalItems = #grp.items
-      if cols == 3 then
-        local numRows = math.ceil(totalItems / 3)
-        for r = 1, numRows do
-          local idx1 = r
-          local idx2 = r + numRows
-          local idx3 = r + numRows * 2
-
-          local col1 = renderKeybindCard(grp.items[idx1])
-          local col2 = (idx2 <= totalItems) and renderKeybindCard(grp.items[idx2]) or ui.spacer({ flexGrow = 1 })
-          local col3 = (idx3 <= totalItems) and renderKeybindCard(grp.items[idx3]) or ui.spacer({ flexGrow = 1 })
-          table.insert(scrollContent, ui.row({ gap = 6, align = "center" }, { col1, col2, col3 }))
-        end
-      elseif cols == 2 then
-        local numRows = math.ceil(totalItems / 2)
-        for r = 1, numRows do
-          local idx1 = r
-          local idx2 = r + numRows
-
-          local col1 = renderKeybindCard(grp.items[idx1])
-          local col2 = (idx2 <= totalItems) and renderKeybindCard(grp.items[idx2]) or ui.spacer({ flexGrow = 1 })
-          table.insert(scrollContent, ui.row({ gap = 6, align = "center" }, { col1, col2 }))
-        end
-      else
-        for _, item in ipairs(grp.items) do
-          table.insert(scrollContent, renderKeybindCard(item))
-        end
+    table.sort(grp.items, function(a, b)
+      if a.sortKey ~= b.sortKey then
+        return a.sortKey < b.sortKey
       end
+      return a.description < b.description
+    end)
 
-      -- Subtle gap after section
-      table.insert(scrollContent, ui.spacer({ height = 4 }))
+    table.insert(scrollContent, renderSubcategoryHeading(grp.name, grp.icon, #grp.items, grp.isCustom, grp.appName))
+
+    local totalItems = #grp.items
+    if gridColumns == "3" then
+      local numRows = math.ceil(totalItems / 3)
+      for r = 1, numRows do
+        local idx1 = r
+        local idx2 = r + numRows
+        local idx3 = r + numRows * 2
+
+        local col1 = renderKeybindCard(grp.items[idx1])
+        local col2 = (idx2 <= totalItems) and renderKeybindCard(grp.items[idx2]) or ui.spacer({ flexGrow = 1 })
+        local col3 = (idx3 <= totalItems) and renderKeybindCard(grp.items[idx3]) or ui.spacer({ flexGrow = 1 })
+
+        table.insert(scrollContent, ui.row({ gap = 6, align = "center" }, { col1, col2, col3 }))
+      end
+    else
+      local numRows = math.ceil(totalItems / 2)
+      for r = 1, numRows do
+        local idx1 = r
+        local idx2 = r + numRows
+
+        local col1 = renderKeybindCard(grp.items[idx1])
+        local col2 = (idx2 <= totalItems) and renderKeybindCard(grp.items[idx2]) or ui.spacer({ flexGrow = 1 })
+
+        table.insert(scrollContent, ui.row({ gap = 6, align = "center" }, { col1, col2 }))
+      end
     end
+
+    table.insert(scrollContent, ui.spacer({ height = 4 }))
   end
 
   return ui.scroll({
     flexGrow = 1,
     gap = 4,
+    paddingH = 2,
   }, scrollContent)
 end
 
 local function renderFooter(): any
-  local path = noctalia.expandPath(customFilePath)
   return ui.row({
     justify = "space_between",
     align = "center",
-    paddingV = 2,
+    paddingV = 4,
+    paddingH = 4,
   }, {
     ui.label({
-      text = tr("panel.footer_hint", { path = path }),
+      text = tr("panel.footer_hint") .. " · Config: " .. getCustomFilePath(),
       fontSize = 10,
       color = "on_surface_variant",
     }),
@@ -1215,780 +836,277 @@ local function renderFooter(): any
   })
 end
 
-local function renderModalOverlay(): any
-  if modalMode == "edit_app" then
-    return ui.column({
-      flexGrow = 1,
-      align = "center",
-      justify = "center",
-      padding = 16,
-    }, {
-      ui.column({
-        width = 460,
-        radius = 12 * cornerRadiusScale,
-        fill = "surface",
-        padding = 20,
-        gap = 12,
-        align = "stretch",
-      }, {
-        -- Header
-        ui.row({
-          justify = "space_between",
-          align = "center",
-        }, {
-          ui.row({ gap = 8, align = "center" }, {
-            ui.glyph({ name = "pencil", size = 16, color = "primary" }),
-            ui.label({
-              text = tr("modal.edit_app_title"),
-              fontSize = 15,
-              fontWeight = "bold",
-              color = "on_surface",
-            }),
-          }),
-          ui.button({
-            glyph = "x",
-            variant = "ghost",
-            tooltip = tr("modal.cancel"),
-            onClick = function()
-              isModalOpen = false
-              formError = ""
-              render()
-            end,
-          }),
-        }),
-
-        -- App Name Input + Icon Picker Trigger
-        ui.column({ gap = 6, align = "stretch" }, {
-          ui.label({ text = tr("modal.app_label"), fontSize = 11, color = "on_surface_variant", fontWeight = "bold" }),
-          ui.row({ gap = 6, align = "center", flexGrow = 1 }, {
-            ui.input({
-              key = "modal-edit-app-input",
-              placeholder = tr("modal.app_placeholder"),
-              value = editAppName,
-              flexGrow = 1,
-              onChange = function(val)
-                editAppName = val
-              end,
-            }),
-            ui.button({
-              glyph = editAppIcon,
-              variant = "secondary",
-              tooltip = tr("modal.pick_icon"),
-              onClick = function()
-                openIconPicker(editAppIcon, function(newIcon)
-                  editAppIcon = newIcon
-                  render()
-                end)
-              end,
-            }),
-          }),
-        }),
-
-        -- Error Message
-        (#formError > 0) and ui.label({
-          text = formError,
-          fontSize = 11,
-          color = "error",
-        }) or nil,
-
-        -- Footer
-        ui.row({
-          justify = "flex_end",
-          gap = 8,
-          align = "center",
-        }, {
-          ui.button({
-            text = tr("modal.cancel"),
-            variant = "ghost",
-            onClick = function()
-              isModalOpen = false
-              formError = ""
-              render()
-            end,
-          }),
-          ui.button({
-            text = tr("modal.save"),
-            variant = "primary",
-            onClick = function()
-              local currentStore = getCustomStore()
-              local ok, err = crud.renameApp(currentStore, editTarget.origApp, editAppName, editAppIcon)
-              if not ok then
-                formError = err or tr("modal.err_duplicate_app")
-                render()
-                return
-              end
-
-              local saved = saveCustomJson(currentStore)
-              if not saved then
-                formError = "Failed to write to file"
-                render()
-                return
-              end
-
-              if string.lower(activeApp) == string.lower(editTarget.origApp) or activeApp == editTarget.origApp then
-                activeApp = string.lower(editAppName)
-                saveState()
-              end
-
-              isModalOpen = false
-              formError = ""
-              noctalia.notify("Keybinds", tr("modal.saved_notify"))
-              refreshAllBinds()
-            end,
-          }),
-        }),
-      }),
-    })
-  end
-
-  if modalMode == "edit_subcat" then
-    return ui.column({
-      flexGrow = 1,
-      align = "center",
-      justify = "center",
-      padding = 16,
-    }, {
-      ui.column({
-        width = 460,
-        radius = 12 * cornerRadiusScale,
-        fill = "surface",
-        padding = 20,
-        gap = 12,
-        align = "stretch",
-      }, {
-        -- Header
-        ui.row({
-          justify = "space_between",
-          align = "center",
-        }, {
-          ui.row({ gap = 8, align = "center" }, {
-            ui.glyph({ name = "pencil", size = 16, color = "primary" }),
-            ui.label({
-              text = tr("modal.edit_subcat_title"),
-              fontSize = 15,
-              fontWeight = "bold",
-              color = "on_surface",
-            }),
-          }),
-          ui.button({
-            glyph = "x",
-            variant = "ghost",
-            tooltip = tr("modal.cancel"),
-            onClick = function()
-              isModalOpen = false
-              formError = ""
-              render()
-            end,
-          }),
-        }),
-
-        -- Subcat Name Input + Icon Picker Trigger
-        ui.column({ gap = 6, align = "stretch" }, {
-          ui.label({ text = tr("modal.subcat_label"), fontSize = 11, color = "on_surface_variant", fontWeight = "bold" }),
-          ui.row({ gap = 6, align = "center", flexGrow = 1 }, {
-            ui.input({
-              key = "modal-edit-subcat-input",
-              placeholder = tr("modal.subcat_placeholder"),
-              value = editSubcatName,
-              flexGrow = 1,
-              onChange = function(val)
-                editSubcatName = val
-              end,
-            }),
-            ui.button({
-              glyph = editSubcatIcon,
-              variant = "secondary",
-              tooltip = tr("modal.pick_icon"),
-              onClick = function()
-                openIconPicker(editSubcatIcon, function(newIcon)
-                  editSubcatIcon = newIcon
-                  render()
-                end)
-              end,
-            }),
-          }),
-        }),
-
-        -- Error Message
-        (#formError > 0) and ui.label({
-          text = formError,
-          fontSize = 11,
-          color = "error",
-        }) or nil,
-
-        -- Footer
-        ui.row({
-          justify = "flex_end",
-          gap = 8,
-          align = "center",
-        }, {
-          ui.button({
-            text = tr("modal.cancel"),
-            variant = "ghost",
-            onClick = function()
-              isModalOpen = false
-              formError = ""
-              render()
-            end,
-          }),
-          ui.button({
-            text = tr("modal.save"),
-            variant = "primary",
-            onClick = function()
-              local currentStore = getCustomStore()
-              local ok, err = crud.renameSubcategory(
-                currentStore,
-                editSubcatParentApp,
-                editTarget.origSubcat,
-                editSubcatName,
-                editSubcatIcon
-              )
-              if not ok then
-                formError = err or tr("modal.err_duplicate_subcat")
-                render()
-                return
-              end
-
-              local saved = saveCustomJson(currentStore)
-              if not saved then
-                formError = "Failed to write to file"
-                render()
-                return
-              end
-
-              isModalOpen = false
-              formError = ""
-              noctalia.notify("Keybinds", tr("modal.saved_notify"))
-              refreshAllBinds()
-            end,
-          }),
-        }),
-      }),
-    })
-  end
-
-  local isEdit = (modalMode == "edit")
-  local modalTitle = if isEdit then tr("modal.title_edit") else tr("modal.title_add")
-
-  local store = getCustomStore()
-  local customApps = (type(store.apps) == "table") and store.apps or {}
-
-  -- Build app options
-  local appOptions = {}
-  for _, a in ipairs(customApps) do
-    table.insert(appOptions, a.name)
-  end
-  table.insert(appOptions, tr("modal.app_new_option"))
-
-  if formAppSelectedIdx >= #appOptions then
-    formAppSelectedIdx = 0
-  end
-
-  local isNewApp = (formAppSelectedIdx == #appOptions - 1)
-  formAppIsNew = isNewApp
-
-  local chosenApp = (not isNewApp) and customApps[formAppSelectedIdx + 1] or nil
-
-  -- Build subcat options
-  local subcatOptions = {}
-  if chosenApp and type(chosenApp.subcategories) == "table" then
-    for _, s in ipairs(chosenApp.subcategories) do
-      table.insert(subcatOptions, s.name)
-    end
-  end
-  table.insert(subcatOptions, tr("modal.subcat_new_option"))
-
-  if formSubcatSelectedIdx >= #subcatOptions then
-    formSubcatSelectedIdx = 0
-  end
-
-  local isNewSubcat = isNewApp or (formSubcatSelectedIdx == #subcatOptions - 1)
-  formSubcatIsNew = isNewSubcat
-
-  local chosenSubcat = (not isNewSubcat and chosenApp and type(chosenApp.subcategories) == "table") and chosenApp.subcategories[formSubcatSelectedIdx + 1] or nil
-
-  -- Modifier Chips
-  local modButtons = {}
-  local modNames = { "SUPER", "CTRL", "ALT", "SHIFT" }
-  for _, m in ipairs(modNames) do
-    local isSelected = (formMods[m] == true)
-    table.insert(modButtons, ui.row({
-      paddingV = 6,
-      paddingH = 14,
-      radius = 6 * cornerRadiusScale,
-      fill = isSelected and "primary" or "surface_variant",
-      onClick = function()
-        formMods[m] = not isSelected
-        render()
-      end,
-    }, {
-      ui.label({
-        text = m,
-        fontSize = 11,
-        fontWeight = "bold",
-        color = isSelected and "on_primary" or "on_surface_variant",
-      }),
-    }))
-  end
-
-  return ui.column({
-    flexGrow = 1,
-    align = "center",
-    justify = "center",
-    padding = 16,
-  }, {
-    ui.column({
-      width = 540,
-      radius = 12 * cornerRadiusScale,
-      fill = "surface",
-      padding = 20,
-      gap = 12,
-      align = "stretch",
-    }, {
-      -- Modal Header
-      ui.row({
-        justify = "space_between",
-        align = "center",
-      }, {
-        ui.row({ gap = 8, align = "center" }, {
-          ui.glyph({
-            name = isEdit and "pencil" or "plus",
-            size = 16,
-            color = "primary",
-          }),
-          ui.label({
-            text = modalTitle,
-            fontSize = 15,
-            fontWeight = "bold",
-            color = "on_surface",
-          }),
-        }),
-        ui.button({
-          glyph = "x",
-          variant = "ghost",
-          tooltip = tr("modal.cancel"),
-          onClick = function()
-            isModalOpen = false
-            formError = ""
-            render()
-          end,
-        }),
-      }),
-
-      -- App Selection Field
-      ui.column({ gap = 6, align = "stretch" }, {
-        ui.row({ justify = "space_between", align = "center" }, {
-          ui.label({ text = tr("modal.app_label"), fontSize = 11, color = "on_surface_variant", fontWeight = "bold" }),
-          (not isNewApp and chosenApp) and ui.row({ gap = 4, align = "center" }, {
-            ui.glyph({ name = chosenApp.icon or "terminal", size = 12, color = "primary" }),
-            ui.label({ text = chosenApp.icon or "terminal", fontSize = 10, color = "on_surface_variant" }),
-          }) or nil,
-        }),
-        ui.select({
-          options = appOptions,
-          selectedIndex = formAppSelectedIdx,
-          onChange = function(idx)
-            formAppSelectedIdx = tonumber(idx) or 0
-            formSubcatSelectedIdx = 0
-            render()
-          end,
-        }),
-        isNewApp and ui.row({ gap = 6, align = "center", flexGrow = 1 }, {
-          ui.input({
-            key = "modal-app-input",
-            placeholder = tr("modal.app_placeholder"),
-            value = formApp,
-            flexGrow = 1,
-            onChange = function(val)
-              formApp = val
-            end,
-          }),
-          ui.button({
-            glyph = formAppIcon,
-            variant = "secondary",
-            tooltip = tr("modal.pick_icon"),
-            onClick = function()
-              openIconPicker(formAppIcon, function(newIcon)
-                formAppIcon = newIcon
-                render()
-              end)
-            end,
-          }),
-        }) or nil,
-      }),
-
-      -- Subcategory Selection Field
-      ui.column({ gap = 6, align = "stretch" }, {
-        ui.row({ justify = "space_between", align = "center" }, {
-          ui.label({ text = tr("modal.subcat_label"), fontSize = 11, color = "on_surface_variant", fontWeight = "bold" }),
-          (not isNewSubcat and chosenSubcat) and ui.row({ gap = 4, align = "center" }, {
-            ui.glyph({ name = chosenSubcat.icon or "command", size = 12, color = "primary" }),
-            ui.label({ text = chosenSubcat.icon or "command", fontSize = 10, color = "on_surface_variant" }),
-          }) or nil,
-        }),
-        (not isNewApp) and ui.select({
-          options = subcatOptions,
-          selectedIndex = formSubcatSelectedIdx,
-          onChange = function(idx)
-            formSubcatSelectedIdx = tonumber(idx) or 0
-            render()
-          end,
-        }) or nil,
-        isNewSubcat and ui.row({ gap = 6, align = "center", flexGrow = 1 }, {
-          ui.input({
-            key = "modal-subcat-input",
-            placeholder = tr("modal.subcat_placeholder"),
-            value = formSubcat,
-            flexGrow = 1,
-            onChange = function(val)
-              formSubcat = val
-            end,
-          }),
-          ui.button({
-            glyph = formSubcatIcon,
-            variant = "secondary",
-            tooltip = tr("modal.pick_icon"),
-            onClick = function()
-              openIconPicker(formSubcatIcon, function(newIcon)
-                formSubcatIcon = newIcon
-                render()
-              end)
-            end,
-          }),
-        }) or nil,
-      }),
-
-      -- Description Field
-      ui.column({ gap = 4, align = "stretch" }, {
-        ui.label({ text = tr("modal.desc_label"), fontSize = 11, color = "on_surface_variant", fontWeight = "bold" }),
-        ui.input({
-          key = "modal-desc-input",
-          placeholder = tr("modal.desc_placeholder"),
-          value = formDesc,
-          onChange = function(val)
-            formDesc = val
-          end,
-        }),
-      }),
-
-      -- Modifier Keys Row
-      ui.column({ gap = 4, align = "stretch" }, {
-        ui.label({ text = tr("modal.modifiers_label"), fontSize = 11, color = "on_surface_variant", fontWeight = "bold" }),
-        ui.row({ gap = 8, align = "center" }, modButtons),
-      }),
-
-      -- Primary Key Field
-      ui.column({ gap = 4, align = "stretch" }, {
-        ui.label({ text = tr("modal.key_label"), fontSize = 11, color = "on_surface_variant", fontWeight = "bold" }),
-        ui.input({
-          key = "modal-key-input",
-          placeholder = tr("modal.key_placeholder"),
-          value = formKey,
-          onChange = function(val)
-            formKey = string.upper(val)
-          end,
-        }),
-      }),
-
-      -- Error Message (if any)
-      (#formError > 0) and ui.label({
-        text = formError,
-        fontSize = 11,
-        color = "error",
-      }) or nil,
-
-      -- Action Buttons (Footer)
-      ui.row({
-        justify = "flex_end",
-        gap = 8,
-        align = "center",
-      }, {
-        ui.button({
-          text = tr("modal.cancel"),
-          variant = "ghost",
-          onClick = function()
-            isModalOpen = false
-            formError = ""
-            render()
-          end,
-        }),
-        ui.button({
-          text = tr("modal.save"),
-          variant = "primary",
-          onClick = function()
-            local activeMods = {}
-            if formMods.SUPER then table.insert(activeMods, "SUPER") end
-            if formMods.CTRL then table.insert(activeMods, "CTRL") end
-            if formMods.ALT then table.insert(activeMods, "ALT") end
-            if formMods.SHIFT then table.insert(activeMods, "SHIFT") end
-
-            local effectiveApp = if isNewApp then formApp else (appOptions[formAppSelectedIdx + 1] or formApp)
-            local effectiveSubcat = if isNewSubcat then formSubcat else (subcatOptions[formSubcatSelectedIdx + 1] or formSubcat)
-
-            local currentStore = getCustomStore()
-            local success, errMsg
-            if modalMode == "create" then
-              success, errMsg = crud.addKeybind(
-                currentStore,
-                effectiveApp,
-                effectiveSubcat,
-                formDesc,
-                activeMods,
-                formKey,
-                formAppIcon,
-                formSubcatIcon
-              )
-            else
-              success, errMsg = crud.updateKeybind(
-                currentStore,
-                editTarget.origApp,
-                editTarget.origSubcat,
-                editTarget.origBindIdx,
-                effectiveApp,
-                effectiveSubcat,
-                formDesc,
-                activeMods,
-                formKey,
-                formAppIcon,
-                formSubcatIcon
-              )
-            end
-
-            if not success then
-              formError = errMsg or tr("modal.err_validation")
-              render()
-              return
-            end
-
-            local saved = saveCustomJson(currentStore)
-            if not saved then
-              formError = "Failed to write to file"
-              render()
-              return
-            end
-
-            isModalOpen = false
-            formError = ""
-            noctalia.notify("Keybinds", tr("modal.saved_notify"))
-            refreshAllBinds()
-          end,
-        }),
-      }),
-    }),
+local function renderIconPickerOverlay(): any
+  return icons.renderIconPickerOverlay({
+    search = iconPickerSearch,
+    category = iconPickerCategory,
+    current = iconPickerCurrent,
+    cornerRadiusScale = cornerRadiusScale,
+    tr = tr,
+    onSearchChange = function(val)
+      iconPickerSearch = val
+      render()
+    end,
+    onCategorySelect = function(catId)
+      iconPickerCategory = catId
+      render()
+    end,
+    onPick = function(ic)
+      local cb = iconPickerCallback
+      closeIconPicker()
+      if cb then
+        cb(ic)
+      end
+    end,
+    onClose = function()
+      closeIconPicker()
+    end,
   })
 end
 
-local function renderIconPickerOverlay(): any
-  local visibleIcons: { string } = {}
-  local seen: { [string]: boolean } = {}
-
-  if iconPickerCategory == "all" then
-    for _, cat in ipairs(ICON_CATEGORIES) do
-      if cat.icons then
-        for _, ic in ipairs(cat.icons) do
-          if not seen[ic] then
-            seen[ic] = true
-            table.insert(visibleIcons, ic)
-          end
-        end
-      end
-    end
-  else
-    for _, cat in ipairs(ICON_CATEGORIES) do
-      if cat.id == iconPickerCategory and cat.icons then
-        for _, ic in ipairs(cat.icons) do
-          table.insert(visibleIcons, ic)
-        end
-        break
-      end
-    end
-  end
-
-  local searchLower = string.lower(noctalia.string.trim(iconPickerSearch))
-  if searchLower ~= "" then
-    local filtered: { string } = {}
-    for _, ic in ipairs(visibleIcons) do
-      if string.find(string.lower(ic), searchLower, 1, true) then
-        table.insert(filtered, ic)
-      end
-    end
-    visibleIcons = filtered
-  end
-
-  -- Category chips
-  local catChips = {}
-  for _, cat in ipairs(ICON_CATEGORIES) do
-    local isSel = (cat.id == iconPickerCategory)
-    table.insert(catChips, ui.row({
-      paddingV = 4,
-      paddingH = 10,
-      radius = 6 * cornerRadiusScale,
-      fill = isSel and "primary" or "surface_variant",
-      onClick = function()
-        iconPickerCategory = cat.id
+local function renderModalOverlay(): any
+  if modalMode == "edit_app" then
+    return modals.renderEditAppModal({
+      editAppName = editAppName,
+      editAppIcon = editAppIcon,
+      editTarget = editTarget,
+      formError = formError,
+      cornerRadiusScale = cornerRadiusScale,
+      tr = tr,
+      openIconPicker = openIconPicker,
+      onAppNameChange = function(val)
+        editAppName = val
+      end,
+      onAppIconChange = function(ic)
+        editAppIcon = ic
         render()
       end,
-    }, {
-      ui.label({
-        text = tr(cat.labelKey),
-        fontSize = 10,
-        fontWeight = isSel and "bold" or "normal",
-        color = isSel and "on_primary" or "on_surface_variant",
-      }),
-    }))
-  end
-
-  -- Grid of 8 icons per row
-  local iconRows = {}
-  local cols = 8
-  local total = #visibleIcons
-
-  if total == 0 then
-    table.insert(iconRows, ui.column({
-      align = "center",
-      justify = "center",
-      padding = 24,
-      gap = 8,
-    }, {
-      ui.glyph({ name = "search", size = 24, color = "on_surface_variant" }),
-      ui.label({ text = tr("panel.no_results", { query = iconPickerSearch }), fontSize = 11, color = "on_surface_variant" }),
-    }))
-  else
-    local curRow = {}
-    for i, ic in ipairs(visibleIcons) do
-      local isSel = (ic == iconPickerCurrent)
-      table.insert(curRow, ui.row({
-        width = 46,
-        height = 42,
-        align = "center",
-        justify = "center",
-        radius = 6 * cornerRadiusScale,
-        fill = isSel and "primary" or "surface_variant",
-        tooltip = ic,
-        onClick = function()
-          local cb = iconPickerCallback
-          closeIconPicker()
-          if cb then
-            cb(ic)
-          end
-        end,
-      }, {
-        ui.glyph({
-          name = ic,
-          size = 18,
-          color = isSel and "on_primary" or "on_surface",
-        }),
-      }))
-
-      if #curRow == cols or i == total then
-        if i == total and #curRow < cols then
-          while #curRow < cols do
-            table.insert(curRow, ui.spacer({ width = 46, height = 42 }))
-          end
-        end
-        table.insert(iconRows, ui.row({ gap = 6, align = "center", justify = "space_between" }, curRow))
-        curRow = {}
-      end
-    end
-  end
-
-  return ui.column({
-    flexGrow = 1,
-    align = "center",
-    justify = "center",
-    padding = 16,
-  }, {
-    ui.column({
-      width = 480,
-      radius = 12 * cornerRadiusScale,
-      fill = "surface",
-      padding = 16,
-      gap = 10,
-    }, {
-      -- Header
-      ui.row({
-        justify = "space_between",
-        align = "center",
-      }, {
-        ui.row({ gap = 8, align = "center" }, {
-          ui.glyph({ name = "sparkles", size = 16, color = "primary" }),
-          ui.label({
-            text = tr("modal.icon_picker_title"),
-            fontSize = 14,
-            fontWeight = "bold",
-            color = "on_surface",
-          }),
-        }),
-        ui.button({
-          glyph = "x",
-          variant = "ghost",
-          onClick = function()
-            closeIconPicker()
-          end,
-        }),
-      }),
-
-      -- Search Input
-      ui.input({
-        key = "icon-picker-search",
-        placeholder = tr("modal.icon_search_placeholder"),
-        value = iconPickerSearch,
-        onChange = function(val)
-          iconPickerSearch = val
+      onCancel = function()
+        isModalOpen = false
+        formError = ""
+        render()
+      end,
+      getCustomStore = getCustomStore,
+      onSave = function(currentStore, newName, newIcon)
+        local ok, err = crud.renameApp(currentStore, editTarget.origApp, newName, newIcon)
+        if not ok then
+          formError = err or tr("modal.err_duplicate_app")
           render()
-        end,
-      }),
+          return
+        end
 
-      -- Category Chips
-      ui.row({ gap = 4, align = "center" }, catChips),
+        local saved = saveCustomJson(currentStore)
+        if not saved then
+          formError = "Failed to write to file"
+          render()
+          return
+        end
 
-      -- Scrollable Grid
-      ui.scroll({
-        flexGrow = 1,
-        height = 220,
-        gap = 6,
-      }, iconRows),
-    }),
-  })
+        if string.lower(activeApp) == string.lower(editTarget.origApp) or activeApp == editTarget.origApp then
+          activeApp = string.lower(newName)
+          saveState()
+        end
+
+        isModalOpen = false
+        formError = ""
+        noctalia.notify("Keybinds", tr("modal.saved_notify"))
+        refreshAllBinds()
+      end,
+    })
+  elseif modalMode == "edit_subcat" then
+    return modals.renderEditSubcatModal({
+      editSubcatName = editSubcatName,
+      editSubcatIcon = editSubcatIcon,
+      editSubcatParentApp = editSubcatParentApp,
+      editTarget = editTarget,
+      formError = formError,
+      cornerRadiusScale = cornerRadiusScale,
+      tr = tr,
+      openIconPicker = openIconPicker,
+      onSubcatNameChange = function(val)
+        editSubcatName = val
+      end,
+      onSubcatIconChange = function(ic)
+        editSubcatIcon = ic
+        render()
+      end,
+      onCancel = function()
+        isModalOpen = false
+        formError = ""
+        render()
+      end,
+      getCustomStore = getCustomStore,
+      onSave = function(currentStore, newName, newIcon)
+        local ok, err = crud.renameSubcategory(
+          currentStore,
+          editSubcatParentApp,
+          editTarget.origSubcat,
+          newName,
+          newIcon
+        )
+        if not ok then
+          formError = err or tr("modal.err_duplicate_subcat")
+          render()
+          return
+        end
+
+        local saved = saveCustomJson(currentStore)
+        if not saved then
+          formError = "Failed to write to file"
+          render()
+          return
+        end
+
+        isModalOpen = false
+        formError = ""
+        noctalia.notify("Keybinds", tr("modal.saved_notify"))
+        refreshAllBinds()
+      end,
+    })
+  else
+    return modals.renderAddEditKeybindModal({
+      modalMode = modalMode,
+      formApp = formApp,
+      formAppIcon = formAppIcon,
+      formAppSelectedIdx = formAppSelectedIdx,
+      formSubcat = formSubcat,
+      formSubcatIcon = formSubcatIcon,
+      formSubcatSelectedIdx = formSubcatSelectedIdx,
+      formDesc = formDesc,
+      formKey = formKey,
+      formMods = formMods,
+      formError = formError,
+      cornerRadiusScale = cornerRadiusScale,
+      tr = tr,
+      openIconPicker = openIconPicker,
+      onAppSelected = function(idx)
+        formAppSelectedIdx = idx
+        formSubcatSelectedIdx = 0
+        render()
+      end,
+      onAppChange = function(val)
+        formApp = val
+      end,
+      onAppIconChange = function(ic)
+        formAppIcon = ic
+        render()
+      end,
+      onSubcatSelected = function(idx)
+        formSubcatSelectedIdx = idx
+        render()
+      end,
+      onSubcatChange = function(val)
+        formSubcat = val
+      end,
+      onSubcatIconChange = function(ic)
+        formSubcatIcon = ic
+        render()
+      end,
+      onDescChange = function(val)
+        formDesc = val
+      end,
+      onKeyChange = function(val)
+        formKey = val
+      end,
+      onModToggle = function(m)
+        formMods[m] = not formMods[m]
+        render()
+      end,
+      onCancel = function()
+        isModalOpen = false
+        formError = ""
+        render()
+      end,
+      getCustomStore = getCustomStore,
+      onSave = function(currentStore, payload)
+        local success, errMsg
+        if modalMode == "create" then
+          success, errMsg = crud.addKeybind(
+            currentStore,
+            payload.effectiveApp,
+            payload.effectiveSubcat,
+            formDesc,
+            payload.activeMods,
+            formKey,
+            formAppIcon,
+            formSubcatIcon
+          )
+        else
+          success, errMsg = crud.updateKeybind(
+            currentStore,
+            editTarget.origApp,
+            editTarget.origSubcat,
+            editTarget.origBindIdx,
+            payload.effectiveApp,
+            payload.effectiveSubcat,
+            formDesc,
+            payload.activeMods,
+            formKey,
+            formAppIcon,
+            formSubcatIcon
+          )
+        end
+
+        if not success then
+          formError = errMsg or tr("modal.err_validation")
+          render()
+          return
+        end
+
+        local saved = saveCustomJson(currentStore)
+        if not saved then
+          formError = "Failed to write to file"
+          render()
+          return
+        end
+
+        isModalOpen = false
+        formError = ""
+        noctalia.notify("Keybinds", tr("modal.saved_notify"))
+        refreshAllBinds()
+      end,
+    })
+  end
 end
 
 render = function()
-  local contentNode
-  if isIconPickerOpen then
-    contentNode = renderIconPickerOverlay()
-  elseif isModalOpen then
-    contentNode = renderModalOverlay()
-  else
-    local filtered = filterItems()
-    contentNode = ui.column({
-      key = "cheatsheet-content",
-      flexGrow = 1,
-      gap = 10,
-      align = "stretch",
-    }, {
-      renderAppTabs(),
-      renderCardGrid(filtered),
-    })
-  end
-
-  panel.render(ui.column({
-    flexGrow = 1,
-    gap = 10,
-    align = "stretch",
-    padding = 12,
-  }, {
-    renderHeader(),
-    contentNode,
-    renderFooter(),
-  }))
-end
-
--- ── Lifecycle Callbacks ────────────────────────────────────────────────────────
-
-function onOpen(_context)
-  cornerRadiusScale = noctalia.getSetting("shell.corner_radius_scale") or 1.0
+  cornerRadiusScale = noctalia.getSetting("theme.corner_radius_scale") or 1.0
   gridColumns = tostring(noctalia.getConfig("grid_columns") or "3")
 
+  local mainPanel = ui.column({
+    padding = 16,
+    gap = 10,
+    flexGrow = 1,
+    align = "stretch",
+  }, {
+    renderHeader(),
+    renderAppTabs(),
+    renderKeybindsGrid(),
+    renderFooter(),
+  })
+
+  if isIconPickerOpen then
+    panel.render(ui.box({
+      flexGrow = 1,
+      align = "stretch",
+    }, {
+      mainPanel,
+      renderIconPickerOverlay(),
+    }))
+  elseif isModalOpen then
+    panel.render(ui.box({
+      flexGrow = 1,
+      align = "stretch",
+    }, {
+      mainPanel,
+      renderModalOverlay(),
+    }))
+  else
+    panel.render(mainPanel)
+  end
+end
+
+function onOpen(_context)
   local cfgPath = noctalia.getConfig("custom_file_path")
   if cfgPath and cfgPath ~= "" then
     customFilePath = cfgPath
