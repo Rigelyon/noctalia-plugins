@@ -1,0 +1,65 @@
+id = "rigelyon/hypr-layout"
+name = "Hyprland Layout Switcher"
+version = "1.0.0"
+plugin_api = 28
+author = "rigelyon"
+license = "MIT"
+dependencies = ["hyprland"]
+tags = ["hyprland", "layout", "utility", "bar", "panel", "productivity"]
+icon = "layout-grid"
+description = "Aesthetic Hyprland layout switcher with status bar widget, dual scope (global/workspace), and schematic wireframe hub."
+
+[[setting]]
+key = "default_scope"
+type = "select"
+label_key = "settings.default_scope.label"
+description_key = "settings.default_scope.description"
+default = "global"
+options = [
+  { value = "global", label_key = "settings.default_scope.options.global" },
+  { value = "workspace", label_key = "settings.default_scope.options.workspace" },
+]
+
+[[setting]]
+key = "show_label_in_bar"
+type = "bool"
+label_key = "settings.show_label_in_bar.label"
+description_key = "settings.show_label_in_bar.description"
+default = true
+
+[[setting]]
+key = "notify_on_change"
+type = "bool"
+label_key = "settings.notify_on_change.label"
+description_key = "settings.notify_on_change.description"
+default = true
+
+[[setting]]
+key = "enable_hy3"
+type = "bool"
+label_key = "settings.enable_hy3.label"
+description_key = "settings.enable_hy3.description"
+default = false
+
+[[setting]]
+key = "enable_scroller"
+type = "bool"
+label_key = "settings.enable_scroller.label"
+description_key = "settings.enable_scroller.description"
+default = false
+
+[[panel]]
+id = "panel"
+entry = "panel.luau"
+placement = "floating"
+position = "center"
+width = 720
+height = 540
+capture_keys = ["Escape"]
+
+[[widget]]
+id = "widget"
+entry = "widget.luau"
+
+[widget.actions]
+middle = "none"

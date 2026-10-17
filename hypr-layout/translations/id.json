@@ -1,0 +1,84 @@
+{
+  "manifest": {
+    "name": "Hyprland Layout Switcher",
+    "description": "Pengubah layout Hyprland estetik dengan widget status bar, cakupan ganda (global/workspace), dan visual wireframe hub."
+  },
+  "settings": {
+    "default_scope": {
+      "label": "Cakupan Default Layout",
+      "description": "Pilih apakah perubahan layout berlaku secara global ke semua workspace atau khusus ke workspace yang sedang aktif.",
+      "options": {
+        "global": "Sesi Global",
+        "workspace": "Workspace Aktif Saat Ini"
+      }
+    },
+    "show_label_in_bar": {
+      "label": "Tampilkan Nama Layout di Bar",
+      "description": "Tampilkan teks nama layout aktif di samping ikon pada widget status bar."
+    },
+    "notify_on_change": {
+      "label": "Notifikasi Pergantian Layout",
+      "description": "Tampilkan notifikasi desktop setiap kali layout berganti."
+    },
+    "enable_hy3": {
+      "label": "Aktifkan Plugin Layout Hy3",
+      "description": "Sertakan layout manual tiling gaya i3/sway hy3 pada rotasi switcher dan panel."
+    },
+    "enable_scroller": {
+      "label": "Aktifkan Plugin Layout Hyprscroller",
+      "description": "Sertakan layout PaperWM hyprscroller pada rotasi switcher dan panel."
+    }
+  },
+  "widget": {
+    "tooltip": "Layout Hyprland: {layout} ({scope})\nKlik kiri: Ganti cepat • Klik kanan: Buka Layout Hub"
+  },
+  "panel": {
+    "title": "Hyprland Layout Switcher",
+    "scope_label": "Target Cakupan:",
+    "scope_global": "Sesi Global",
+    "scope_workspace": "Workspace {id}",
+    "active_badge": "Aktif",
+    "controls_title": "Kontrol Layout Aktif ({layout})",
+    "hint": "Klik kiri widget bar untuk cycle cepat • Klik kanan untuk buka panel ini",
+    "open_settings": "Pengaturan"
+  },
+  "layouts": {
+    "dwindle": {
+      "name": "Dwindle",
+      "category": "Spiral Dinamis",
+      "description": "Layout tiling spiral dinamis dengan pembagian jendela otomatis Fibonacci."
+    },
+    "master": {
+      "name": "Master",
+      "category": "Master & Stack",
+      "description": "Kolom jendela master utama tetap didampingi tumpukan jendela slave bertingkat."
+    },
+    "hy3": {
+      "name": "Hy3",
+      "category": "Manual Tiling",
+      "description": "Kontainer grup manual gaya i3/sway dengan pembagian horizontal, vertikal, dan tab."
+    },
+    "scroller": {
+      "name": "Scroller",
+      "category": "Strip PaperWM",
+      "description": "Strip komidi putar horizontal tanpa batas dari kolom jendela."
+    }
+  },
+  "subactions": {
+    "togglesplit": "Toggle Split",
+    "pseudo": "Pseudo-tile",
+    "swapsplit": "Swap Split",
+    "swapwithmaster": "Swap Master",
+    "cyclenext": "Cycle Next",
+    "addmaster": "+ Master",
+    "removemaster": "- Master",
+    "makegroup_h": "Grup H",
+    "makegroup_v": "Grup V",
+    "makegroup_tab": "Tab",
+    "cyclesize": "Ubah Ukuran",
+    "toggleoverview": "Overview"
+  },
+  "notifications": {
+    "switched": "Layout berganti ke {layout} ({scope})"
+  }
+}

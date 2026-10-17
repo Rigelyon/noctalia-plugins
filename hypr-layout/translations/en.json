@@ -1,0 +1,84 @@
+{
+  "manifest": {
+    "name": "Hyprland Layout Switcher",
+    "description": "Aesthetic Hyprland layout switcher with status bar widget, dual scope (global/workspace), and schematic wireframe hub."
+  },
+  "settings": {
+    "default_scope": {
+      "label": "Default Layout Scope",
+      "description": "Select whether layout changes apply globally to all workspaces or specifically to the active workspace by default.",
+      "options": {
+        "global": "Global Session",
+        "workspace": "Current Active Workspace"
+      }
+    },
+    "show_label_in_bar": {
+      "label": "Show Layout Name in Bar",
+      "description": "Display the textual name of the active layout beside the glyph in the status bar widget."
+    },
+    "notify_on_change": {
+      "label": "Notification on Layout Change",
+      "description": "Show a desktop notification whenever the layout is switched."
+    },
+    "enable_hy3": {
+      "label": "Enable Hy3 Plugin Layout",
+      "description": "Include the third-party hy3 i3/sway-like manual tiling layout in the switcher rotation and panel."
+    },
+    "enable_scroller": {
+      "label": "Enable Hyprscroller Plugin Layout",
+      "description": "Include the third-party hyprscroller PaperWM-like layout in the switcher rotation and panel."
+    }
+  },
+  "widget": {
+    "tooltip": "Hyprland Layout: {layout} ({scope})\nLeft-click: Quick cycle • Right-click: Layout Hub"
+  },
+  "panel": {
+    "title": "Hyprland Layout Switcher",
+    "scope_label": "Target Scope:",
+    "scope_global": "Global Session",
+    "scope_workspace": "Workspace {id}",
+    "active_badge": "Active",
+    "controls_title": "Active Layout Controls ({layout})",
+    "hint": "Left-click bar widget to cycle • Right-click to open this panel",
+    "open_settings": "Settings"
+  },
+  "layouts": {
+    "dwindle": {
+      "name": "Dwindle",
+      "category": "Spiral Dynamic",
+      "description": "Dynamic spiral tiling layout with automatic Fibonacci window splits."
+    },
+    "master": {
+      "name": "Master",
+      "category": "Master & Stack",
+      "description": "Fixed primary master window column flanked by stacked slave window tiles."
+    },
+    "hy3": {
+      "name": "Hy3",
+      "category": "Manual Tiling",
+      "description": "i3/sway style manual container groups with horizontal, vertical, and tabbed splits."
+    },
+    "scroller": {
+      "name": "Scroller",
+      "category": "PaperWM Strip",
+      "description": "Infinite horizontal carousel strip of window columns."
+    }
+  },
+  "subactions": {
+    "togglesplit": "Toggle Split",
+    "pseudo": "Pseudo-tile",
+    "swapsplit": "Swap Split",
+    "swapwithmaster": "Swap Master",
+    "cyclenext": "Cycle Next",
+    "addmaster": "+ Master",
+    "removemaster": "- Master",
+    "makegroup_h": "Group H",
+    "makegroup_v": "Group V",
+    "makegroup_tab": "Tabs",
+    "cyclesize": "Cycle Size",
+    "toggleoverview": "Overview"
+  },
+  "notifications": {
+    "switched": "Layout switched to {layout} ({scope})"
+  }
+}
