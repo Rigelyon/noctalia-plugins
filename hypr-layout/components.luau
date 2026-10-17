@@ -81,8 +81,8 @@ function components.renderWireframe(layoutId: string, isActive: boolean): any
         }),
       }),
     })
-  elseif layoutId == "scroller" then
-    -- Scroller: 3 horizontal columns with center active
+  elseif layoutId == "scroller" or layoutId == "scrolling" then
+    -- Scroller / Scrolling: 3 horizontal columns with center active
     return ui.row({
       width = 56,
       height = 40,

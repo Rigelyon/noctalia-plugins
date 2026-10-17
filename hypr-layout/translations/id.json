@@ -58,10 +58,15 @@
       "category": "Manual Tiling",
       "description": "Kontainer grup manual gaya i3/sway dengan pembagian horizontal, vertikal, dan tab."
     },
+    "scrolling": {
+      "name": "Scrolling",
+      "category": "Pita PaperWM",
+      "description": "Kolom jendela yang berjejer menyamping di atas pita tak terbatas ala PaperWM."
+    },
     "scroller": {
-      "name": "Scroller",
-      "category": "Strip PaperWM",
-      "description": "Strip komidi putar horizontal tanpa batas dari kolom jendela."
+      "name": "Scrolling",
+      "category": "Pita PaperWM",
+      "description": "Kolom jendela yang berjejer menyamping di atas pita tak terbatas ala PaperWM."
     }
   },
   "subactions": {
@@ -75,6 +80,10 @@
     "makegroup_h": "Grup H",
     "makegroup_v": "Grup V",
     "makegroup_tab": "Tab",
+    "center": "Tengahkan",
+    "fit": "Sesuaikan",
+    "colresize": "Ubah Lebar",
+    "swapcol": "Tukar Kolom",
     "cyclesize": "Ubah Ukuran",
     "toggleoverview": "Overview"
   },

@@ -60,23 +60,31 @@ layouts.LAYOUT_DEFS = {
       { id = "makegroup_tab", labelKey = "subactions.makegroup_tab", icon = "folder", cmd = "hy3:makegroup,tab" },
     },
   },
-  scroller = {
-    id = "scroller",
-    nameKey = "layouts.scroller.name",
-    categoryKey = "layouts.scroller.category",
-    descKey = "layouts.scroller.description",
+  scrolling = {
+    id = "scrolling",
+    nameKey = "layouts.scrolling.name",
+    categoryKey = "layouts.scrolling.category",
+    descKey = "layouts.scrolling.description",
     glyph = "maximize",
-    isPlugin = true,
+    isPlugin = false,
     subactions = {
-      { id = "cyclesize", labelKey = "subactions.cyclesize", icon = "maximize", cmd = "scroller:cyclesize" },
-      { id = "toggleoverview", labelKey = "subactions.toggleoverview", icon = "monitor", cmd = "scroller:toggleoverview" },
+      { id = "center", labelKey = "subactions.center", icon = "maximize", cmd = "center" },
+      { id = "fit_active", labelKey = "subactions.fit", icon = "app-window", cmd = "fit active" },
+      { id = "colresize", labelKey = "subactions.colresize", icon = "refresh-cw", cmd = "colresize +conf" },
+      { id = "swapcol", labelKey = "subactions.swapcol", icon = "arrow-right", cmd = "swapcol r" },
     },
   },
 }
 
+-- Backward compatibility alias
+layouts.LAYOUT_DEFS.scroller = layouts.LAYOUT_DEFS.scrolling
+
 function layouts.getLayout(id: string): LayoutDef?
   if not id or id == "" then return layouts.LAYOUT_DEFS["dwindle"] end
   local normalized = string.lower(id)
+  if normalized == "scroller" then
+    return layouts.LAYOUT_DEFS["scrolling"]
+  end
   return layouts.LAYOUT_DEFS[normalized]
 end
 
@@ -84,20 +92,16 @@ function layouts.getAvailableLayouts(configGetter: ((string) -> any)?): { Layout
   local list = {
     layouts.LAYOUT_DEFS.dwindle,
     layouts.LAYOUT_DEFS.master,
+    layouts.LAYOUT_DEFS.scrolling,
   }
   local enableHy3 = false
-  local enableScroller = false
 
   if configGetter then
     enableHy3 = (configGetter("enable_hy3") == true)
-    enableScroller = (configGetter("enable_scroller") == true)
   end
 
   if enableHy3 then
     table.insert(list, layouts.LAYOUT_DEFS.hy3)
-  end
-  if enableScroller then
-    table.insert(list, layouts.LAYOUT_DEFS.scroller)
   end
 
   return list

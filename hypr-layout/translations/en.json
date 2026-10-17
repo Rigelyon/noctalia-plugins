@@ -58,10 +58,15 @@
       "category": "Manual Tiling",
       "description": "i3/sway style manual container groups with horizontal, vertical, and tabbed splits."
     },
+    "scrolling": {
+      "name": "Scrolling",
+      "category": "PaperWM Tape",
+      "description": "Infinite horizontal carousel tape of window columns."
+    },
     "scroller": {
-      "name": "Scroller",
-      "category": "PaperWM Strip",
-      "description": "Infinite horizontal carousel strip of window columns."
+      "name": "Scrolling",
+      "category": "PaperWM Tape",
+      "description": "Infinite horizontal carousel tape of window columns."
     }
   },
   "subactions": {
@@ -75,6 +80,10 @@
     "makegroup_h": "Group H",
     "makegroup_v": "Group V",
     "makegroup_tab": "Tabs",
+    "center": "Center",
+    "fit": "Fit Active",
+    "colresize": "Resize Col",
+    "swapcol": "Swap Col",
     "cyclesize": "Cycle Size",
     "toggleoverview": "Overview"
   },
