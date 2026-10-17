@@ -33,7 +33,12 @@
     "scope_label": "Target Cakupan:",
     "scope_global": "Sesi Global",
     "scope_workspace": "Workspace {id}",
+    "status_custom": "Khusus Workspace {id}",
+    "status_global": "Mengikuti Global ({layout})",
+    "reset_to_global": "Reset ke Global",
+    "reset_to_global_tooltip": "Hapus layout khusus dan kembali mengikuti layout global ({global})",
     "active_badge": "Aktif",
+    "active_override_badge": "Khusus WS",
     "controls_title": "Kontrol Layout Aktif ({layout})",
     "hint": "Klik kiri widget bar untuk cycle cepat • Klik kanan untuk buka panel ini",
     "open_settings": "Pengaturan"
@@ -90,6 +95,7 @@
     "toggleoverview": "Overview"
   },
   "notifications": {
-    "switched": "Layout berganti ke {layout} ({scope})"
+    "switched": "Layout berganti ke {layout} ({scope})",
+    "reset_global": "Workspace {id} dikembalikan ke layout Global ({layout})"
   }
 }

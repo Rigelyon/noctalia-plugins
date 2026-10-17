@@ -14,6 +14,7 @@ class TestHyprLayoutIPC(unittest.TestCase):
         self.assertIn("function hypr.init", content)
         self.assertIn("function hypr.refresh", content)
         self.assertIn("function hypr.setLayout", content)
+        self.assertIn("function hypr.resetWorkspaceToGlobal", content)
         self.assertIn("function hypr.dispatchSubAction", content)
         self.assertIn("socket2.sock", content)
         self.assertIn("hl.config", content)

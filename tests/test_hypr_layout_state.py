@@ -14,6 +14,8 @@ class TestHyprLayoutState(unittest.TestCase):
         self.assertIn("function state.subscribe", content)
         self.assertIn("function state.notify", content)
         self.assertIn("function state.getEffectiveLayout", content)
+        self.assertIn("function state.hasWorkspaceOverride", content)
+        self.assertIn("function state.removeWorkspaceOverride", content)
         self.assertIn("function state.setScope", content)
         self.assertIn("noctalia.state.watch", content)
         self.assertIn("hypr_layout.scope", content)

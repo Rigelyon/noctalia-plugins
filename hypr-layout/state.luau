@@ -242,13 +242,42 @@ function state.setWorkspaceLayout(wsId: number, name: string)
   end
 end
 
-function state.getEffectiveLayout(): string
-  if state.currentScope == "workspace" then
-    local wsKey = tostring(state.activeWorkspaceId)
-    local wsLayout = state.workspaceLayouts[wsKey] or state.workspaceLayouts[state.activeWorkspaceId]
-    if wsLayout and wsLayout ~= "" then
-      return wsLayout
+function state.hasWorkspaceOverride(wsId: number?): boolean
+  local id = wsId or state.activeWorkspaceId
+  local key = tostring(id)
+  local override = state.workspaceLayouts[key] or state.workspaceLayouts[id]
+  return override ~= nil and override ~= ""
+end
+
+function state.removeWorkspaceOverride(wsId: number?)
+  local id = wsId or state.activeWorkspaceId
+  local key = tostring(id)
+  local hadOverride = (state.workspaceLayouts[key] ~= nil or state.workspaceLayouts[id] ~= nil)
+  if hadOverride then
+    state.workspaceLayouts[key] = nil
+    state.workspaceLayouts[id] = nil
+    if noctalia and noctalia.state then
+      local current = noctalia.state.get("hypr_layout.workspace_layouts") or {}
+      local copy = {}
+      if type(current) == "table" then
+        for k, v in pairs(current) do
+          if k ~= key and tonumber(k) ~= id then
+            copy[tostring(k)] = v
+          end
+        end
+      end
+      noctalia.state.set("hypr_layout.workspace_layouts", copy)
     end
+    saveDurableState()
+    state.notify()
+  end
+end
+
+function state.getEffectiveLayout(): string
+  local wsKey = tostring(state.activeWorkspaceId)
+  local wsLayout = state.workspaceLayouts[wsKey] or state.workspaceLayouts[state.activeWorkspaceId]
+  if wsLayout and wsLayout ~= "" then
+    return wsLayout
   end
   return state.globalLayout or "dwindle"
 end

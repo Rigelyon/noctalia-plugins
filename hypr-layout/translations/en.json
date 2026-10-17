@@ -33,7 +33,12 @@
     "scope_label": "Target Scope:",
     "scope_global": "Global Session",
     "scope_workspace": "Workspace {id}",
+    "status_custom": "Workspace {id} Override",
+    "status_global": "Inheriting Global ({layout})",
+    "reset_to_global": "Reset to Global",
+    "reset_to_global_tooltip": "Clear workspace override and follow global layout ({global})",
     "active_badge": "Active",
+    "active_override_badge": "WS Override",
     "controls_title": "Active Layout Controls ({layout})",
     "hint": "Left-click bar widget to cycle • Right-click to open this panel",
     "open_settings": "Settings"
@@ -90,6 +95,7 @@
     "toggleoverview": "Overview"
   },
   "notifications": {
-    "switched": "Layout switched to {layout} ({scope})"
+    "switched": "Layout switched to {layout} ({scope})",
+    "reset_global": "Workspace {id} reset to Global layout ({layout})"
   }
 }

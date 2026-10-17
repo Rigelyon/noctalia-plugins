@@ -13,6 +13,63 @@ local function render()
   local effective = state.getEffectiveLayout()
   local availableLayouts = layouts.getAvailableLayouts(noctalia.getConfig)
   local activeDef = layouts.getLayout(effective) or layouts.LAYOUT_DEFS.dwindle
+  local globalDef = layouts.getLayout(state.globalLayout) or layouts.LAYOUT_DEFS.dwindle
+  local hasOverride = state.hasWorkspaceOverride()
+
+  local statusBadge = nil
+  local resetBtn = nil
+
+  if hasOverride then
+    statusBadge = ui.row({
+      gap = 4,
+      align = "center",
+      paddingH = 6,
+      paddingV = 2,
+      radius = 4,
+      fill = "secondary_container",
+    }, {
+      ui.glyph({ name = "circle-filled", size = 8, color = "secondary" }),
+      ui.label({
+        text = tr("panel.status_custom", { id = tostring(state.activeWorkspaceId) }),
+        fontSize = 11,
+        fontWeight = "bold",
+        color = "on_secondary_container",
+      }),
+    })
+
+    resetBtn = ui.button({
+      glyph = "arrow-back-up",
+      text = tr("panel.reset_to_global"),
+      variant = "ghost",
+      tooltip = tr("panel.reset_to_global_tooltip", { global = tr(globalDef.nameKey) }),
+      onClick = function()
+        hypr.resetWorkspaceToGlobal(state.activeWorkspaceId, function(ok)
+          if ok and noctalia.getConfig("notify_on_change") ~= false then
+            noctalia.notify(tr("manifest.name"), tr("notifications.reset_global", {
+              id = tostring(state.activeWorkspaceId),
+              layout = tr(globalDef.nameKey),
+            }))
+          end
+        end)
+      end,
+    })
+  else
+    statusBadge = ui.row({
+      gap = 4,
+      align = "center",
+      paddingH = 6,
+      paddingV = 2,
+      radius = 4,
+      fill = "surface_variant",
+    }, {
+      ui.glyph({ name = "circle-filled", size = 8, color = "outline" }),
+      ui.label({
+        text = tr("panel.status_global", { layout = tr(globalDef.nameKey) }),
+        fontSize = 11,
+        color = "on_surface_variant",
+      }),
+    })
+  end
 
   -- Header Bar
   local header = ui.row({
@@ -22,12 +79,11 @@ local function render()
   }, {
     ui.row({ gap = 8, align = "center" }, {
       ui.glyph({ name = "layout-grid", size = 20, color = "primary" }),
-      ui.column({ gap = 1 }, {
+      ui.column({ gap = 2 }, {
         ui.label({ text = tr("panel.title"), fontSize = 15, fontWeight = "bold", color = "on_surface" }),
-        ui.label({
-          text = tr("panel.scope_workspace", { id = tostring(state.activeWorkspaceId) }),
-          fontSize = 11,
-          color = "on_surface_variant",
+        ui.row({ gap = 6, align = "center" }, {
+          statusBadge,
+          resetBtn or ui.spacer({ width = 1 }),
         }),
       }),
     }),
@@ -71,7 +127,7 @@ local function render()
     local def1 = availableLayouts[i]
     local def2 = availableLayouts[i + 1]
 
-    local card1 = components.renderLayoutCard(def1, def1.id == effective, function()
+    local card1 = components.renderLayoutCard(def1, def1.id == effective, hasOverride, function()
       hypr.setLayout(def1.id, state.currentScope, function(ok)
         if ok and noctalia.getConfig("notify_on_change") ~= false then
           local nextName = tr(def1.nameKey)
@@ -88,7 +144,7 @@ local function render()
 
     local card2 = nil
     if def2 then
-      card2 = components.renderLayoutCard(def2, def2.id == effective, function()
+      card2 = components.renderLayoutCard(def2, def2.id == effective, hasOverride, function()
         hypr.setLayout(def2.id, state.currentScope, function(ok)
           if ok and noctalia.getConfig("notify_on_change") ~= false then
             local nextName = tr(def2.nameKey)

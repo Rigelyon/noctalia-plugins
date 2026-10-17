@@ -45,7 +45,11 @@ function hypr.refreshActiveWorkspace(onDone: ((number?, string?) -> ())?)
         local monitor = tostring(data.monitor or "")
         state.setActiveWorkspace(wsId, wsName, monitor)
         if data.tiledLayout and type(data.tiledLayout) == "string" and data.tiledLayout ~= "" then
-          state.setWorkspaceLayout(wsId, data.tiledLayout)
+          local cleanTiled = string.lower(data.tiledLayout)
+          local cleanGlobal = string.lower(state.globalLayout or "dwindle")
+          if cleanTiled ~= cleanGlobal or state.hasWorkspaceOverride(wsId) then
+            state.setWorkspaceLayout(wsId, cleanTiled)
+          end
         end
         if onDone then onDone(wsId, wsName) end
         return
@@ -113,6 +117,38 @@ function hypr.setLayout(layoutName: string, scope: string?, onDone: ((boolean) -
       end
     end)
   end
+end
+
+function hypr.resetWorkspaceToGlobal(wsId: number?, onDone: ((boolean) -> ())?)
+  if not noctalia or not noctalia.runAsync then
+    if onDone then onDone(false) end
+    return
+  end
+  local targetWsId = wsId or state.activeWorkspaceId or 1
+  local globalLayout = state.globalLayout or "dwindle"
+
+  -- 1. Try modern Lua Hyprland workspace rule reset via hyprctl eval
+  local evalCmd = { "hyprctl", "eval", string.format("hl.workspace_rule({ workspace = %d, layout = '' })", targetWsId) }
+  noctalia.runAsync(evalCmd, function(res)
+    local isOk = (res.exitCode == 0 and string.find(res.stdout, "ok", 1, true) ~= nil)
+    if not isOk then
+      -- Fallback to explicit global layout
+      local evalFallback = { "hyprctl", "eval", string.format("hl.workspace_rule({ workspace = %d, layout = '%s' })", targetWsId, globalLayout) }
+      noctalia.runAsync(evalFallback, function() end)
+    end
+
+    -- Also fallback for legacy hyprland.conf if needed
+    local legacyCmd = { "hyprctl", "keyword", "workspace", tostring(targetWsId) .. ",layout:" .. globalLayout }
+    noctalia.runAsync(legacyCmd, function() end)
+
+    -- Remove override from state
+    state.removeWorkspaceOverride(targetWsId)
+
+    -- Refresh active workspace
+    hypr.refreshActiveWorkspace()
+
+    if onDone then onDone(true) end
+  end)
 end
 
 function hypr.dispatchSubAction(command: string, onDone: ((boolean) -> ())?)
