@@ -44,12 +44,9 @@ function hypr.refreshActiveWorkspace(onDone: ((number?, string?) -> ())?)
         local wsName = tostring(data.name or wsId)
         local monitor = tostring(data.monitor or "")
         state.setActiveWorkspace(wsId, wsName, monitor)
-        if data.tiledLayout and type(data.tiledLayout) == "string" and data.tiledLayout ~= "" then
+        if state.hasWorkspaceOverride(wsId) and data.tiledLayout and type(data.tiledLayout) == "string" and data.tiledLayout ~= "" then
           local cleanTiled = string.lower(data.tiledLayout)
-          local cleanGlobal = string.lower(state.globalLayout or "dwindle")
-          if cleanTiled ~= cleanGlobal or state.hasWorkspaceOverride(wsId) then
-            state.setWorkspaceLayout(wsId, cleanTiled)
-          end
+          state.setWorkspaceLayout(wsId, cleanTiled)
         end
         if onDone then onDone(wsId, wsName) end
         return
@@ -127,27 +124,52 @@ function hypr.resetWorkspaceToGlobal(wsId: number?, onDone: ((boolean) -> ())?)
   local targetWsId = wsId or state.activeWorkspaceId or 1
   local globalLayout = state.globalLayout or "dwindle"
 
-  -- 1. Try modern Lua Hyprland workspace rule reset via hyprctl eval
-  local evalCmd = { "hyprctl", "eval", string.format("hl.workspace_rule({ workspace = %d, layout = '' })", targetWsId) }
-  noctalia.runAsync(evalCmd, function(res)
-    local isOk = (res.exitCode == 0 and string.find(res.stdout, "ok", 1, true) ~= nil)
-    if not isOk then
-      -- Fallback to explicit global layout
-      local evalFallback = { "hyprctl", "eval", string.format("hl.workspace_rule({ workspace = %d, layout = '%s' })", targetWsId, globalLayout) }
-      noctalia.runAsync(evalFallback, function() end)
-    end
+  -- 1. Remove override from state immediately and set scope to global
+  state.removeWorkspaceOverride(targetWsId)
+  state.setScope("global")
 
-    -- Also fallback for legacy hyprland.conf if needed
-    local legacyCmd = { "hyprctl", "keyword", "workspace", tostring(targetWsId) .. ",layout:" .. globalLayout }
-    noctalia.runAsync(legacyCmd, function() end)
+  -- 2. Reload Hyprland config to wipe dynamic workspace rules cleanly
+  noctalia.runAsync({ "hyprctl", "reload" }, function()
+    -- 3. Re-apply global layout configuration
+    local evalGlobal = { "hyprctl", "eval", string.format("hl.config({ general = { layout = '%s' } })", globalLayout) }
+    noctalia.runAsync(evalGlobal, function(res)
+      if res.exitCode ~= 0 or string.find(res.stdout, "ok", 1, true) == nil then
+        noctalia.runAsync({ "hyprctl", "keyword", "general:layout", globalLayout }, function() end)
+      end
 
-    -- Remove override from state
-    state.removeWorkspaceOverride(targetWsId)
+      -- 4. Re-apply any other active workspace overrides
+      local otherOverrides = {}
+      for k, v in pairs(state.workspaceLayouts) do
+        local numK = tonumber(k)
+        if numK and numK ~= targetWsId and v and v ~= "" then
+          otherOverrides[numK] = v
+        end
+      end
 
-    -- Refresh active workspace
-    hypr.refreshActiveWorkspace()
+      local keys = {}
+      for k in pairs(otherOverrides) do
+        table.insert(keys, k)
+      end
 
-    if onDone then onDone(true) end
+      local function applyNext(idx: number)
+        if idx > #keys then
+          hypr.refresh()
+          if onDone then onDone(true) end
+          return
+        end
+        local ws = keys[idx]
+        local l = otherOverrides[ws]
+        local evalRule = { "hyprctl", "eval", string.format("hl.workspace_rule({ workspace = %d, layout = '%s' })", ws, l) }
+        noctalia.runAsync(evalRule, function(ruleRes)
+          if ruleRes.exitCode ~= 0 or string.find(ruleRes.stdout, "ok", 1, true) == nil then
+            noctalia.runAsync({ "hyprctl", "keyword", "workspace", tostring(ws) .. ",layout:" .. l }, function() end)
+          end
+          applyNext(idx + 1)
+        end)
+      end
+
+      applyNext(1)
+    end)
   end)
 end
 
