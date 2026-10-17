@@ -62,7 +62,6 @@ hypr-layout/
   - `show_label_in_bar`: `bool` (default: `true`)
   - `notify_on_change`: `bool` (default: `true`)
   - `enable_hy3`: `bool` (default: `false`)
-  - `enable_scroller`: `bool` (default: `false`)
 
 - **Entries**:
   - `[[widget]]`: `id = "widget"`, `entry = "widget.luau"`, `actions = { middle = "none" }`
