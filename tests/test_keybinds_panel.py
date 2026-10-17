@@ -77,5 +77,15 @@ class TestKeybindsPanel(unittest.TestCase):
         self.assertNotIn('activeApp = "hyprland"', on_open_body)
 
 
+    def test_icon_picker_defined(self):
+        with open(PANEL_FILE, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn("renderIconPickerOverlay", content, "renderIconPickerOverlay function must be defined")
+        self.assertIn("ICON_CATEGORIES", content, "Icon catalog must be defined")
+        self.assertIn("openIconPicker", content, "openIconPicker must be defined")
+        self.assertIn("isIconPickerOpen", content, "isIconPickerOpen state must be defined")
+
+
 if __name__ == "__main__":
     unittest.main()
+
