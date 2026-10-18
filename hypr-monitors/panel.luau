@@ -135,7 +135,7 @@ local function render()
         end
       end,
     }),
-    ui.box({
+    ui.row({
       width = 708,
       height = 180,
       radius = 8,
@@ -143,9 +143,10 @@ local function render()
       border = "outline",
       borderWidth = 1,
       padding = 8,
-    }, {
-      ui.row({ gap = 12, align = "center", justify = "center", flexGrow = 1 }, canvasBoxes)
-    })
+      align = "center",
+      justify = "center",
+      gap = 12,
+    }, canvasBoxes),
   })
 
   -- Lower Workspace: Inspector or Profiles Tab
@@ -275,7 +276,36 @@ local function render()
     )
   end
 
-  -- Footer Bar
+  local footerButtons = {}
+  if state.hasPendingChanges then
+    table.insert(footerButtons, ui.button({
+      text = tr("panel.btn_revert"),
+      variant = "ghost",
+      onClick = function() state.discardPendingChanges() end,
+    }))
+  end
+  table.insert(footerButtons, ui.button({
+    text = tr("panel.btn_apply"),
+    variant = "primary",
+    onClick = function()
+      hypr.applyBatch(state.workingMonitors, function(ok)
+        if ok then
+          state.startSafetyCountdown()
+        end
+      end)
+    end,
+  }))
+  table.insert(footerButtons, ui.button({
+    text = tr("panel.btn_save_config"),
+    variant = "secondary",
+    onClick = function()
+      local ok, err = config.writeConfig(state.workingMonitors)
+      if ok and noctalia and noctalia.notify then
+        noctalia.notify("Monitors Saved", "Saved to ~/.config/hypr/monitors.conf")
+      end
+    end,
+  }))
+
   local footer = ui.row({
     justify = "space_between",
     align = "center",
@@ -289,50 +319,29 @@ local function render()
       fontSize = 11,
       color = state.hasPendingChanges and "secondary" or "on_surface_variant",
     }),
-    ui.row({ gap = 8 }, {
-      state.hasPendingChanges and ui.button({
-        text = tr("panel.btn_revert"),
-        variant = "ghost",
-        onClick = function() state.discardPendingChanges() end,
-      }) or nil,
-      ui.button({
-        text = tr("panel.btn_apply"),
-        variant = "primary",
-        onClick = function()
-          hypr.applyBatch(state.workingMonitors, function(ok)
-            if ok then
-              state.startSafetyCountdown()
-            end
-          end)
-        end,
-      }),
-      ui.button({
-        text = tr("panel.btn_save_config"),
-        variant = "secondary",
-        onClick = function()
-          local ok, err = config.writeConfig(state.workingMonitors)
-          if ok and noctalia and noctalia.notify then
-            noctalia.notify("Monitors Saved", "Saved to ~/.config/hypr/monitors.conf")
-          end
-        end,
-      }),
-    })
+    ui.row({ gap = 8 }, footerButtons),
   })
+
+  local mainChildren = { header }
+  if sourceTip then
+    table.insert(mainChildren, sourceTip)
+  end
+  table.insert(mainChildren, canvas)
+  table.insert(mainChildren, ui.separator({}))
+  if lowerContent then
+    table.insert(mainChildren, lowerContent)
+  end
+  if safetyModal then
+    table.insert(mainChildren, safetyModal)
+  end
+  table.insert(mainChildren, ui.spacer({ flexGrow = 1 }))
+  table.insert(mainChildren, ui.separator({}))
+  table.insert(mainChildren, footer)
 
   return ui.column({
     padding = 16,
     gap = 12,
-  }, {
-    header,
-    sourceTip,
-    canvas,
-    ui.separator({}),
-    lowerContent,
-    safetyModal,
-    ui.spacer({ flexGrow = 1 }),
-    ui.separator({}),
-    footer,
-  })
+  }, mainChildren)
 end
 
 state.subscribe(function()

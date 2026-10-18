@@ -21,7 +21,29 @@ function components.renderCanvasCard(
   local borderFill = isSelected and "primary" or "outline"
   local bgFill = isSelected and "surface" or "surface_variant"
 
-  return ui.box({
+  local cardChildren = {
+    ui.label({
+      text = m.name,
+      fontWeight = "bold",
+      fontSize = 12,
+      color = isSelected and "primary" or "on_surface",
+    }),
+    ui.label({
+      text = string.format("%dx%d", m.width, m.height),
+      fontSize = 10,
+      color = "on_surface_variant",
+    }),
+  }
+
+  if m.scale ~= 1.0 then
+    table.insert(cardChildren, ui.label({
+      text = string.format("%.2fx", m.scale),
+      fontSize = 9,
+      color = "secondary",
+    }))
+  end
+
+  return ui.column({
     width = bounds.w,
     height = bounds.h,
     radius = 6,
@@ -29,27 +51,10 @@ function components.renderCanvasCard(
     border = borderFill,
     borderWidth = isSelected and 2 or 1,
     padding = 6,
+    align = "center",
+    justify = "center",
     onClick = onClick,
-  }, {
-    ui.column({ gap = 2, align = "center", justify = "center", flexGrow = 1 }, {
-      ui.label({
-        text = m.name,
-        fontWeight = "bold",
-        fontSize = 12,
-        color = isSelected and "primary" or "on_surface",
-      }),
-      ui.label({
-        text = string.format("%dx%d", m.width, m.height),
-        fontSize = 10,
-        color = "on_surface_variant",
-      }),
-      m.scale ~= 1.0 and ui.label({
-        text = string.format("%.2fx", m.scale),
-        fontSize = 9,
-        color = "secondary",
-      }) or nil,
-    })
-  })
+  }, cardChildren)
 end
 
 -- Renders the quick snap and preset toolbar above the canvas
@@ -172,7 +177,7 @@ end
 
 -- Renders floating safety revert modal banner
 function components.renderSafetyModal(secondsRemaining: number, onKeep: () -> (), onRevert: () -> ()): any
-  return ui.box({
+  return ui.column({
     radius = 8,
     fill = "surface",
     border = "error",
