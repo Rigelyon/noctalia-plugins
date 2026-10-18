@@ -52,20 +52,28 @@ function state.notify()
   end
 end
 
-function state.init(onReady: (() -> ())?)
-  hypr.init()
-  profiles.loadProfiles()
+function state.refresh(onDone: (() -> ())?)
   hypr.refreshMonitors(function(list, ok)
     state.monitors = list
-    state.workingMonitors = cloneMonitors(list)
-    state.previousSafeMonitors = cloneMonitors(list)
+    if not state.hasPendingChanges then
+      state.workingMonitors = cloneMonitors(list)
+      state.previousSafeMonitors = cloneMonitors(list)
+    end
     if #list > 0 and (state.selectedMonitorName == "" or not state.getSelectedMonitor()) then
       state.selectedMonitorName = list[1].name
     end
-    state.hasPendingChanges = false
     state.notify()
-    if onReady then onReady() end
+    if onDone then onDone() end
   end)
+end
+
+function state.init(onReady: (() -> ())?)
+  hypr.init()
+  profiles.loadProfiles()
+  hypr.startSocketStream(function()
+    state.refresh()
+  end)
+  state.refresh(onReady)
 end
 
 function state.selectMonitor(name: string)

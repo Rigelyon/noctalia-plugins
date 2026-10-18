@@ -143,7 +143,7 @@ function hypr.applyBatch(monitors: { layoutMath.Monitor }, onDone: ((boolean) ->
 end
 
 -- Streams socket2 events for real-time plug/unplug and focus updates
-function hypr.startSocketStream()
+function hypr.startSocketStream(onMonitorChanged: (() -> ())?)
   if hypr.isStreaming or not noctalia or not noctalia.runStream or not noctalia.getenv then
     return
   end
@@ -163,7 +163,9 @@ function hypr.startSocketStream()
   noctalia.runStream(streamCmd, function(line)
     if not line or line == "" then return end
     if string.find(line, "monitoradded") or string.find(line, "monitorremoved") then
-      hypr.refreshMonitors()
+      if onMonitorChanged then
+        onMonitorChanged()
+      end
     end
   end)
 end

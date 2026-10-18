@@ -317,6 +317,18 @@ state.subscribe(function()
   end
 end)
 
+function onOpen(context: any)
+  state.refresh(function()
+    if panel and panel.render then
+      panel.render(render())
+    end
+  end)
+end
+
+function onClose()
+  -- Clean up if needed
+end
+
 state.init(function()
   if panel and panel.render then
     panel.render(render())
