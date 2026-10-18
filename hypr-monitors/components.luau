@@ -70,6 +70,18 @@ function components.renderCanvasCard(
     })
   end
 
+  local subInfo = string.format("%.0fHz", m.refreshRate or 60)
+  if isPortrait or bounds.w < 120 then
+    if m.scale and m.scale ~= 1.0 then
+      subInfo = subInfo .. string.format(" • %.1fx", m.scale)
+    end
+    if isPortrait then
+      subInfo = subInfo .. " ↻"
+    end
+  else
+    subInfo = string.format("%.0fHz • %.2fx%s", m.refreshRate or 60, m.scale or 1, isPortrait and " ↻90°" or "")
+  end
+
   local centerNode = ui.column({ align = "center", gap = 1 }, {
     ui.label({
       text = string.format("%dx%d", m.width, m.height),
@@ -78,7 +90,7 @@ function components.renderCanvasCard(
       color = "on_surface",
     }),
     ui.label({
-      text = string.format("%.0fHz • %.2fx%s", m.refreshRate or 60, m.scale or 1, isPortrait and " ↻90°" or ""),
+      text = subInfo,
       fontSize = (isPortrait or bounds.w < 145) and 9 or 10,
       color = isSelected and "secondary" or "on_surface_variant",
     }),
@@ -91,7 +103,7 @@ function components.renderCanvasCard(
     fill = bgFill,
     border = borderFill,
     borderWidth = isSelected and 2 or 1,
-    padding = 8,
+    padding = (bounds.w < 110 or bounds.h < 110) and 4 or 8,
     justify = "space_between",
     align = "center",
     onClick = onClick,
@@ -287,24 +299,6 @@ function components.renderRefreshRateSelector(m: layoutMath.Monitor, onRateChang
   end
   table.sort(rates)
 
-  if #rates <= 1 then
-    return ui.row({
-      gap = 4,
-      align = "center",
-      paddingH = 10,
-      paddingV = 5,
-      radius = 6,
-      fill = "surface_variant",
-    }, {
-      ui.label({
-        text = string.format("%dHz", rates[1] or 60),
-        fontSize = 11,
-        fontWeight = "bold",
-        color = "primary",
-      }),
-    })
-  end
-
   local curHz = math.floor((m.refreshRate or 60) + 0.5)
   local buttons = {}
   for _, r in ipairs(rates) do
@@ -324,21 +318,27 @@ end
 function components.renderPositionDisplay(m: layoutMath.Monitor, onOffsetChanged: (number, number) -> ()): any
   local curX = m.x or 0
   local curY = m.y or 0
+  local hasOffset = (curX ~= 0 or curY ~= 0)
 
-  return ui.row({ gap = 6, align = "center" }, {
+  local items = {
     ui.label({
       text = string.format("X: %d  Y: %d", curX, curY),
       fontSize = 11,
       fontWeight = "bold",
       color = "on_surface",
     }),
-    (curX ~= 0 or curY ~= 0) and ui.button({
+  }
+
+  if hasOffset then
+    table.insert(items, ui.button({
       text = "Reset (0,0)",
       variant = "ghost",
       fontSize = 10,
       onClick = function() onOffsetChanged(0, 0) end,
-    }) or nil,
-  })
+    }))
+  end
+
+  return ui.row({ gap = 6, align = "center", height = 28 }, items)
 end
 
 return components

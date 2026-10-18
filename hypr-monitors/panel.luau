@@ -71,7 +71,7 @@ local function render()
     end
   end
 
-  local proj = layoutMath.computeCanvasProjection(monList, 740, 200)
+  local proj = layoutMath.computeCanvasProjection(monList, 740, 240)
   local cardsData = {}
   for _, m in ipairs(monList) do
     if not m.disabled then
@@ -109,7 +109,7 @@ local function render()
   local canvasContainer = nil
   if isVertical then
     canvasContainer = ui.column({
-      height = 200,
+      height = 240,
       radius = 8,
       fill = "surface_variant",
       border = "outline",
@@ -121,7 +121,7 @@ local function render()
     }, canvasBoxes)
   else
     canvasContainer = ui.row({
-      height = 200,
+      height = 240,
       radius = 8,
       fill = "surface_variant",
       border = "outline",
@@ -231,14 +231,14 @@ local function render()
           end),
         }),
       }),
-      ui.row({ gap = 16, justify = "space_between", align = "center" }, {
+      ui.row({ gap = 16, justify = "space_between", align = "flex_start" }, {
         ui.column({ gap = 4 }, {
           ui.label({ text = "Refresh Rate", fontSize = 11, color = "on_surface_variant" }),
           components.renderRefreshRateSelector(selected, function(newRate)
             state.setWorkingProperty(selected.name, "refreshRate", newRate)
           end),
         }),
-        ui.column({ gap = 4 }, {
+        ui.column({ gap = 4, align = "flex_end" }, {
           ui.label({ text = "Position Coordinates", fontSize = 11, color = "on_surface_variant" }),
           components.renderPositionDisplay(selected, function(newX, newY)
             selected.x = newX
@@ -350,6 +350,10 @@ local function render()
       align = "center",
       paddingH = 4,
       paddingV = 2,
+      border = "none",
+      borderWidth = 0,
+      fill = "transparent",
+      radius = 0,
     }, {
       ui.label({
         text = state.hasPendingChanges

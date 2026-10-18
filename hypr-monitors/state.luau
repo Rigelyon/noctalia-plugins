@@ -116,13 +116,41 @@ function state.setWorkingProperty(monitorName: string, key: string, value: any)
 end
 
 function state.startSafetyCountdown(onExpired: (() -> ())?)
+  local enabled = true
+  if noctalia and noctalia.getConfig then
+    enabled = noctalia.getConfig("enable_safety_timer") ~= false
+  end
+  if not enabled then
+    state.keepChanges()
+    return
+  end
+
   local timeout = 15
   if noctalia and noctalia.getConfig then
     timeout = tonumber(noctalia.getConfig("safety_timeout")) or 15
   end
   state.safetyTimer = timeout
   state.isSafetyModalVisible = true
+  state.previousSafeMonitors = cloneMonitors(state.monitors)
   state.notify()
+
+  local function tick()
+    if not state.isSafetyModalVisible then return end
+    if noctalia and noctalia.runAsync then
+      noctalia.runAsync({ "sleep", "1" }, function(_)
+        if not state.isSafetyModalVisible then return end
+        state.safetyTimer = state.safetyTimer - 1
+        if state.safetyTimer <= 0 then
+          state.revertToSafe()
+          if onExpired then onExpired() end
+        else
+          state.notify()
+          tick()
+        end
+      end)
+    end
+  end
+  tick()
 end
 
 function state.keepChanges()

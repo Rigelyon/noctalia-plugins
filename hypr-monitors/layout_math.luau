@@ -163,18 +163,18 @@ function layout_math.computeCanvasProjection(monitors: { Monitor }, viewportW: n
     local px = math.floor((m.x or 0) * scaleFactor + offsetX)
     local py = math.floor((m.y or 0) * scaleFactor + offsetY)
 
-    local minW = isPortrait and 75 or 110
-    local minH = isPortrait and 110 or 65
+    local minW = isPortrait and 88 or 130
+    local minH = isPortrait and 130 or 76
     local pw = math.max(minW, math.floor(vw * scaleFactor))
     local ph = math.max(minH, math.floor(vh * scaleFactor))
 
     if activeCount == 1 then
       if isPortrait then
-        pw = 120
-        ph = 200
+        pw = 130
+        ph = 220
       else
-        pw = 230
-        ph = 130
+        pw = 240
+        ph = 135
       end
     end
     items[m.name] = { x = px, y = py, w = pw, h = ph }
