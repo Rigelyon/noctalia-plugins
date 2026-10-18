@@ -71,7 +71,7 @@ local function render()
     end
   end
 
-  local proj = layoutMath.computeCanvasProjection(monList, 740, 210)
+  local proj = layoutMath.computeCanvasProjection(monList, 740, 180)
   local cardsData = {}
   for _, m in ipairs(monList) do
     local b = proj.items[m.name]
@@ -110,7 +110,7 @@ local function render()
   local canvasContainer = nil
   if isVertical then
     canvasContainer = ui.column({
-      height = 210,
+      height = 180,
       radius = 8,
       fill = "surface_variant",
       border = "outline",
@@ -122,7 +122,7 @@ local function render()
     }, canvasBoxes)
   else
     canvasContainer = ui.row({
-      height = 210,
+      height = 180,
       radius = 8,
       fill = "surface_variant",
       border = "outline",
@@ -132,51 +132,6 @@ local function render()
       justify = "center",
       gap = 12,
     }, canvasBoxes)
-  end
-
-  local disabledMonitors = {}
-  for _, m in ipairs(monList) do
-    if m.disabled then
-      table.insert(disabledMonitors, m)
-    end
-  end
-
-  local disabledShelf = nil
-  if #disabledMonitors > 0 then
-    local disabledButtons = {}
-    for _, dm in ipairs(disabledMonitors) do
-      local isSel = (selected and selected.name == dm.name)
-      table.insert(disabledButtons, ui.button({
-        text = string.format("%s • %s", dm.name, tr("panel.btn_enable_short")),
-        variant = isSel and "primary" or "secondary",
-        fontSize = 11,
-        onClick = function()
-          state.setWorkingProperty(dm.name, "disabled", false)
-          state.selectMonitor(dm.name)
-        end,
-      }))
-    end
-
-    disabledShelf = ui.row({
-      padding = 6,
-      radius = 8,
-      fill = "surface_variant",
-      border = "outline",
-      borderWidth = 1,
-      justify = "space_between",
-      align = "center",
-    }, {
-      ui.row({ gap = 8, align = "center" }, {
-        ui.glyph({ name = "eye-off", size = 14, color = "secondary" }),
-        ui.label({
-          text = tr("panel.disabled_displays_label"),
-          fontSize = 11,
-          fontWeight = "bold",
-          color = "on_surface",
-        }),
-      }),
-      ui.row({ gap = 6, align = "center" }, disabledButtons),
-    })
   end
 
   local canvas = ui.column({ gap = 6 }, {
@@ -243,33 +198,12 @@ local function render()
       end,
     }),
     canvasContainer,
-    disabledShelf,
   })
 
   -- Lower Workspace: Inspector or Profiles Tab
   local lowerContent = nil
   if state.activeTab == "inspector" and selected then
-    local disabledBanner = nil
-    if selected.disabled then
-      disabledBanner = ui.row({
-        padding = 8,
-        radius = 6,
-        fill = "surface_variant",
-        border = "outline",
-        borderWidth = 1,
-        gap = 8,
-        align = "center",
-      }, {
-        ui.glyph({ name = "alert-circle", size = 15, color = "secondary" }),
-        ui.label({
-          text = tr("panel.disabled_banner_desc"),
-          fontSize = 11,
-          color = "on_surface_variant",
-        }),
-      })
-    end
-
-    lowerContent = ui.column({ gap = 10, padding = 4 }, {
+    lowerContent = ui.column({ gap = 8, padding = 2 }, {
       ui.row({ justify = "space_between", align = "center" }, {
         ui.row({ gap = 6, align = "center" }, {
           ui.glyph({
@@ -288,7 +222,6 @@ local function render()
           end,
         }),
       }),
-      disabledBanner,
       ui.row({ gap = 16 }, {
         ui.column({ gap = 4, flexGrow = 1 }, {
           ui.label({ text = tr("panel.label_scale"), fontSize = 11, color = "on_surface_variant" }),
@@ -446,8 +379,8 @@ local function render()
   table.insert(mainChildren, footer)
 
   return ui.column({
-    padding = 16,
-    gap = 10,
+    padding = 14,
+    gap = 8,
   }, mainChildren)
 end
 

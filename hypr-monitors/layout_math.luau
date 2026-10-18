@@ -141,8 +141,8 @@ function layout_math.computeCanvasProjection(monitors: { Monitor }, viewportW: n
   local totalH = math.max(1, maxY - minY)
 
   -- Add padding margin inside canvas
-  local padH = 32
-  local padV = 24
+  local padH = 28
+  local padV = 16
   local availW = math.max(100, viewportW - padH * 2)
   local availH = math.max(60, viewportH - padV * 2)
 
@@ -164,18 +164,18 @@ function layout_math.computeCanvasProjection(monitors: { Monitor }, viewportW: n
     local px = math.floor((m.x or 0) * scaleFactor + offsetX)
     local py = math.floor((m.y or 0) * scaleFactor + offsetY)
 
-    local minW = isPortrait and 88 or 130
-    local minH = isPortrait and 130 or 76
+    local minW = isPortrait and 76 or 110
+    local minH = isPortrait and 110 or 64
     local pw = math.max(minW, math.floor(vw * scaleFactor))
     local ph = math.max(minH, math.floor(vh * scaleFactor))
 
     if totalMonitors == 1 then
       if isPortrait then
-        pw = 130
-        ph = 220
+        pw = 110
+        ph = 140
       else
-        pw = 240
-        ph = 135
+        pw = 230
+        ph = 125
       end
     else
       if not isPortrait and pw > maxCardW and maxCardW >= minW then
