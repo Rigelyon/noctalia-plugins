@@ -71,29 +71,30 @@ local function render()
     end
   end
 
-  local proj = layoutMath.computeCanvasProjection(monList, 740, 240)
+  local proj = layoutMath.computeCanvasProjection(monList, 740, 210)
   local cardsData = {}
   for _, m in ipairs(monList) do
-    if not m.disabled then
-      local b = proj.items[m.name]
-      if b then
-        table.insert(cardsData, {
-          m = m,
-          node = components.renderCanvasCard(
-            m,
-            b,
-            (m.name == state.selectedMonitorName),
-            function()
-              state.selectMonitor(m.name)
-            end
-          ),
-        })
-      end
+    local b = proj.items[m.name]
+    if b then
+      table.insert(cardsData, {
+        m = m,
+        node = components.renderCanvasCard(
+          m,
+          b,
+          (m.name == state.selectedMonitorName),
+          function()
+            state.selectMonitor(m.name)
+          end
+        ),
+      })
     end
   end
 
-  -- Sort cards according to spatial position
+  -- Sort cards according to spatial position, active monitors first
   table.sort(cardsData, function(a, b)
+    if a.m.disabled ~= b.m.disabled then
+      return not a.m.disabled
+    end
     if isVertical then
       return (a.m.y or 0) < (b.m.y or 0)
     else
@@ -109,7 +110,7 @@ local function render()
   local canvasContainer = nil
   if isVertical then
     canvasContainer = ui.column({
-      height = 240,
+      height = 210,
       radius = 8,
       fill = "surface_variant",
       border = "outline",
@@ -121,7 +122,7 @@ local function render()
     }, canvasBoxes)
   else
     canvasContainer = ui.row({
-      height = 240,
+      height = 210,
       radius = 8,
       fill = "surface_variant",
       border = "outline",
@@ -131,6 +132,51 @@ local function render()
       justify = "center",
       gap = 12,
     }, canvasBoxes)
+  end
+
+  local disabledMonitors = {}
+  for _, m in ipairs(monList) do
+    if m.disabled then
+      table.insert(disabledMonitors, m)
+    end
+  end
+
+  local disabledShelf = nil
+  if #disabledMonitors > 0 then
+    local disabledButtons = {}
+    for _, dm in ipairs(disabledMonitors) do
+      local isSel = (selected and selected.name == dm.name)
+      table.insert(disabledButtons, ui.button({
+        text = string.format("%s • %s", dm.name, tr("panel.btn_enable_short")),
+        variant = isSel and "primary" or "secondary",
+        fontSize = 11,
+        onClick = function()
+          state.setWorkingProperty(dm.name, "disabled", false)
+          state.selectMonitor(dm.name)
+        end,
+      }))
+    end
+
+    disabledShelf = ui.row({
+      padding = 6,
+      radius = 8,
+      fill = "surface_variant",
+      border = "outline",
+      borderWidth = 1,
+      justify = "space_between",
+      align = "center",
+    }, {
+      ui.row({ gap = 8, align = "center" }, {
+        ui.glyph({ name = "eye-off", size = 14, color = "secondary" }),
+        ui.label({
+          text = tr("panel.disabled_displays_label"),
+          fontSize = 11,
+          fontWeight = "bold",
+          color = "on_surface",
+        }),
+      }),
+      ui.row({ gap = 6, align = "center" }, disabledButtons),
+    })
   end
 
   local canvas = ui.column({ gap = 6 }, {
@@ -197,26 +243,52 @@ local function render()
       end,
     }),
     canvasContainer,
+    disabledShelf,
   })
 
   -- Lower Workspace: Inspector or Profiles Tab
   local lowerContent = nil
   if state.activeTab == "inspector" and selected then
+    local disabledBanner = nil
+    if selected.disabled then
+      disabledBanner = ui.row({
+        padding = 8,
+        radius = 6,
+        fill = "surface_variant",
+        border = "outline",
+        borderWidth = 1,
+        gap = 8,
+        align = "center",
+      }, {
+        ui.glyph({ name = "alert-circle", size = 15, color = "secondary" }),
+        ui.label({
+          text = tr("panel.disabled_banner_desc"),
+          fontSize = 11,
+          color = "on_surface_variant",
+        }),
+      })
+    end
+
     lowerContent = ui.column({ gap = 10, padding = 4 }, {
       ui.row({ justify = "space_between", align = "center" }, {
         ui.row({ gap = 6, align = "center" }, {
-          ui.glyph({ name = "device-desktop", size = 16, color = "secondary" }),
+          ui.glyph({
+            name = selected.disabled and "eye-off" or "device-desktop",
+            size = 16,
+            color = selected.disabled and "on_surface_variant" or "secondary",
+          }),
           ui.label({ text = selected.name, fontWeight = "bold", fontSize = 14 }),
           ui.label({ text = selected.description or "", fontSize = 11, color = "on_surface_variant" }),
         }),
         ui.button({
-          text = selected.disabled and "Disabled" or "Enabled",
-          variant = selected.disabled and "outline" or "primary",
+          text = selected.disabled and tr("panel.btn_enable_display") or tr("panel.btn_disable_display"),
+          variant = selected.disabled and "primary" or "outline",
           onClick = function()
             state.setWorkingProperty(selected.name, "disabled", not selected.disabled)
           end,
         }),
       }),
+      disabledBanner,
       ui.row({ gap = 16 }, {
         ui.column({ gap = 4, flexGrow = 1 }, {
           ui.label({ text = tr("panel.label_scale"), fontSize = 11, color = "on_surface_variant" }),

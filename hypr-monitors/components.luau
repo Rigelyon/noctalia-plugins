@@ -23,7 +23,9 @@ function components.renderCanvasCard(
   local isPortrait = (m.transform == 1 or m.transform == 3)
 
   local badgeText = ""
-  if m.mirrorOf and m.mirrorOf ~= "" and m.mirrorOf ~= "none" then
+  if m.disabled then
+    badgeText = "⊘ Disabled"
+  elseif m.mirrorOf and m.mirrorOf ~= "" and m.mirrorOf ~= "none" then
     badgeText = "⎘ Mirror"
   elseif (m.x == 0 and m.y == 0) then
     badgeText = "● Main"
@@ -31,55 +33,65 @@ function components.renderCanvasCard(
     badgeText = string.format("+%d,%d", m.x or 0, m.y or 0)
   end
 
+  local iconName = m.disabled and "eye-off" or "device-desktop"
+  local iconColor = isSelected and "primary" or "on_surface_variant"
+  local titleColor = isSelected and "primary" or (m.disabled and "on_surface_variant" or "on_surface")
+  local badgeColor = isSelected and "secondary" or "on_surface_variant"
+
   local headerNode = nil
   if isPortrait or bounds.w < 145 then
     headerNode = ui.column({ gap = 2, align = "center" }, {
       ui.row({ gap = 3, align = "center" }, {
-        ui.glyph({ name = "device-desktop", size = 11, color = isSelected and "primary" or "on_surface_variant" }),
+        ui.glyph({ name = iconName, size = 11, color = iconColor }),
         ui.label({
           text = m.name,
           fontWeight = "bold",
           fontSize = 10,
-          color = isSelected and "primary" or "on_surface",
+          color = titleColor,
         }),
       }),
       (badgeText ~= "") and ui.label({
         text = badgeText,
         fontSize = 8,
         fontWeight = "bold",
-        color = isSelected and "secondary" or "on_surface_variant",
+        color = badgeColor,
       }) or nil,
     })
   else
     headerNode = ui.row({ justify = "space_between", align = "center" }, {
       ui.row({ gap = 4, align = "center" }, {
-        ui.glyph({ name = "device-desktop", size = 12, color = isSelected and "primary" or "on_surface_variant" }),
+        ui.glyph({ name = iconName, size = 12, color = iconColor }),
         ui.label({
           text = m.name,
           fontWeight = "bold",
           fontSize = 11,
-          color = isSelected and "primary" or "on_surface",
+          color = titleColor,
         }),
       }),
       (badgeText ~= "") and ui.label({
         text = badgeText,
         fontSize = 9,
         fontWeight = "bold",
-        color = isSelected and "secondary" or "on_surface_variant",
+        color = badgeColor,
       }) or nil,
     })
   end
 
-  local subInfo = string.format("%.0fHz", m.refreshRate or 60)
-  if isPortrait or bounds.w < 120 then
-    if m.scale and m.scale ~= 1.0 then
-      subInfo = subInfo .. string.format(" • %.1fx", m.scale)
-    end
-    if isPortrait then
-      subInfo = subInfo .. " ↻"
-    end
+  local subInfo = ""
+  if m.disabled then
+    subInfo = "Disabled (Off)"
   else
-    subInfo = string.format("%.0fHz • %.2fx%s", m.refreshRate or 60, m.scale or 1, isPortrait and " ↻90°" or "")
+    subInfo = string.format("%.0fHz", m.refreshRate or 60)
+    if isPortrait or bounds.w < 120 then
+      if m.scale and m.scale ~= 1.0 then
+        subInfo = subInfo .. string.format(" • %.1fx", m.scale)
+      end
+      if isPortrait then
+        subInfo = subInfo .. " ↻"
+      end
+    else
+      subInfo = string.format("%.0fHz • %.2fx%s", m.refreshRate or 60, m.scale or 1, isPortrait and " ↻90°" or "")
+    end
   end
 
   local centerNode = ui.column({ align = "center", gap = 1 }, {
@@ -87,7 +99,7 @@ function components.renderCanvasCard(
       text = string.format("%dx%d", m.width, m.height),
       fontSize = (isPortrait or bounds.w < 145) and 10 or 12,
       fontWeight = "bold",
-      color = "on_surface",
+      color = m.disabled and "on_surface_variant" or "on_surface",
     }),
     ui.label({
       text = subInfo,

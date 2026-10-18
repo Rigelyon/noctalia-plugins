@@ -108,6 +108,36 @@ function state.setWorkingProperty(monitorName: string, key: string, value: any)
   for _, m in ipairs(state.workingMonitors) do
     if m.name == monitorName then
       m[key] = value
+      if key == "disabled" and value == false then
+        local overlaps = false
+        for _, other in ipairs(state.workingMonitors) do
+          if other.name ~= monitorName and not other.disabled then
+            if (other.x or 0) == (m.x or 0) and (other.y or 0) == (m.y or 0) then
+              overlaps = true
+              break
+            end
+          end
+        end
+        if overlaps then
+          local maxRight = -999999
+          local rightmost = nil
+          for _, other in ipairs(state.workingMonitors) do
+            if other.name ~= monitorName and not other.disabled then
+              local ovw, _ = layoutMath.getVirtualSize(other)
+              local rightEdge = (other.x or 0) + ovw
+              if rightEdge > maxRight then
+                maxRight = rightEdge
+                rightmost = other
+              end
+            end
+          end
+          if rightmost then
+            layoutMath.snapRight(m, rightmost)
+          end
+        end
+        layoutMath.normalizeCoordinates(state.workingMonitors)
+        state.selectedMonitorName = monitorName
+      end
       state.hasPendingChanges = true
       state.notify()
       break

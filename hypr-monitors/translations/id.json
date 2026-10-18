@@ -63,6 +63,11 @@
     "safety_desc": "Pengaturan diterapkan. Otomatis revert dalam {seconds}s jika tidak dikonfirmasi.",
     "btn_keep": "Pertahankan",
     "btn_revert_now": "Revert Sekarang",
+    "btn_enable_display": "Aktifkan Monitor",
+    "btn_disable_display": "Nonaktifkan Monitor",
+    "btn_enable_short": "Aktifkan",
+    "disabled_displays_label": "Monitor Nonaktif:",
+    "disabled_banner_desc": "Monitor ini sedang dinonaktifkan di Hyprland. Klik 'Aktifkan Monitor' untuk menyalakannya kembali.",
     "tip_source": "Tip: Tambahkan 'source = ~/.config/hypr/monitors.conf' ke hyprland.conf Anda",
     "copy_source": "Salin"
   },

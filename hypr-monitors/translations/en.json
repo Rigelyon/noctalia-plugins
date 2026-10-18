@@ -63,6 +63,11 @@
     "safety_desc": "Settings applied. Auto-reverting in {seconds}s if not confirmed.",
     "btn_keep": "Keep Changes",
     "btn_revert_now": "Revert Now",
+    "btn_enable_display": "Enable Display",
+    "btn_disable_display": "Disable Display",
+    "btn_enable_short": "Enable",
+    "disabled_displays_label": "Disabled Displays:",
+    "disabled_banner_desc": "This display is currently disabled in Hyprland. Click 'Enable Display' to activate it.",
     "tip_source": "Tip: Add 'source = ~/.config/hypr/monitors.conf' to your hyprland.conf",
     "copy_source": "Copy"
   },

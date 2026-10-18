@@ -117,25 +117,23 @@ function layout_math.computeCanvasProjection(monitors: { Monitor }, viewportW: n
   local minY = 0
   local maxX = 1920
   local maxY = 1080
-  local activeCount = 0
+  local count = 0
 
   for _, m in ipairs(monitors) do
-    if not m.disabled then
-      activeCount = activeCount + 1
-      local vw, vh = layout_math.getVirtualSize(m)
-      local mx = m.x or 0
-      local my = m.y or 0
-      if activeCount == 1 then
-        minX = mx
-        minY = my
-        maxX = mx + vw
-        maxY = my + vh
-      else
-        if mx < minX then minX = mx end
-        if my < minY then minY = my end
-        if (mx + vw) > maxX then maxX = mx + vw end
-        if (my + vh) > maxY then maxY = my + vh end
-      end
+    count = count + 1
+    local vw, vh = layout_math.getVirtualSize(m)
+    local mx = m.x or 0
+    local my = m.y or 0
+    if count == 1 then
+      minX = mx
+      minY = my
+      maxX = mx + vw
+      maxY = my + vh
+    else
+      if mx < minX then minX = mx end
+      if my < minY then minY = my end
+      if (mx + vw) > maxX then maxX = mx + vw end
+      if (my + vh) > maxY then maxY = my + vh end
     end
   end
 
@@ -156,6 +154,9 @@ function layout_math.computeCanvasProjection(monitors: { Monitor }, viewportW: n
   local offsetX = (viewportW - renderedW) / 2 - (minX * scaleFactor)
   local offsetY = (viewportH - renderedH) / 2 - (minY * scaleFactor)
 
+  local totalMonitors = #monitors
+  local maxCardW = (totalMonitors > 1) and math.floor((availW - (totalMonitors - 1) * 12) / totalMonitors) or availW
+
   local items = {}
   for _, m in ipairs(monitors) do
     local vw, vh = layout_math.getVirtualSize(m)
@@ -168,13 +169,18 @@ function layout_math.computeCanvasProjection(monitors: { Monitor }, viewportW: n
     local pw = math.max(minW, math.floor(vw * scaleFactor))
     local ph = math.max(minH, math.floor(vh * scaleFactor))
 
-    if activeCount == 1 then
+    if totalMonitors == 1 then
       if isPortrait then
         pw = 130
         ph = 220
       else
         pw = 240
         ph = 135
+      end
+    else
+      if not isPortrait and pw > maxCardW and maxCardW >= minW then
+        pw = maxCardW
+        ph = math.max(minH, math.floor(pw * (vh / vw)))
       end
     end
     items[m.name] = { x = px, y = py, w = pw, h = ph }
