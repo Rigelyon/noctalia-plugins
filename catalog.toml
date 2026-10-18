@@ -94,3 +94,17 @@ icon = "layout-grid"
 description = "Aesthetic Hyprland layout switcher with status bar widget, dual scope (global/workspace), and schematic wireframe hub."
 plugin_api = 28
 tags = ["hyprland", "utility", "bar", "panel", "productivity"]
+
+[[plugin]]
+id = "rigelyon/hypr-monitors"
+name = "Hyprland Monitor Manager"
+version = "1.0.0"
+updated_at = 1792320000
+added_at = 1792320000
+author = "rigelyon"
+license = "MIT"
+icon = "device-desktop"
+description = "Aesthetic visual display manager for Hyprland with gapless canvas arrangement, instant presets, safety revert timer, and profile management."
+plugin_api = 28
+tags = ["hyprland", "monitor", "display", "utility", "bar", "panel", "productivity"]
+
