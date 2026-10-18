@@ -31,59 +31,71 @@ function components.renderCanvasCard(
     badgeText = string.format("+%d,%d", m.x or 0, m.y or 0)
   end
 
-  local cardChildren = {
-    ui.row({ justify = "space_between", align = "center" }, {
-      ui.row({ gap = 4, align = "center" }, {
-        ui.glyph({ name = "device-desktop", size = 13, color = isSelected and "primary" or "on_surface_variant" }),
+  local headerNode = nil
+  if isPortrait or bounds.w < 145 then
+    headerNode = ui.column({ gap = 2, align = "center" }, {
+      ui.row({ gap = 3, align = "center" }, {
+        ui.glyph({ name = "device-desktop", size = 11, color = isSelected and "primary" or "on_surface_variant" }),
         ui.label({
           text = m.name,
           fontWeight = "bold",
-          fontSize = 12,
+          fontSize = 10,
           color = isSelected and "primary" or "on_surface",
         }),
       }),
-      ui.label({
+      (badgeText ~= "") and ui.label({
+        text = badgeText,
+        fontSize = 8,
+        fontWeight = "bold",
+        color = isSelected and "secondary" or "on_surface_variant",
+      }) or nil,
+    })
+  else
+    headerNode = ui.row({ justify = "space_between", align = "center" }, {
+      ui.row({ gap = 4, align = "center" }, {
+        ui.glyph({ name = "device-desktop", size = 12, color = isSelected and "primary" or "on_surface_variant" }),
+        ui.label({
+          text = m.name,
+          fontWeight = "bold",
+          fontSize = 11,
+          color = isSelected and "primary" or "on_surface",
+        }),
+      }),
+      (badgeText ~= "") and ui.label({
         text = badgeText,
         fontSize = 9,
         fontWeight = "bold",
         color = isSelected and "secondary" or "on_surface_variant",
-      }),
+      }) or nil,
+    })
+  end
+
+  local centerNode = ui.column({ align = "center", gap = 1 }, {
+    ui.label({
+      text = string.format("%dx%d", m.width, m.height),
+      fontSize = (isPortrait or bounds.w < 145) and 10 or 12,
+      fontWeight = "bold",
+      color = "on_surface",
     }),
-    ui.column({ align = "center", gap = 2 }, {
-      ui.label({
-        text = string.format("%dx%d", m.width, m.height),
-        fontSize = 12,
-        fontWeight = "bold",
-        color = "on_surface",
-      }),
-      ui.label({
-        text = string.format("%.0fHz • %.2fx%s", m.refreshRate or 60, m.scale or 1, isPortrait and " ↻90°" or ""),
-        fontSize = 10,
-        color = isSelected and "secondary" or "on_surface_variant",
-      }),
+    ui.label({
+      text = string.format("%.0fHz • %.2fx%s", m.refreshRate or 60, m.scale or 1, isPortrait and " ↻90°" or ""),
+      fontSize = (isPortrait or bounds.w < 145) and 9 or 10,
+      color = isSelected and "secondary" or "on_surface_variant",
     }),
-  }
+  })
 
   return ui.column({
+    width = bounds.w,
+    height = bounds.h,
+    radius = 8,
+    fill = bgFill,
+    border = borderFill,
+    borderWidth = isSelected and 2 or 1,
+    padding = 8,
+    justify = "space_between",
     align = "center",
-    gap = 2,
     onClick = onClick,
-  }, {
-    ui.column({
-      width = bounds.w,
-      height = bounds.h,
-      radius = 8,
-      fill = bgFill,
-      border = borderFill,
-      borderWidth = isSelected and 2 or 1,
-      padding = 8,
-      justify = "space_between",
-      align = "center",
-    }, cardChildren),
-    -- Realistic display stand neck and base
-    ui.box({ width = 36, height = 3, radius = 2, fill = isSelected and "primary" or "outline" }),
-    ui.box({ width = 72, height = 2, radius = 1, fill = isSelected and "primary" or "outline" }),
-  })
+  }, { headerNode, centerNode })
 end
 
 -- Renders the quick snap and preset toolbar above the canvas
@@ -216,19 +228,23 @@ end
 
 -- Renders floating safety revert modal banner
 function components.renderSafetyModal(secondsRemaining: number, onKeep: () -> (), onRevert: () -> ()): any
-  return ui.column({
+  return ui.row({
+    justify = "space_between",
+    align = "center",
+    paddingH = 12,
+    paddingV = 6,
     radius = 8,
-    fill = "surface",
+    fill = "surface_variant",
     border = "error",
-    borderWidth = 2,
-    padding = 12,
+    borderWidth = 1,
   }, {
-    ui.row({ justify = "space_between", align = "center" }, {
+    ui.row({ gap = 8, align = "center" }, {
+      ui.glyph({ name = "alert-triangle", size = 18, color = "error" }),
       ui.column({ gap = 2 }, {
         ui.label({
           text = tr("panel.safety_title"),
           fontWeight = "bold",
-          fontSize = 13,
+          fontSize = 12,
           color = "on_surface",
         }),
         ui.label({
@@ -237,19 +253,19 @@ function components.renderSafetyModal(secondsRemaining: number, onKeep: () -> ()
           color = "error",
         }),
       }),
-      ui.row({ gap = 8 }, {
-        ui.button({
-          text = tr("panel.btn_keep"),
-          variant = "primary",
-          onClick = onKeep,
-        }),
-        ui.button({
-          text = tr("panel.btn_revert_now"),
-          variant = "outline",
-          onClick = onRevert,
-        }),
-      })
-    })
+    }),
+    ui.row({ gap = 8, align = "center" }, {
+      ui.button({
+        text = tr("panel.btn_keep"),
+        variant = "primary",
+        onClick = onKeep,
+      }),
+      ui.button({
+        text = tr("panel.btn_revert_now"),
+        variant = "outline",
+        onClick = onRevert,
+      }),
+    }),
   })
 end
 
@@ -270,6 +286,24 @@ function components.renderRefreshRateSelector(m: layoutMath.Monitor, onRateChang
     rates = { 60, 144 }
   end
   table.sort(rates)
+
+  if #rates <= 1 then
+    return ui.row({
+      gap = 4,
+      align = "center",
+      paddingH = 10,
+      paddingV = 5,
+      radius = 6,
+      fill = "surface_variant",
+    }, {
+      ui.label({
+        text = string.format("%dHz", rates[1] or 60),
+        fontSize = 11,
+        fontWeight = "bold",
+        color = "primary",
+      }),
+    })
+  end
 
   local curHz = math.floor((m.refreshRate or 60) + 0.5)
   local buttons = {}

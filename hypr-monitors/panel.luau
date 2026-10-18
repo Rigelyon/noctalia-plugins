@@ -71,7 +71,7 @@ local function render()
     end
   end
 
-  local proj = layoutMath.computeCanvasProjection(monList, 400, 150)
+  local proj = layoutMath.computeCanvasProjection(monList, 740, 200)
   local cardsData = {}
   for _, m in ipairs(monList) do
     if not m.disabled then
@@ -109,7 +109,7 @@ local function render()
   local canvasContainer = nil
   if isVertical then
     canvasContainer = ui.column({
-      height = 190,
+      height = 200,
       radius = 8,
       fill = "surface_variant",
       border = "outline",
@@ -121,7 +121,7 @@ local function render()
     }, canvasBoxes)
   else
     canvasContainer = ui.row({
-      height = 190,
+      height = 200,
       radius = 8,
       fill = "surface_variant",
       border = "outline",
@@ -307,68 +307,64 @@ local function render()
     })
   end
 
-  -- Safety countdown modal
-  local safetyModal = nil
+  local footer = nil
   if state.isSafetyModalVisible then
-    safetyModal = components.renderSafetyModal(
+    footer = components.renderSafetyModal(
       state.safetyTimer,
       function() state.keepChanges() end,
       function() state.revertToSafe() end
     )
-  end
-
-  local footerButtons = {}
-  if state.hasPendingChanges then
+  else
+    local footerButtons = {}
+    if state.hasPendingChanges then
+      table.insert(footerButtons, ui.button({
+        text = tr("panel.btn_revert"),
+        variant = "ghost",
+        onClick = function() state.discardPendingChanges() end,
+      }))
+    end
     table.insert(footerButtons, ui.button({
-      text = tr("panel.btn_revert"),
-      variant = "ghost",
-      onClick = function() state.discardPendingChanges() end,
+      text = tr("panel.btn_apply"),
+      variant = "primary",
+      onClick = function()
+        hypr.applyBatch(state.workingMonitors, function(ok)
+          if ok then
+            state.startSafetyCountdown()
+          end
+        end)
+      end,
     }))
-  end
-  table.insert(footerButtons, ui.button({
-    text = tr("panel.btn_apply"),
-    variant = "primary",
-    onClick = function()
-      hypr.applyBatch(state.workingMonitors, function(ok)
-        if ok then
-          state.startSafetyCountdown()
+    table.insert(footerButtons, ui.button({
+      text = tr("panel.btn_save_config"),
+      variant = "secondary",
+      onClick = function()
+        local ok, err = config.writeConfig(state.workingMonitors)
+        if ok and noctalia and noctalia.notify then
+          noctalia.notify("Monitors Saved", "Saved to ~/.config/hypr/monitors.conf")
         end
-      end)
-    end,
-  }))
-  table.insert(footerButtons, ui.button({
-    text = tr("panel.btn_save_config"),
-    variant = "secondary",
-    onClick = function()
-      local ok, err = config.writeConfig(state.workingMonitors)
-      if ok and noctalia and noctalia.notify then
-        noctalia.notify("Monitors Saved", "Saved to ~/.config/hypr/monitors.conf")
-      end
-    end,
-  }))
+      end,
+    }))
 
-  local footer = ui.row({
-    justify = "space_between",
-    align = "center",
-    paddingH = 4,
-    paddingV = 2,
-  }, {
-    ui.label({
-      text = state.hasPendingChanges
-        and tr("panel.status_pending", { count = "●" })
-        or tr("panel.status_in_sync"),
-      fontSize = 11,
-      color = state.hasPendingChanges and "secondary" or "on_surface_variant",
-    }),
-    ui.row({ gap = 8 }, footerButtons),
-  })
+    footer = ui.row({
+      justify = "space_between",
+      align = "center",
+      paddingH = 4,
+      paddingV = 2,
+    }, {
+      ui.label({
+        text = state.hasPendingChanges
+          and tr("panel.status_pending", { count = "●" })
+          or tr("panel.status_in_sync"),
+        fontSize = 11,
+        color = state.hasPendingChanges and "secondary" or "on_surface_variant",
+      }),
+      ui.row({ gap = 8 }, footerButtons),
+    })
+  end
 
   local mainChildren = { header, canvas, ui.separator({}) }
   if lowerContent then
     table.insert(mainChildren, lowerContent)
-  end
-  if safetyModal then
-    table.insert(mainChildren, safetyModal)
   end
   table.insert(mainChildren, ui.separator({}))
   table.insert(mainChildren, footer)

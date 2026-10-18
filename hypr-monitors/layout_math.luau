@@ -159,13 +159,23 @@ function layout_math.computeCanvasProjection(monitors: { Monitor }, viewportW: n
   local items = {}
   for _, m in ipairs(monitors) do
     local vw, vh = layout_math.getVirtualSize(m)
+    local isPortrait = (m.transform == 1 or m.transform == 3)
     local px = math.floor((m.x or 0) * scaleFactor + offsetX)
     local py = math.floor((m.y or 0) * scaleFactor + offsetY)
-    local pw = math.max(130, math.floor(vw * scaleFactor))
-    local ph = math.max(72, math.floor(vh * scaleFactor))
+
+    local minW = isPortrait and 75 or 110
+    local minH = isPortrait and 110 or 65
+    local pw = math.max(minW, math.floor(vw * scaleFactor))
+    local ph = math.max(minH, math.floor(vh * scaleFactor))
+
     if activeCount == 1 then
-      pw = 210
-      ph = 118
+      if isPortrait then
+        pw = 120
+        ph = 200
+      else
+        pw = 230
+        ph = 130
+      end
     end
     items[m.name] = { x = px, y = py, w = pw, h = ph }
   end
