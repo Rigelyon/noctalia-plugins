@@ -1,0 +1,70 @@
+id = "rigelyon/hypr-monitors"
+name = "Hyprland Monitor Manager"
+version = "1.0.0"
+plugin_api = 28
+author = "rigelyon"
+license = "MIT"
+dependencies = ["hyprland"]
+tags = ["hyprland", "monitor", "display", "utility", "bar", "panel", "productivity"]
+icon = "device-desktop"
+description = "Aesthetic visual display manager for Hyprland with gapless canvas arrangement, instant presets, safety revert timer, and profile management."
+
+[[setting]]
+key = "config_path"
+type = "string"
+label_key = "settings.config_path.label"
+description_key = "settings.config_path.description"
+default = "~/.config/hypr/monitors.conf"
+
+[[setting]]
+key = "safety_timeout"
+type = "int"
+label_key = "settings.safety_timeout.label"
+description_key = "settings.safety_timeout.description"
+default = 15
+min = 5
+max = 60
+
+[[setting]]
+key = "enable_safety_timer"
+type = "bool"
+label_key = "settings.enable_safety_timer.label"
+description_key = "settings.enable_safety_timer.description"
+default = true
+
+[[setting]]
+key = "auto_switch_profiles"
+type = "bool"
+label_key = "settings.auto_switch_profiles.label"
+description_key = "settings.auto_switch_profiles.description"
+default = true
+
+[[setting]]
+key = "show_count_in_bar"
+type = "bool"
+label_key = "settings.show_count_in_bar.label"
+description_key = "settings.show_count_in_bar.description"
+default = true
+
+[[setting]]
+key = "enable_vrr_options"
+type = "bool"
+label_key = "settings.enable_vrr_options.label"
+description_key = "settings.enable_vrr_options.description"
+default = true
+
+[[panel]]
+id = "panel"
+entry = "panel.luau"
+placement = "floating"
+position = "center"
+width = 740
+height = 560
+capture_keys = ["Escape"]
+
+[[widget]]
+id = "widget"
+entry = "widget.luau"
+
+[widget.actions]
+middle = "none"

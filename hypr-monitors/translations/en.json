@@ -1,0 +1,87 @@
+{
+  "plugin": {
+    "name": "Hyprland Monitor Manager",
+    "description": "Aesthetic visual display manager for Hyprland"
+  },
+  "settings": {
+    "config_path": {
+      "label": "Monitors Config Path",
+      "description": "Path to persistent Hyprland monitors file (default: ~/.config/hypr/monitors.conf)"
+    },
+    "safety_timeout": {
+      "label": "Safety Revert Timeout",
+      "description": "Seconds before auto-reverting unconfirmed display changes"
+    },
+    "enable_safety_timer": {
+      "label": "Enable Safety Timer",
+      "description": "Auto-revert unconfirmed display changes to protect against black screens"
+    },
+    "auto_switch_profiles": {
+      "label": "Auto-Switch Profiles",
+      "description": "Automatically activate matching profile when monitors are plugged or unplugged"
+    },
+    "show_count_in_bar": {
+      "label": "Show Count in Bar",
+      "description": "Display active screen count next to the status bar icon"
+    },
+    "enable_vrr_options": {
+      "label": "Show Gaming / VRR Controls",
+      "description": "Show Variable Refresh Rate (Adaptive Sync) and bitdepth options"
+    }
+  },
+  "panel": {
+    "title": "Hyprland Monitor Manager",
+    "subtitle": "{count} Connected Monitors",
+    "tab_inspector": "Monitor Inspector",
+    "tab_profiles": "Display Profiles",
+    "canvas_help": "Click monitor to inspect. Use snap buttons to align positions.",
+    "snap_left": "Snap Left",
+    "snap_right": "Snap Right",
+    "snap_above": "Snap Above",
+    "snap_below": "Snap Below",
+    "align_tops": "Align Tops",
+    "align_bottoms": "Align Bottoms",
+    "preset_extend": "Extend",
+    "preset_mirror": "Mirror",
+    "preset_single": "Single Only",
+    "preset_external": "External Only",
+    "label_resolution": "Resolution & Refresh Rate",
+    "label_scale": "Display Scaling",
+    "label_orientation": "Orientation",
+    "label_position": "Offset Position",
+    "label_mirror": "Mirror Target",
+    "label_advanced": "Advanced Options",
+    "label_vrr": "Adaptive Sync (VRR)",
+    "label_ten_bit": "10-Bit Color Depth",
+    "label_power": "Display Power (DPMS)",
+    "status_in_sync": "In sync with Hyprland",
+    "status_pending": "{count} pending changes",
+    "btn_revert": "Revert",
+    "btn_apply": "Apply Live",
+    "btn_save_config": "Save to Config",
+    "safety_title": "Keep display changes?",
+    "safety_desc": "Settings applied. Auto-reverting in {seconds}s if not confirmed.",
+    "btn_keep": "Keep Changes",
+    "btn_revert_now": "Revert Now",
+    "tip_source": "Tip: Add 'source = ~/.config/hypr/monitors.conf' to your hyprland.conf",
+    "copy_source": "Copy"
+  },
+  "profiles": {
+    "title": "Saved Profiles",
+    "save_current": "Save Current Setup as Profile",
+    "name_placeholder": "Profile name (e.g. Office Dual)",
+    "btn_save": "Save",
+    "btn_apply": "Apply",
+    "btn_delete": "Delete",
+    "badge_active": "Active",
+    "auto_switch_label": "Auto-switch on connect"
+  },
+  "widget": {
+    "tooltip_title": "Hyprland Displays",
+    "open_manager": "Display Settings...",
+    "preset_extend": "Extend Display",
+    "preset_mirror": "Mirror Displays",
+    "preset_laptop_only": "Laptop Screen Only",
+    "preset_external_only": "External Screen Only"
+  }
+}
