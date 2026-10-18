@@ -59,7 +59,7 @@ entry = "panel.luau"
 placement = "floating"
 position = "center"
 width = 740
-height = 560
+height = 620
 capture_keys = ["Escape"]
 
 [[widget]]

@@ -46,7 +46,7 @@ class TestHyprMonitorsManifest(unittest.TestCase):
         self.assertEqual(panels[0].get("placement"), "floating")
         self.assertEqual(panels[0].get("position"), "center")
         self.assertEqual(panels[0].get("width"), 740)
-        self.assertEqual(panels[0].get("height"), 560)
+        self.assertEqual(panels[0].get("height"), 620)
         self.assertIn("Escape", panels[0].get("capture_keys", []))
 
         # Verify widget

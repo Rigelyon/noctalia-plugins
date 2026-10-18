@@ -62,7 +62,7 @@ local function render()
   })
 
   -- Visual Canvas Area
-  local proj = layoutMath.computeCanvasProjection(monList, 700, 180)
+  local proj = layoutMath.computeCanvasProjection(monList, 640, 125)
   local canvasBoxes = {}
   for _, m in ipairs(monList) do
     if not m.disabled then
@@ -80,7 +80,7 @@ local function render()
     end
   end
 
-  local canvas = ui.column({ gap = 8 }, {
+  local canvas = ui.column({ gap = 6 }, {
     components.renderCanvasToolbar({
       onSnapLeft = function()
         if selected and #monList > 1 then
@@ -136,13 +136,12 @@ local function render()
       end,
     }),
     ui.row({
-      width = 708,
-      height = 180,
+      height = 135,
       radius = 8,
       fill = "surface_variant",
       border = "outline",
       borderWidth = 1,
-      padding = 8,
+      padding = 6,
       align = "center",
       justify = "center",
       gap = 12,
@@ -239,29 +238,44 @@ local function render()
     })
   end
 
-  -- Sourcing tip banner if missing
+  -- Sourcing tip banner if missing and not dismissed
   local sourceTip = nil
-  if not config.isSourcedInHyprlandConf() then
+  if not config.isSourcedInHyprlandConf() and not state.isTipDismissed then
     sourceTip = ui.row({
-      padding = 8,
+      paddingH = 10,
+      paddingV = 4,
       radius = 6,
       fill = "surface_variant",
       justify = "space_between",
       align = "center",
     }, {
-      ui.label({ text = tr("panel.tip_source"), fontSize = 11, color = "secondary" }),
-      ui.button({
-        text = tr("panel.copy_source"),
-        variant = "ghost",
-        fontSize = 11,
-        onClick = function()
-          if noctalia and noctalia.copyToClipboard then
-            noctalia.copyToClipboard("source = ~/.config/hypr/monitors.conf", "text/plain")
-            if noctalia.notify then
-              noctalia.notify("Copied to clipboard", "source = ~/.config/hypr/monitors.conf")
+      ui.row({ gap = 6, align = "center" }, {
+        ui.glyph({ name = "info-circle", size = 14, color = "secondary" }),
+        ui.label({ text = tr("panel.tip_source"), fontSize = 11, color = "on_surface_variant" }),
+      }),
+      ui.row({ gap = 4, align = "center" }, {
+        ui.button({
+          text = tr("panel.copy_source"),
+          variant = "ghost",
+          fontSize = 11,
+          onClick = function()
+            if noctalia and noctalia.copyToClipboard then
+              noctalia.copyToClipboard("source = ~/.config/hypr/monitors.conf", "text/plain")
+              if noctalia.notify then
+                noctalia.notify("Copied to clipboard", "source = ~/.config/hypr/monitors.conf")
+              end
             end
-          end
-        end,
+          end,
+        }),
+        ui.button({
+          glyph = "x",
+          variant = "ghost",
+          fontSize = 11,
+          onClick = function()
+            state.isTipDismissed = true
+            state.notify()
+          end,
+        }),
       }),
     })
   end
@@ -309,8 +323,8 @@ local function render()
   local footer = ui.row({
     justify = "space_between",
     align = "center",
-    paddingH = 6,
-    paddingV = 6,
+    paddingH = 4,
+    paddingV = 2,
   }, {
     ui.label({
       text = state.hasPendingChanges
@@ -322,25 +336,22 @@ local function render()
     ui.row({ gap = 8 }, footerButtons),
   })
 
-  local mainChildren = { header }
-  if sourceTip then
-    table.insert(mainChildren, sourceTip)
-  end
-  table.insert(mainChildren, canvas)
-  table.insert(mainChildren, ui.separator({}))
+  local mainChildren = { header, canvas, ui.separator({}) }
   if lowerContent then
     table.insert(mainChildren, lowerContent)
   end
   if safetyModal then
     table.insert(mainChildren, safetyModal)
   end
-  table.insert(mainChildren, ui.spacer({ flexGrow = 1 }))
+  if sourceTip then
+    table.insert(mainChildren, sourceTip)
+  end
   table.insert(mainChildren, ui.separator({}))
   table.insert(mainChildren, footer)
 
   return ui.column({
     padding = 16,
-    gap = 12,
+    gap = 10,
   }, mainChildren)
 end
 

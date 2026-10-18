@@ -13,6 +13,7 @@ local state = {
   safetyTimer = 15 :: number,
   isSafetyModalVisible = false :: boolean,
   hasPendingChanges = false :: boolean,
+  isTipDismissed = false :: boolean,
   listeners = {} :: { () -> () },
 }
 
