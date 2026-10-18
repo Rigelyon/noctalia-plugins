@@ -25,12 +25,12 @@ function components.renderCanvasCard(
     ui.label({
       text = m.name,
       fontWeight = "bold",
-      fontSize = 12,
+      fontSize = 13,
       color = isSelected and "primary" or "on_surface",
     }),
     ui.label({
       text = string.format("%dx%d", m.width, m.height),
-      fontSize = 10,
+      fontSize = 11,
       color = "on_surface_variant",
     }),
   }
@@ -38,7 +38,7 @@ function components.renderCanvasCard(
   if m.scale ~= 1.0 then
     table.insert(cardChildren, ui.label({
       text = string.format("%.2fx", m.scale),
-      fontSize = 9,
+      fontSize = 10,
       color = "secondary",
     }))
   end
@@ -46,11 +46,11 @@ function components.renderCanvasCard(
   return ui.column({
     width = bounds.w,
     height = bounds.h,
-    radius = 6,
+    radius = 8,
     fill = bgFill,
     border = borderFill,
     borderWidth = isSelected and 2 or 1,
-    padding = 6,
+    padding = 8,
     align = "center",
     justify = "center",
     onClick = onClick,

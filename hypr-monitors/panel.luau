@@ -62,7 +62,7 @@ local function render()
   })
 
   -- Visual Canvas Area
-  local proj = layoutMath.computeCanvasProjection(monList, 640, 125)
+  local proj = layoutMath.computeCanvasProjection(monList, 660, 180)
   local canvasBoxes = {}
   for _, m in ipairs(monList) do
     if not m.disabled then
@@ -136,12 +136,12 @@ local function render()
       end,
     }),
     ui.row({
-      height = 135,
+      height = 190,
       radius = 8,
       fill = "surface_variant",
       border = "outline",
       borderWidth = 1,
-      padding = 6,
+      padding = 8,
       align = "center",
       justify = "center",
       gap = 12,
