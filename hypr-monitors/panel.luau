@@ -238,48 +238,6 @@ local function render()
     })
   end
 
-  -- Sourcing tip banner if missing and not dismissed
-  local sourceTip = nil
-  if not config.isSourcedInHyprlandConf() and not state.isTipDismissed then
-    sourceTip = ui.row({
-      paddingH = 10,
-      paddingV = 4,
-      radius = 6,
-      fill = "surface_variant",
-      justify = "space_between",
-      align = "center",
-    }, {
-      ui.row({ gap = 6, align = "center" }, {
-        ui.glyph({ name = "info-circle", size = 14, color = "secondary" }),
-        ui.label({ text = tr("panel.tip_source"), fontSize = 11, color = "on_surface_variant" }),
-      }),
-      ui.row({ gap = 4, align = "center" }, {
-        ui.button({
-          text = tr("panel.copy_source"),
-          variant = "ghost",
-          fontSize = 11,
-          onClick = function()
-            if noctalia and noctalia.copyToClipboard then
-              noctalia.copyToClipboard("source = ~/.config/hypr/monitors.conf", "text/plain")
-              if noctalia.notify then
-                noctalia.notify("Copied to clipboard", "source = ~/.config/hypr/monitors.conf")
-              end
-            end
-          end,
-        }),
-        ui.button({
-          glyph = "x",
-          variant = "ghost",
-          fontSize = 11,
-          onClick = function()
-            state.isTipDismissed = true
-            state.notify()
-          end,
-        }),
-      }),
-    })
-  end
-
   -- Safety countdown modal
   local safetyModal = nil
   if state.isSafetyModalVisible then
@@ -342,9 +300,6 @@ local function render()
   end
   if safetyModal then
     table.insert(mainChildren, safetyModal)
-  end
-  if sourceTip then
-    table.insert(mainChildren, sourceTip)
   end
   table.insert(mainChildren, ui.separator({}))
   table.insert(mainChildren, footer)
