@@ -55,9 +55,20 @@ end
 function state.refresh(onDone: (() -> ())?)
   hypr.refreshMonitors(function(list, ok)
     state.monitors = list
-    if not state.hasPendingChanges then
+    local topologyChanged = (#list ~= #state.workingMonitors)
+    if not topologyChanged then
+      for i, m in ipairs(list) do
+        if not state.workingMonitors[i] or state.workingMonitors[i].name ~= m.name then
+          topologyChanged = true
+          break
+        end
+      end
+    end
+
+    if topologyChanged or not state.hasPendingChanges then
       state.workingMonitors = cloneMonitors(list)
       state.previousSafeMonitors = cloneMonitors(list)
+      state.hasPendingChanges = false
     end
     if #list > 0 and (state.selectedMonitorName == "" or not state.getSelectedMonitor()) then
       state.selectedMonitorName = list[1].name

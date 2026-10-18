@@ -88,7 +88,7 @@ function hypr.refreshMonitors(callback: (({ layoutMath.Monitor }, boolean) -> ()
             focused = item.focused == true,
             dpmsStatus = item.dpmsStatus ~= false,
             vrr = tonumber(item.vrr) or 0,
-            mirrorOf = (item.mirrorOf and item.mirrorOf ~= "") and tostring(item.mirrorOf) or nil,
+            mirrorOf = (item.mirrorOf and item.mirrorOf ~= "" and item.mirrorOf ~= "none") and tostring(item.mirrorOf) or nil,
             availableModes = modes,
             disabled = item.disabled == true,
           })
@@ -101,20 +101,62 @@ function hypr.refreshMonitors(callback: (({ layoutMath.Monitor }, boolean) -> ()
   end)
 end
 
--- Applies a single monitor rule live via hyprctl keyword monitor
+-- Formats Lua command for Hyprland 0.56+ eval parser
+function hypr.formatLuaCall(m: layoutMath.Monitor): string
+  if m.disabled then
+    return string.format('hl.monitor({ output = "%s", disabled = true })', m.name)
+  end
+
+  local modeStr = (m.width and m.height and m.refreshRate)
+    and string.format("%dx%d@%.2f", m.width, m.height, m.refreshRate)
+    or "preferred"
+  local posStr = string.format("%dx%d", m.x or 0, m.y or 0)
+  local scaleNum = m.scale or 1.0
+  local transNum = m.transform or 0
+
+  if m.mirrorOf and m.mirrorOf ~= "" and m.mirrorOf ~= "none" then
+    return string.format(
+      'hl.monitor({ output = "%s", mode = "%s", position = "%s", scale = %s, mirror = "%s" })',
+      m.name, modeStr, posStr, tostring(scaleNum), m.mirrorOf
+    )
+  end
+
+  if transNum > 0 then
+    return string.format(
+      'hl.monitor({ output = "%s", mode = "%s", position = "%s", scale = %s, transform = %d })',
+      m.name, modeStr, posStr, tostring(scaleNum), transNum
+    )
+  end
+
+  return string.format(
+    'hl.monitor({ output = "%s", mode = "%s", position = "%s", scale = %s })',
+    m.name, modeStr, posStr, tostring(scaleNum)
+  )
+end
+
+-- Applies a single monitor rule live (supports Hyprland 0.56+ Lua eval and fallback to keyword monitor)
 function hypr.applyLive(m: layoutMath.Monitor, onDone: ((boolean) -> ())?)
   if not noctalia or not noctalia.runAsync or not hypr.isAvailable then
     if onDone then onDone(false) end
     return
   end
 
-  local ruleStr = config.formatRule(m)
-  -- Strip 'monitor = ' prefix for keyword argument
-  local cleanRule = string.gsub(ruleStr, "^monitor%s*=%s*", "")
-
-  noctalia.runAsync({ "hyprctl", "keyword", "monitor", cleanRule }, function(res)
-    local ok = (res.exitCode == 0)
-    if onDone then onDone(ok) end
+  local luaCall = hypr.formatLuaCall(m)
+  -- Try Lua eval first (Hyprland 0.56+)
+  noctalia.runAsync({ "hyprctl", "eval", luaCall }, function(res)
+    local hasError = string.find(res.stdout or "", "error") ~= nil
+    local notSupported = string.find(res.stdout or "", "unknown command") ~= nil
+    if res.exitCode == 0 and not hasError and not notSupported and res.stdout ~= "" then
+      if onDone then onDone(true) end
+    else
+      -- Fallback to keyword monitor parser for legacy Hyprland versions
+      local ruleStr = config.formatRule(m)
+      local cleanRule = string.gsub(ruleStr, "^monitor%s*=%s*", "")
+      noctalia.runAsync({ "hyprctl", "keyword", "monitor", cleanRule }, function(kwRes)
+        local ok = (kwRes.exitCode == 0) and (string.find(kwRes.stdout or "", "can't work") == nil)
+        if onDone then onDone(ok) end
+      end)
+    end
   end)
 end
 
@@ -126,15 +168,17 @@ function hypr.applyBatch(monitors: { layoutMath.Monitor }, onDone: ((boolean) ->
   end
 
   local index = 1
+  local allOk = true
   local function applyNext()
     if index > #monitors then
-      if onDone then onDone(true) end
+      if onDone then onDone(allOk) end
       return
     end
 
     local m = monitors[index]
     index = index + 1
-    hypr.applyLive(m, function(_)
+    hypr.applyLive(m, function(ok)
+      if not ok then allOk = false end
       applyNext()
     end)
   end

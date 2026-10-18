@@ -161,8 +161,12 @@ function layout_math.computeCanvasProjection(monitors: { Monitor }, viewportW: n
     local vw, vh = layout_math.getVirtualSize(m)
     local px = math.floor((m.x or 0) * scaleFactor + offsetX)
     local py = math.floor((m.y or 0) * scaleFactor + offsetY)
-    local pw = math.max(48, math.floor(vw * scaleFactor))
-    local ph = math.max(36, math.floor(vh * scaleFactor))
+    local pw = math.max(130, math.floor(vw * scaleFactor))
+    local ph = math.max(72, math.floor(vh * scaleFactor))
+    if activeCount == 1 then
+      pw = 210
+      ph = 118
+    end
     items[m.name] = { x = px, y = py, w = pw, h = ph }
   end
 

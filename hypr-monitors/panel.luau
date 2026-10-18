@@ -61,81 +61,66 @@ local function render()
     }),
   })
 
-  -- Visual Canvas Area
-  local proj = layoutMath.computeCanvasProjection(monList, 660, 180)
-  local canvasBoxes = {}
+  -- Visual Canvas Area: detect if monitors are vertically stacked
+  local isVertical = false
+  if #monList > 1 then
+    local m1 = monList[1]
+    local m2 = monList[2]
+    if math.abs((m2.y or 0) - (m1.y or 0)) > math.abs((m2.x or 0) - (m1.x or 0)) then
+      isVertical = true
+    end
+  end
+
+  local proj = layoutMath.computeCanvasProjection(monList, 400, 150)
+  local cardsData = {}
   for _, m in ipairs(monList) do
     if not m.disabled then
       local b = proj.items[m.name]
       if b then
-        table.insert(canvasBoxes, components.renderCanvasCard(
-          m,
-          b,
-          (m.name == state.selectedMonitorName),
-          function()
-            state.selectMonitor(m.name)
-          end
-        ))
+        table.insert(cardsData, {
+          m = m,
+          node = components.renderCanvasCard(
+            m,
+            b,
+            (m.name == state.selectedMonitorName),
+            function()
+              state.selectMonitor(m.name)
+            end
+          ),
+        })
       end
     end
   end
 
-  local canvas = ui.column({ gap = 6 }, {
-    components.renderCanvasToolbar({
-      onSnapLeft = function()
-        if selected and #monList > 1 then
-          local anchor = (monList[1].name == selected.name) and monList[2] or monList[1]
-          layoutMath.snapLeft(selected, anchor)
-          state.hasPendingChanges = true
-          state.notify()
-        end
-      end,
-      onSnapRight = function()
-        if selected and #monList > 1 then
-          local anchor = (monList[1].name == selected.name) and monList[2] or monList[1]
-          layoutMath.snapRight(selected, anchor)
-          state.hasPendingChanges = true
-          state.notify()
-        end
-      end,
-      onSnapAbove = function()
-        if selected and #monList > 1 then
-          local anchor = (monList[1].name == selected.name) and monList[2] or monList[1]
-          layoutMath.snapAbove(selected, anchor)
-          state.hasPendingChanges = true
-          state.notify()
-        end
-      end,
-      onSnapBelow = function()
-        if selected and #monList > 1 then
-          local anchor = (monList[1].name == selected.name) and monList[2] or monList[1]
-          layoutMath.snapBelow(selected, anchor)
-          state.hasPendingChanges = true
-          state.notify()
-        end
-      end,
-      onAlignTops = function()
-        if selected and #monList > 1 then
-          local anchor = (monList[1].name == selected.name) and monList[2] or monList[1]
-          layoutMath.alignTops(selected, anchor)
-          state.hasPendingChanges = true
-          state.notify()
-        end
-      end,
-      onPresetExtend = function()
-        layoutMath.presetExtend(monList)
-        state.hasPendingChanges = true
-        state.notify()
-      end,
-      onPresetMirror = function()
-        if selected then
-          layoutMath.presetMirror(monList, selected.name)
-          state.hasPendingChanges = true
-          state.notify()
-        end
-      end,
-    }),
-    ui.row({
+  -- Sort cards according to spatial position
+  table.sort(cardsData, function(a, b)
+    if isVertical then
+      return (a.m.y or 0) < (b.m.y or 0)
+    else
+      return (a.m.x or 0) < (b.m.x or 0)
+    end
+  end)
+
+  local canvasBoxes = {}
+  for _, cd in ipairs(cardsData) do
+    table.insert(canvasBoxes, cd.node)
+  end
+
+  local canvasContainer = nil
+  if isVertical then
+    canvasContainer = ui.column({
+      height = 190,
+      radius = 8,
+      fill = "surface_variant",
+      border = "outline",
+      borderWidth = 1,
+      padding = 8,
+      align = "center",
+      justify = "center",
+      gap = 8,
+    }, canvasBoxes)
+  else
+    canvasContainer = ui.row({
       height = 190,
       radius = 8,
       fill = "surface_variant",
@@ -145,13 +130,79 @@ local function render()
       align = "center",
       justify = "center",
       gap = 12,
-    }, canvasBoxes),
+    }, canvasBoxes)
+  end
+
+  local canvas = ui.column({ gap = 6 }, {
+    components.renderCanvasToolbar({
+      isMulti = (#monList > 1),
+      onSnapLeft = function()
+        if selected and #monList > 1 then
+          local anchor = (monList[1].name == selected.name) and monList[2] or monList[1]
+          layoutMath.snapLeft(selected, anchor)
+          layoutMath.normalizeCoordinates(monList)
+          state.hasPendingChanges = true
+          state.notify()
+        end
+      end,
+      onSnapRight = function()
+        if selected and #monList > 1 then
+          local anchor = (monList[1].name == selected.name) and monList[2] or monList[1]
+          layoutMath.snapRight(selected, anchor)
+          layoutMath.normalizeCoordinates(monList)
+          state.hasPendingChanges = true
+          state.notify()
+        end
+      end,
+      onSnapAbove = function()
+        if selected and #monList > 1 then
+          local anchor = (monList[1].name == selected.name) and monList[2] or monList[1]
+          layoutMath.snapAbove(selected, anchor)
+          layoutMath.normalizeCoordinates(monList)
+          state.hasPendingChanges = true
+          state.notify()
+        end
+      end,
+      onSnapBelow = function()
+        if selected and #monList > 1 then
+          local anchor = (monList[1].name == selected.name) and monList[2] or monList[1]
+          layoutMath.snapBelow(selected, anchor)
+          layoutMath.normalizeCoordinates(monList)
+          state.hasPendingChanges = true
+          state.notify()
+        end
+      end,
+      onAlignTops = function()
+        if selected and #monList > 1 then
+          local anchor = (monList[1].name == selected.name) and monList[2] or monList[1]
+          layoutMath.alignTops(selected, anchor)
+          layoutMath.normalizeCoordinates(monList)
+          state.hasPendingChanges = true
+          state.notify()
+        end
+      end,
+      onPresetExtend = function()
+        layoutMath.presetExtend(monList)
+        layoutMath.normalizeCoordinates(monList)
+        state.hasPendingChanges = true
+        state.notify()
+      end,
+      onPresetMirror = function()
+        if selected then
+          layoutMath.presetMirror(monList, selected.name)
+          layoutMath.normalizeCoordinates(monList)
+          state.hasPendingChanges = true
+          state.notify()
+        end
+      end,
+    }),
+    canvasContainer,
   })
 
   -- Lower Workspace: Inspector or Profiles Tab
   local lowerContent = nil
   if state.activeTab == "inspector" and selected then
-    lowerContent = ui.column({ gap = 12, padding = 4 }, {
+    lowerContent = ui.column({ gap = 10, padding = 4 }, {
       ui.row({ justify = "space_between", align = "center" }, {
         ui.row({ gap = 6, align = "center" }, {
           ui.glyph({ name = "device-desktop", size = 16, color = "secondary" }),
@@ -177,6 +228,24 @@ local function render()
           ui.label({ text = tr("panel.label_orientation"), fontSize = 11, color = "on_surface_variant" }),
           components.renderOrientationSelector(selected.transform, function(newTrans)
             state.setWorkingProperty(selected.name, "transform", newTrans)
+          end),
+        }),
+      }),
+      ui.row({ gap = 16, justify = "space_between", align = "center" }, {
+        ui.column({ gap = 4 }, {
+          ui.label({ text = "Refresh Rate", fontSize = 11, color = "on_surface_variant" }),
+          components.renderRefreshRateSelector(selected, function(newRate)
+            state.setWorkingProperty(selected.name, "refreshRate", newRate)
+          end),
+        }),
+        ui.column({ gap = 4 }, {
+          ui.label({ text = "Position Coordinates", fontSize = 11, color = "on_surface_variant" }),
+          components.renderPositionDisplay(selected, function(newX, newY)
+            selected.x = newX
+            selected.y = newY
+            layoutMath.normalizeCoordinates(monList)
+            state.hasPendingChanges = true
+            state.notify()
           end),
         }),
       }),

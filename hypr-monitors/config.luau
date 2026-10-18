@@ -24,7 +24,7 @@ function config.formatRule(m: layoutMath.Monitor): string
     return string.format("monitor = %s, disable", m.name)
   end
 
-  if m.mirrorOf and m.mirrorOf ~= "" then
+  if m.mirrorOf and m.mirrorOf ~= "" and m.mirrorOf ~= "none" then
     return string.format("monitor = %s, preferred, auto, 1, mirror, %s", m.name, m.mirrorOf)
   end
 

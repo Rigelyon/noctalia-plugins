@@ -14,7 +14,7 @@ local function updateWidget()
   }
 
   for _, m in ipairs(state.monitors) do
-    if m.mirrorOf and m.mirrorOf ~= "" then
+    if m.mirrorOf and m.mirrorOf ~= "" and m.mirrorOf ~= "none" then
       isMirror = true
     end
     table.insert(tooltips, {

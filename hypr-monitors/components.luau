@@ -20,45 +20,75 @@ function components.renderCanvasCard(
 ): any
   local borderFill = isSelected and "primary" or "outline"
   local bgFill = isSelected and "surface" or "surface_variant"
+  local isPortrait = (m.transform == 1 or m.transform == 3)
+
+  local badgeText = ""
+  if m.mirrorOf and m.mirrorOf ~= "" and m.mirrorOf ~= "none" then
+    badgeText = "⎘ Mirror"
+  elseif (m.x == 0 and m.y == 0) then
+    badgeText = "● Main"
+  else
+    badgeText = string.format("+%d,%d", m.x or 0, m.y or 0)
+  end
 
   local cardChildren = {
-    ui.label({
-      text = m.name,
-      fontWeight = "bold",
-      fontSize = 13,
-      color = isSelected and "primary" or "on_surface",
+    ui.row({ justify = "space_between", align = "center" }, {
+      ui.row({ gap = 4, align = "center" }, {
+        ui.glyph({ name = "device-desktop", size = 13, color = isSelected and "primary" or "on_surface_variant" }),
+        ui.label({
+          text = m.name,
+          fontWeight = "bold",
+          fontSize = 12,
+          color = isSelected and "primary" or "on_surface",
+        }),
+      }),
+      ui.label({
+        text = badgeText,
+        fontSize = 9,
+        fontWeight = "bold",
+        color = isSelected and "secondary" or "on_surface_variant",
+      }),
     }),
-    ui.label({
-      text = string.format("%dx%d", m.width, m.height),
-      fontSize = 11,
-      color = "on_surface_variant",
+    ui.column({ align = "center", gap = 2 }, {
+      ui.label({
+        text = string.format("%dx%d", m.width, m.height),
+        fontSize = 12,
+        fontWeight = "bold",
+        color = "on_surface",
+      }),
+      ui.label({
+        text = string.format("%.0fHz • %.2fx%s", m.refreshRate or 60, m.scale or 1, isPortrait and " ↻90°" or ""),
+        fontSize = 10,
+        color = isSelected and "secondary" or "on_surface_variant",
+      }),
     }),
   }
 
-  if m.scale ~= 1.0 then
-    table.insert(cardChildren, ui.label({
-      text = string.format("%.2fx", m.scale),
-      fontSize = 10,
-      color = "secondary",
-    }))
-  end
-
   return ui.column({
-    width = bounds.w,
-    height = bounds.h,
-    radius = 8,
-    fill = bgFill,
-    border = borderFill,
-    borderWidth = isSelected and 2 or 1,
-    padding = 8,
     align = "center",
-    justify = "center",
+    gap = 2,
     onClick = onClick,
-  }, cardChildren)
+  }, {
+    ui.column({
+      width = bounds.w,
+      height = bounds.h,
+      radius = 8,
+      fill = bgFill,
+      border = borderFill,
+      borderWidth = isSelected and 2 or 1,
+      padding = 8,
+      justify = "space_between",
+      align = "center",
+    }, cardChildren),
+    -- Realistic display stand neck and base
+    ui.box({ width = 36, height = 3, radius = 2, fill = isSelected and "primary" or "outline" }),
+    ui.box({ width = 72, height = 2, radius = 1, fill = isSelected and "primary" or "outline" }),
+  })
 end
 
 -- Renders the quick snap and preset toolbar above the canvas
 function components.renderCanvasToolbar(actions: {
+  isMulti: boolean?,
   onSnapLeft: () -> (),
   onSnapRight: () -> (),
   onSnapAbove: () -> (),
@@ -67,54 +97,63 @@ function components.renderCanvasToolbar(actions: {
   onPresetExtend: () -> (),
   onPresetMirror: () -> (),
 }): any
-  return ui.row({ gap = 6, align = "center", justify = "space_between" }, {
-    ui.row({ gap = 4 }, {
-      ui.button({
-        text = tr("panel.snap_left"),
-        variant = "ghost",
-        fontSize = 11,
-        onClick = actions.onSnapLeft,
+  local isMulti = actions.isMulti ~= false
+
+  if isMulti then
+    return ui.row({ gap = 4, align = "center", justify = "space_between" }, {
+      ui.row({ gap = 2, align = "center" }, {
+        ui.button({
+          text = tr("panel.snap_left"),
+          variant = "ghost",
+          fontSize = 11,
+          onClick = actions.onSnapLeft,
+        }),
+        ui.button({
+          text = tr("panel.snap_right"),
+          variant = "ghost",
+          fontSize = 11,
+          onClick = actions.onSnapRight,
+        }),
+        ui.button({
+          text = tr("panel.snap_above"),
+          variant = "ghost",
+          fontSize = 11,
+          onClick = actions.onSnapAbove,
+        }),
+        ui.button({
+          text = tr("panel.snap_below"),
+          variant = "ghost",
+          fontSize = 11,
+          onClick = actions.onSnapBelow,
+        }),
+        ui.button({
+          text = tr("panel.align_tops"),
+          variant = "ghost",
+          fontSize = 11,
+          onClick = actions.onAlignTops,
+        }),
       }),
-      ui.button({
-        text = tr("panel.snap_right"),
-        variant = "ghost",
-        fontSize = 11,
-        onClick = actions.onSnapRight,
-      }),
-      ui.button({
-        text = tr("panel.snap_above"),
-        variant = "ghost",
-        fontSize = 11,
-        onClick = actions.onSnapAbove,
-      }),
-      ui.button({
-        text = tr("panel.snap_below"),
-        variant = "ghost",
-        fontSize = 11,
-        onClick = actions.onSnapBelow,
-      }),
-      ui.button({
-        text = tr("panel.align_tops"),
-        variant = "ghost",
-        fontSize = 11,
-        onClick = actions.onAlignTops,
-      }),
-    }),
-    ui.row({ gap = 4 }, {
-      ui.button({
-        text = tr("panel.preset_extend"),
-        variant = "outline",
-        fontSize = 11,
-        onClick = actions.onPresetExtend,
-      }),
-      ui.button({
-        text = tr("panel.preset_mirror"),
-        variant = "outline",
-        fontSize = 11,
-        onClick = actions.onPresetMirror,
+      ui.row({ gap = 4, align = "center" }, {
+        ui.button({
+          text = tr("panel.preset_extend"),
+          variant = "outline",
+          fontSize = 11,
+          onClick = actions.onPresetExtend,
+        }),
+        ui.button({
+          text = tr("panel.preset_mirror"),
+          variant = "outline",
+          fontSize = 11,
+          onClick = actions.onPresetMirror,
+        }),
       }),
     })
-  })
+  else
+    return ui.row({ gap = 6, align = "center" }, {
+      ui.glyph({ name = "device-desktop", size = 14, color = "secondary" }),
+      ui.label({ text = "Single Display Connected", fontSize = 11, color = "on_surface_variant" }),
+    })
+  end
 end
 
 -- Renders display scale steppers and quick pill buttons
@@ -211,6 +250,60 @@ function components.renderSafetyModal(secondsRemaining: number, onKeep: () -> ()
         }),
       })
     })
+  })
+end
+
+-- Renders refresh rate pills (e.g. 60Hz, 144Hz)
+function components.renderRefreshRateSelector(m: layoutMath.Monitor, onRateChanged: (number) -> ()): any
+  local rates = {}
+  local seen = {}
+  if m.availableModes then
+    for _, modeStr in ipairs(m.availableModes) do
+      local hz = tonumber(string.match(modeStr, "@([%d%.]+)Hz"))
+      if hz and not seen[math.floor(hz)] then
+        seen[math.floor(hz)] = true
+        table.insert(rates, math.floor(hz))
+      end
+    end
+  end
+  if #rates == 0 then
+    rates = { 60, 144 }
+  end
+  table.sort(rates)
+
+  local curHz = math.floor((m.refreshRate or 60) + 0.5)
+  local buttons = {}
+  for _, r in ipairs(rates) do
+    local isAct = (math.abs(curHz - r) <= 1)
+    table.insert(buttons, ui.button({
+      text = string.format("%dHz", r),
+      variant = isAct and "primary" or "ghost",
+      fontSize = 11,
+      onClick = function() onRateChanged(r) end,
+    }))
+  end
+
+  return ui.row({ gap = 2, radius = 6, fill = "surface_variant", padding = 2 }, buttons)
+end
+
+-- Renders position coordinate badges with quick offset nudges
+function components.renderPositionDisplay(m: layoutMath.Monitor, onOffsetChanged: (number, number) -> ()): any
+  local curX = m.x or 0
+  local curY = m.y or 0
+
+  return ui.row({ gap = 6, align = "center" }, {
+    ui.label({
+      text = string.format("X: %d  Y: %d", curX, curY),
+      fontSize = 11,
+      fontWeight = "bold",
+      color = "on_surface",
+    }),
+    (curX ~= 0 or curY ~= 0) and ui.button({
+      text = "Reset (0,0)",
+      variant = "ghost",
+      fontSize = 10,
+      onClick = function() onOffsetChanged(0, 0) end,
+    }) or nil,
   })
 end
 
