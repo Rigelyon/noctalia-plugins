@@ -1,0 +1,73 @@
+id = "rigelyon/pinboard"
+name = "Pinboard"
+version = "1.0.0"
+plugin_api = 38
+author = "rigelyon"
+license = "MIT"
+dependencies = []
+tags = ["utility", "productivity", "layer", "panel", "bar", "art", "gaming"]
+icon = "pin"
+description = "Minimalist reference stash and pinned screen overlay for artists and gamers."
+
+[[setting]]
+key = "default_anchor"
+type = "select"
+label_key = "settings.default_anchor.label"
+description_key = "settings.default_anchor.description"
+default = "top_right"
+options = [
+  { value = "top_right", label_key = "settings.default_anchor.options.top_right" },
+  { value = "top_left", label_key = "settings.default_anchor.options.top_left" },
+  { value = "bottom_right", label_key = "settings.default_anchor.options.bottom_right" },
+  { value = "bottom_left", label_key = "settings.default_anchor.options.bottom_left" },
+]
+
+[[setting]]
+key = "default_opacity"
+type = "number"
+label_key = "settings.default_opacity.label"
+description_key = "settings.default_opacity.description"
+default = 0.85
+min = 0.2
+max = 1.0
+step = 0.05
+
+[[setting]]
+key = "default_scale"
+type = "select"
+label_key = "settings.default_scale.label"
+description_key = "settings.default_scale.description"
+default = "medium"
+options = [
+  { value = "small", label_key = "settings.default_scale.options.small" },
+  { value = "medium", label_key = "settings.default_scale.options.medium" },
+  { value = "large", label_key = "settings.default_scale.options.large" },
+]
+
+[[setting]]
+key = "save_clipboard_images"
+type = "bool"
+label_key = "settings.save_clipboard_images.label"
+description_key = "settings.save_clipboard_images.description"
+default = true
+
+[[widget]]
+id = "widget"
+entry = "widget.luau"
+
+[[panel]]
+id = "panel"
+entry = "panel.luau"
+placement = "attached"
+position = "auto"
+open_near_click = true
+width = 440
+height = 560
+
+[[layer]]
+id = "ref-overlay"
+entry = "overlay.luau"
+
+[[service]]
+id = "service"
+entry = "service.luau"

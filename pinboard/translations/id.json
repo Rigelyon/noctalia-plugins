@@ -1,0 +1,73 @@
+{
+  "settings": {
+    "default_anchor": {
+      "label": "Posisi Sudut Default",
+      "description": "Sudut layar tempat overlay referensi muncul pertama kali",
+      "options": {
+        "top_right": "Kanan Atas",
+        "top_left": "Kiri Atas",
+        "bottom_right": "Kanan Bawah",
+        "bottom_left": "Kiri Bawah"
+      }
+    },
+    "default_opacity": {
+      "label": "Transparansi Default",
+      "description": "Tingkat transparansi awal untuk overlay referensi (0.2 hingga 1.0)"
+    },
+    "default_scale": {
+      "label": "Ukuran Skala Default",
+      "description": "Ukuran awal jendela overlay referensi yang dipin",
+      "options": {
+        "small": "Kecil (300px)",
+        "medium": "Sedang (420px)",
+        "large": "Besar (560px)"
+      }
+    },
+    "save_clipboard_images": {
+      "label": "Simpan Gambar Clipboard",
+      "description": "Simpan salinan gambar clipboard ke direktori data plugin"
+    }
+  },
+  "widget": {
+    "title": "Pinboard",
+    "tooltip": {
+      "ghost_mode": "Mode Ghost (Tembus Klik)",
+      "interactive_mode": "Mode Interaktif",
+      "hidden": "Tersembunyi",
+      "items_count": "Jumlah: {count}",
+      "active_item": "Aktif: {title}",
+      "controls": "Klik-Kiri: Panel Stash | Klik-Kanan: Toggle Ghost | Scroll: Ganti Referensi"
+    }
+  },
+  "panel": {
+    "title": "Stash Pinboard",
+    "paste_btn": "Paste ke Stash",
+    "browse_btn": "Pilih File...",
+    "new_note_btn": "Catatan Baru",
+    "tabs": {
+      "stash": "Pustaka Stash",
+      "editor": "Editor Catatan",
+      "controls": "Kontrol Overlay"
+    },
+    "empty_stash": "Belum ada referensi di stash. Klik Paste atau Pilih File untuk menambahkan gambar/catatan.",
+    "pin_action": "Pin Referensi",
+    "delete_action": "Hapus",
+    "overlay_toggle": "Tampilkan / Sembunyikan Overlay",
+    "ghost_toggle": "Mode Ghost (Tembus Klik)",
+    "opacity_label": "Transparansi Overlay: {value}%",
+    "scale_label": "Ukuran Skala",
+    "anchor_label": "Posisi Sudut",
+    "note_title_placeholder": "Judul catatan (misal Koordinat Nether)...",
+    "note_content_placeholder": "Catatan Markdown & checklist:\n- [ ] Bahan 1\n- [ ] Bahan 2",
+    "save_note": "Simpan Catatan",
+    "cancel_note": "Batal"
+  },
+  "overlay": {
+    "lock_ghost": "Kunci ke Ghost",
+    "interactive": "Interaktif",
+    "next": "Berikutnya",
+    "prev": "Sebelumnya",
+    "empty_note": "Tidak ada isi catatan.",
+    "no_active": "Belum ada referensi yang dipin."
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "settings": {
+    "default_anchor": {
+      "label": "Default Anchor Position",
+      "description": "Screen corner where the pinned reference overlay appears",
+      "options": {
+        "top_right": "Top Right",
+        "top_left": "Top Left",
+        "bottom_right": "Bottom Right",
+        "bottom_left": "Bottom Left"
+      }
+    },
+    "default_opacity": {
+      "label": "Default Opacity",
+      "description": "Initial transparency level for the pinned overlay (0.2 to 1.0)"
+    },
+    "default_scale": {
+      "label": "Default Scale",
+      "description": "Initial sizing scale of the pinned reference window",
+      "options": {
+        "small": "Small (300px)",
+        "medium": "Medium (420px)",
+        "large": "Large (560px)"
+      }
+    },
+    "save_clipboard_images": {
+      "label": "Save Clipboard Images",
+      "description": "Cache pasted images locally into plugin data directory"
+    }
+  },
+  "widget": {
+    "title": "Pinboard",
+    "tooltip": {
+      "ghost_mode": "Ghost Mode (Click-Through)",
+      "interactive_mode": "Interactive Mode",
+      "hidden": "Hidden",
+      "items_count": "Items: {count}",
+      "active_item": "Active: {title}",
+      "controls": "L-Click: Stash Panel | R-Click: Toggle Ghost | Scroll: Next/Prev"
+    }
+  },
+  "panel": {
+    "title": "Pinboard Stash",
+    "paste_btn": "Paste to Stash",
+    "browse_btn": "Browse File...",
+    "new_note_btn": "New Note",
+    "tabs": {
+      "stash": "Stash Library",
+      "editor": "Note Editor",
+      "controls": "Overlay Controls"
+    },
+    "empty_stash": "No references stashed yet. Click Paste or Browse to add an image or note.",
+    "pin_action": "Pin Reference",
+    "delete_action": "Delete",
+    "overlay_toggle": "Show / Hide Overlay",
+    "ghost_toggle": "Toggle Ghost (Click-Through)",
+    "opacity_label": "Overlay Opacity: {value}%",
+    "scale_label": "Size Scale",
+    "anchor_label": "Corner Position",
+    "note_title_placeholder": "Note title (e.g. Nether Coordinates)...",
+    "note_content_placeholder": "Markdown notes & checklist:\n- [ ] Task 1\n- [ ] Task 2",
+    "save_note": "Save Note",
+    "cancel_note": "Cancel"
+  },
+  "overlay": {
+    "lock_ghost": "Lock to Ghost",
+    "interactive": "Interactive",
+    "next": "Next",
+    "prev": "Prev",
+    "empty_note": "No content in active note.",
+    "no_active": "No active reference pinned."
+  }
+}
