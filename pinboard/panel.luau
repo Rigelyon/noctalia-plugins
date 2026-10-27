@@ -86,6 +86,10 @@ local function onSaveNote()
 end
 
 function renderPanel()
+    if not panel or not panel.render then
+        return
+    end
+
     local s = state.get()
     local items = s.items or {}
 
@@ -93,50 +97,34 @@ function renderPanel()
     local navButtons = ui.row({ gap = 6, align = "center", justify = "space_between" }, {
         ui.row({ gap = 6, align = "center" }, {
             ui.button({
-                onClick = function() activeTab = "stash" renderPanel() end,
-                fill = if activeTab == "stash" then { hex = "#0284c7", alpha = 0.3 } else { hex = "#1e293b", alpha = 0.5 },
-                border = if activeTab == "stash" then { hex = "#38bdf8", alpha = 1.0 } else { hex = "#334155", alpha = 0.6 },
-                borderWidth = 1,
-                radius = 6,
-                paddingH = 10,
-                paddingV = 6,
-            }, {
-                ui.row({ gap = 4, align = "center" }, {
-                    ui.glyph({ name = "stack-2", fontSize = 13, color = { hex = "#f8fafc", alpha = 1.0 } }),
-                    ui.label({ text = "Stash (" .. tostring(#items) .. ")", fontSize = 12 }),
-                }),
+                text = "Stash (" .. tostring(#items) .. ")",
+                glyph = "stack-2",
+                variant = if activeTab == "stash" then "primary" else "ghost",
+                onClick = function()
+                    activeTab = "stash"
+                    renderPanel()
+                end,
             }),
             ui.button({
-                onClick = function() activeTab = "settings" renderPanel() end,
-                fill = if activeTab == "settings" then { hex = "#0284c7", alpha = 0.3 } else { hex = "#1e293b", alpha = 0.5 },
-                border = if activeTab == "settings" then { hex = "#38bdf8", alpha = 1.0 } else { hex = "#334155", alpha = 0.6 },
-                borderWidth = 1,
-                radius = 6,
-                paddingH = 10,
-                paddingV = 6,
-            }, {
-                ui.row({ gap = 4, align = "center" }, {
-                    ui.glyph({ name = "adjustments-horizontal", fontSize = 13, color = { hex = "#f8fafc", alpha = 1.0 } }),
-                    ui.label({ text = "Overlay Setup", fontSize = 12 }),
-                }),
+                text = "Overlay Setup",
+                glyph = "adjustments-horizontal",
+                variant = if activeTab == "settings" then "primary" else "ghost",
+                onClick = function()
+                    activeTab = "settings"
+                    renderPanel()
+                end,
             }),
         }),
 
         -- Quick Toggle Overlay Visibility
         ui.button({
+            text = if s.overlay_visible then "Overlay ON" else "Overlay OFF",
+            glyph = if s.overlay_visible then "eye" else "eye-off",
+            variant = if s.overlay_visible then "default" else "outline",
             tooltip = "Toggle overlay visibility",
-            onClick = function() state.toggleOverlay() end,
-            fill = if s.overlay_visible then { hex = "#10b981", alpha = 0.2 } else { hex = "#f43f5e", alpha = 0.2 },
-            border = if s.overlay_visible then { hex = "#10b981", alpha = 0.6 } else { hex = "#f43f5e", alpha = 0.6 },
-            borderWidth = 1,
-            radius = 6,
-            paddingH = 8,
-            paddingV = 6,
-        }, {
-            ui.row({ gap = 4, align = "center" }, {
-                ui.glyph({ name = if s.overlay_visible then "eye" else "eye-off", fontSize = 13, color = { hex = "#ffffff", alpha = 1.0 } }),
-                ui.label({ text = if s.overlay_visible then "Overlay ON" else "Overlay OFF", fontSize = 11 }),
-            }),
+            onClick = function()
+                state.toggleOverlay()
+            end,
         }),
     })
 
@@ -147,71 +135,49 @@ function renderPanel()
         -- Action Buttons: Paste, Browse, New Note
         local actionBar = ui.row({ gap = 8 }, {
             ui.button({
+                text = "Paste to Stash",
+                glyph = "clipboard",
+                variant = "primary",
+                flexGrow = 1,
                 onClick = onPasteClipboard,
-                fill = { hex = "#0284c7", alpha = 0.9 },
-                radius = 6,
-                paddingH = 12,
-                paddingV = 8,
-                flexGrow = 1,
-            }, {
-                ui.row({ gap = 6, align = "center", justify = "center" }, {
-                    ui.glyph({ name = "clipboard", fontSize = 14, color = { hex = "#ffffff", alpha = 1.0 } }),
-                    ui.label({ text = "Paste to Stash", fontSize = 12, fontWeight = "bold", color = { hex = "#ffffff", alpha = 1.0 } }),
-                }),
             }),
             ui.button({
+                text = "Browse File...",
+                glyph = "folder",
+                variant = "secondary",
+                flexGrow = 1,
                 onClick = onBrowseFile,
-                fill = { hex = "#1e293b", alpha = 0.8 },
-                border = { hex = "#334155", alpha = 0.7 },
-                borderWidth = 1,
-                radius = 6,
-                paddingH = 12,
-                paddingV = 8,
-                flexGrow = 1,
-            }, {
-                ui.row({ gap = 6, align = "center", justify = "center" }, {
-                    ui.glyph({ name = "folder", fontSize = 14, color = { hex = "#f8fafc", alpha = 1.0 } }),
-                    ui.label({ text = "Browse File...", fontSize = 12, color = { hex = "#f8fafc", alpha = 1.0 } }),
-                }),
             }),
             ui.button({
-                onClick = onOpenNewNote,
-                fill = { hex = "#6366f1", alpha = 0.8 },
-                radius = 6,
-                paddingH = 12,
-                paddingV = 8,
+                text = "New Note",
+                glyph = "plus",
+                variant = "secondary",
                 flexGrow = 1,
-            }, {
-                ui.row({ gap = 6, align = "center", justify = "center" }, {
-                    ui.glyph({ name = "plus", fontSize = 14, color = { hex = "#ffffff", alpha = 1.0 } }),
-                    ui.label({ text = "New Note", fontSize = 12, fontWeight = "bold", color = { hex = "#ffffff", alpha = 1.0 } }),
-                }),
+                onClick = onOpenNewNote,
             }),
         })
 
         -- Items List
         local cards = {}
         if #items == 0 then
-            table.insert(cards, ui.box({
+            table.insert(cards, ui.column({
                 fill = { hex = "#1e293b", alpha = 0.4 },
                 radius = 8,
                 padding = 32,
+                gap = 8,
                 align = "center",
-                justify = "center",
             }, {
-                ui.column({ gap = 8, align = "center" }, {
-                    ui.glyph({ name = "pin", fontSize = 32, color = { hex = "#64748b", alpha = 1.0 } }),
-                    ui.label({
-                        text = "Stash is empty",
-                        fontSize = 14,
-                        fontWeight = "bold",
-                        color = { hex = "#94a3b8", alpha = 1.0 },
-                    }),
-                    ui.label({
-                        text = "Click 'Paste to Stash' or 'Browse File...' to add your first reference.",
-                        fontSize = 12,
-                        color = { hex = "#64748b", alpha = 1.0 },
-                    }),
+                ui.glyph({ name = "pin", size = 32, color = { hex = "#64748b", alpha = 1.0 } }),
+                ui.label({
+                    text = "Stash is empty",
+                    fontSize = 14,
+                    fontWeight = "bold",
+                    color = { hex = "#94a3b8", alpha = 1.0 },
+                }),
+                ui.label({
+                    text = "Click 'Paste to Stash' or 'Browse File...' to add your first reference.",
+                    fontSize = 12,
+                    color = { hex = "#64748b", alpha = 1.0 },
                 }),
             }))
         else
@@ -230,15 +196,15 @@ function renderPanel()
             end
         end
 
-        bodyContent = ui.column({ gap = 10, flexGrow = 1 }, {
+        bodyContent = ui.column({ gap = 10, flexGrow = 1, align = "stretch" }, {
             actionBar,
-            ui.scroll({ flexGrow = 1, maxHeight = 430 }, {
-                ui.column({ gap = 8 }, cards),
+            ui.scroll({ flexGrow = 1 }, {
+                ui.column({ gap = 8, align = "stretch" }, cards),
             }),
         })
 
     elseif activeTab == "editor" then
-        bodyContent = ui.column({ gap = 10, flexGrow = 1 }, {
+        bodyContent = ui.column({ gap = 10, flexGrow = 1, align = "stretch" }, {
             ui.label({ text = "Note Title", fontSize = 12, color = { hex = "#94a3b8", alpha = 1.0 } }),
             ui.input({
                 value = editingNoteTitle,
@@ -254,34 +220,30 @@ function renderPanel()
             }),
             ui.row({ gap = 8, justify = "end" }, {
                 ui.button({
-                    onClick = function() activeTab = "stash" renderPanel() end,
-                    fill = { hex = "#334155", alpha = 0.5 },
-                    radius = 6,
-                    paddingH = 12,
-                    paddingV = 6,
-                }, {
-                    ui.label({ text = "Cancel", fontSize = 12 }),
+                    text = "Cancel",
+                    variant = "ghost",
+                    onClick = function()
+                        activeTab = "stash"
+                        renderPanel()
+                    end,
                 }),
                 ui.button({
+                    text = "Save Note",
+                    variant = "primary",
                     onClick = onSaveNote,
-                    fill = { hex = "#0284c7", alpha = 0.9 },
-                    radius = 6,
-                    paddingH = 14,
-                    paddingV = 6,
-                }, {
-                    ui.label({ text = "Save Note", fontSize = 12, fontWeight = "bold", color = { hex = "#ffffff", alpha = 1.0 } }),
                 }),
             }),
         })
 
     elseif activeTab == "settings" then
         local currentOpacityPct = math.floor((s.opacity or 0.85) * 100)
-        bodyContent = ui.column({ gap = 12, flexGrow = 1 }, {
+        bodyContent = ui.column({ gap = 12, flexGrow = 1, align = "stretch" }, {
             -- Mode Switch
-            ui.box({
+            ui.column({
                 fill = { hex = "#1e293b", alpha = 0.5 },
                 radius = 8,
                 padding = 10,
+                gap = 6,
             }, {
                 ui.row({ gap = 8, align = "center", justify = "space_between" }, {
                     ui.column({ gap = 2 }, {
@@ -289,134 +251,110 @@ function renderPanel()
                         ui.label({ text = "Clicks pass directly through to Minecraft or canvas", fontSize = 11, color = { hex = "#94a3b8", alpha = 1.0 } }),
                     }),
                     ui.button({
-                        onClick = function() state.toggleGhost() end,
-                        fill = if s.ghost_mode then { hex = "#4f46e5", alpha = 0.9 } else { hex = "#334155", alpha = 0.6 },
-                        radius = 6,
-                        paddingH = 12,
-                        paddingV = 6,
-                    }, {
-                        ui.label({ text = if s.ghost_mode then "LOCKED" else "INTERACTIVE", fontSize = 11, fontWeight = "bold" }),
+                        text = if s.ghost_mode then "LOCKED" else "INTERACTIVE",
+                        variant = if s.ghost_mode then "primary" else "outline",
+                        onClick = function()
+                            state.toggleGhost()
+                        end,
                     }),
                 }),
             }),
 
             -- Corner Quadrant Position
-            ui.column({ gap = 6 }, {
+            ui.column({ gap = 6, align = "stretch" }, {
                 ui.label({ text = "Screen Corner Position", fontSize = 12, color = { hex = "#94a3b8", alpha = 1.0 } }),
-                components.quadrantSelector(s.anchor or "top_right", function(a) state.setAnchor(a) end),
+                components.quadrantSelector(s.anchor or "top_right", function(a)
+                    state.setAnchor(a)
+                end),
             }),
 
             -- Scale / Size
-            ui.column({ gap = 6 }, {
+            ui.column({ gap = 6, align = "stretch" }, {
                 ui.label({ text = "Overlay Window Scale", fontSize = 12, color = { hex = "#94a3b8", alpha = 1.0 } }),
                 ui.row({ gap = 6 }, {
                     ui.button({
+                        text = "Small (300px)",
+                        variant = if s.scale == "small" then "primary" else "ghost",
+                        flexGrow = 1,
                         onClick = function() state.setScale("small") end,
-                        fill = if s.scale == "small" then { hex = "#0284c7", alpha = 0.3 } else { hex = "#1e293b", alpha = 0.5 },
-                        border = if s.scale == "small" then { hex = "#38bdf8", alpha = 1.0 } else { hex = "#334155", alpha = 0.6 },
-                        borderWidth = 1,
-                        radius = 6,
-                        paddingH = 10,
-                        paddingV = 6,
-                        flexGrow = 1,
-                    }, {
-                        ui.label({ text = "Small (300px)", fontSize = 11, align = "center" }),
                     }),
                     ui.button({
+                        text = "Medium (420px)",
+                        variant = if s.scale == "medium" then "primary" else "ghost",
+                        flexGrow = 1,
                         onClick = function() state.setScale("medium") end,
-                        fill = if s.scale == "medium" then { hex = "#0284c7", alpha = 0.3 } else { hex = "#1e293b", alpha = 0.5 },
-                        border = if s.scale == "medium" then { hex = "#38bdf8", alpha = 1.0 } else { hex = "#334155", alpha = 0.6 },
-                        borderWidth = 1,
-                        radius = 6,
-                        paddingH = 10,
-                        paddingV = 6,
-                        flexGrow = 1,
-                    }, {
-                        ui.label({ text = "Medium (420px)", fontSize = 11, align = "center" }),
                     }),
                     ui.button({
-                        onClick = function() state.setScale("large") end,
-                        fill = if s.scale == "large" then { hex = "#0284c7", alpha = 0.3 } else { hex = "#1e293b", alpha = 0.5 },
-                        border = if s.scale == "large" then { hex = "#38bdf8", alpha = 1.0 } else { hex = "#334155", alpha = 0.6 },
-                        borderWidth = 1,
-                        radius = 6,
-                        paddingH = 10,
-                        paddingV = 6,
+                        text = "Large (560px)",
+                        variant = if s.scale == "large" then "primary" else "ghost",
                         flexGrow = 1,
-                    }, {
-                        ui.label({ text = "Large (560px)", fontSize = 11, align = "center" }),
+                        onClick = function() state.setScale("large") end,
                     }),
                 }),
             }),
 
             -- Opacity Quick Steps
-            ui.column({ gap = 6 }, {
+            ui.column({ gap = 6, align = "stretch" }, {
                 ui.label({ text = "Overlay Opacity: " .. tostring(currentOpacityPct) .. "%", fontSize = 12, color = { hex = "#94a3b8", alpha = 1.0 } }),
                 ui.row({ gap = 6 }, {
                     ui.button({
+                        text = "40%",
+                        variant = if s.opacity == 0.4 then "primary" else "ghost",
+                        flexGrow = 1,
                         onClick = function() state.setOpacity(0.4) end,
-                        fill = { hex = "#1e293b", alpha = 0.6 },
-                        radius = 6,
-                        paddingH = 8,
-                        paddingV = 6,
-                        flexGrow = 1,
-                    }, { ui.label({ text = "40%", fontSize = 11 }) }),
+                    }),
                     ui.button({
+                        text = "65%",
+                        variant = if s.opacity == 0.65 then "primary" else "ghost",
+                        flexGrow = 1,
                         onClick = function() state.setOpacity(0.65) end,
-                        fill = { hex = "#1e293b", alpha = 0.6 },
-                        radius = 6,
-                        paddingH = 8,
-                        paddingV = 6,
-                        flexGrow = 1,
-                    }, { ui.label({ text = "65%", fontSize = 11 }) }),
+                    }),
                     ui.button({
+                        text = "85%",
+                        variant = if s.opacity == 0.85 then "primary" else "ghost",
+                        flexGrow = 1,
                         onClick = function() state.setOpacity(0.85) end,
-                        fill = { hex = "#1e293b", alpha = 0.6 },
-                        radius = 6,
-                        paddingH = 8,
-                        paddingV = 6,
-                        flexGrow = 1,
-                    }, { ui.label({ text = "85%", fontSize = 11 }) }),
+                    }),
                     ui.button({
-                        onClick = function() state.setOpacity(1.0) end,
-                        fill = { hex = "#1e293b", alpha = 0.6 },
-                        radius = 6,
-                        paddingH = 8,
-                        paddingV = 6,
+                        text = "100%",
+                        variant = if s.opacity == 1.0 then "primary" else "ghost",
                         flexGrow = 1,
-                    }, { ui.label({ text = "100%", fontSize = 11 }) }),
+                        onClick = function() state.setOpacity(1.0) end,
+                    }),
                 }),
             }),
 
             -- Hyprland Bind Helper
-            ui.box({
+            ui.column({
                 fill = { hex = "#0f172a", alpha = 0.8 },
                 border = { hex = "#334155", alpha = 0.5 },
                 borderWidth = 1,
                 radius = 6,
                 padding = 10,
+                gap = 4,
             }, {
-                ui.column({ gap = 4 }, {
-                    ui.label({ text = "Global Shortcut (Hyprland):", fontSize = 11, fontWeight = "bold", color = { hex = "#38bdf8", alpha = 1.0 } }),
-                    ui.label({
-                        text = "bind = SUPER ALT, G, exec, noctalia msg plugin rigelyon/pinboard:service all toggle-ghost",
-                        fontSize = 10,
-                        color = { hex = "#94a3b8", alpha = 1.0 },
-                    }),
+                ui.label({ text = "Global Shortcut (Hyprland):", fontSize = 11, fontWeight = "bold", color = { hex = "#38bdf8", alpha = 1.0 } }),
+                ui.label({
+                    text = "bind = SUPER ALT, G, exec, noctalia msg plugin rigelyon/pinboard:service all toggle-ghost",
+                    fontSize = 10,
+                    color = { hex = "#94a3b8", alpha = 1.0 },
                 }),
             }),
         })
     end
 
-    panel.render(ui.box({
-        fill = { hex = "#111827", alpha = 0.98 },
-        padding = 12,
-        gap = 12,
+    panel.render(ui.column({
         flexGrow = 1,
+        gap = 12,
+        align = "stretch",
     }, {
         navButtons,
         bodyContent,
     }))
+end
+
+function onOpen(_context)
+    renderPanel()
 end
 
 -- Subscribe to state updates

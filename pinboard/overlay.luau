@@ -22,7 +22,7 @@ local function configureLayer()
 end
 
 local function renderOverlay()
-    if not layer then
+    if not layer or not layer.render then
         return
     end
     local s = state.get()
@@ -65,25 +65,23 @@ local function renderOverlay()
 
     -- 2. Main Reference Display
     if not activeItem then
-        table.insert(contentChildren, ui.box({
+        table.insert(contentChildren, ui.column({
             fill = { hex = "#1e293b", alpha = 0.5 },
             radius = 6,
             padding = 24,
+            gap = 8,
             align = "center",
-            justify = "center",
         }, {
-            ui.column({ gap = 8, align = "center" }, {
-                ui.glyph({ name = "pin", fontSize = 28, color = { hex = "#64748b", alpha = 1.0 } }),
-                ui.label({
-                    text = "No Reference Pinned",
-                    fontSize = 13,
-                    color = { hex = "#94a3b8", alpha = 1.0 },
-                }),
-                ui.label({
-                    text = "Open Pinboard Stash from status bar to add an image or note",
-                    fontSize = 11,
-                    color = { hex = "#64748b", alpha = 1.0 },
-                }),
+            ui.glyph({ name = "pin", size = 28, color = { hex = "#64748b", alpha = 1.0 } }),
+            ui.label({
+                text = "No Reference Pinned",
+                fontSize = 13,
+                color = { hex = "#94a3b8", alpha = 1.0 },
+            }),
+            ui.label({
+                text = "Open Pinboard Stash from status bar to add an image or note",
+                fontSize = 11,
+                color = { hex = "#64748b", alpha = 1.0 },
             }),
         }))
     else
@@ -104,7 +102,7 @@ local function renderOverlay()
 
         -- Image Section
         if showImage and activeItem.path then
-            table.insert(mainNodes, ui.box({
+            table.insert(mainNodes, ui.column({
                 radius = 6,
                 border = { hex = "#334155", alpha = 0.4 },
                 borderWidth = 1,
@@ -125,16 +123,16 @@ local function renderOverlay()
         -- Note / Checklist Section
         if showNote then
             local noteContent = activeItem.content or "No notes available."
-            table.insert(mainNodes, ui.box({
+            table.insert(mainNodes, ui.column({
                 fill = { hex = "#1e293b", alpha = if isGhost then 0.6 else 0.8 },
                 border = { hex = "#334155", alpha = 0.5 },
                 borderWidth = 1,
                 radius = 6,
                 padding = 10,
-                maxHeight = if showImage then 180 else geo.maxHeight - 70,
+                height = if showImage then 180 else (geo.maxHeight - 70),
             }, {
                 ui.scroll({
-                    maxHeight = if showImage then 160 else geo.maxHeight - 90,
+                    flexGrow = 1,
                 }, {
                     ui.column({ gap = 4 }, {
                         ui.label({
@@ -156,7 +154,7 @@ local function renderOverlay()
     end
 
     -- 3. Render tree to layer shell
-    layer.render(ui.box({
+    layer.render(ui.column({
         fill = containerFill,
         border = containerBorder,
         borderWidth = if isGhost then 1 else 2,

@@ -29,7 +29,7 @@ function components.badge(label: string, variant: string?): any
         then { hex = "#a5b4fc", alpha = 1.0 }
         else COLOR_TEXT_MUTED
 
-    return ui.box({
+    return ui.row({
         fill = fill,
         radius = 4,
         paddingH = 6,
@@ -44,32 +44,12 @@ function components.badge(label: string, variant: string?): any
 end
 
 function components.iconButton(glyphName: string, tooltipText: string?, onClickHandler: any, active: boolean?): any
-    local fill = if active
-        then { hex = "#0284c7", alpha = 0.4 }
-        else { hex = "#1e293b", alpha = 0.6 }
-
-    local border = if active
-        then COLOR_PRIMARY
-        else { hex = "#334155", alpha = 0.5 }
-
     return ui.button({
+        glyph = glyphName,
         tooltip = tooltipText,
         onClick = onClickHandler,
-        fill = fill,
-        border = border,
-        borderWidth = 1,
-        radius = 6,
-        paddingH = 8,
-        paddingV = 6,
-        minHeight = 28,
-    }, {
-        ui.row({ gap = 4, align = "center" }, {
-            ui.glyph({
-                name = glyphName,
-                fontSize = 14,
-                color = if active then COLOR_PRIMARY else COLOR_TEXT,
-            }),
-        }),
+        variant = if active then "primary" else "ghost",
+        controlSize = "sm",
     })
 end
 
@@ -79,44 +59,38 @@ function components.floatingToolbar(currentState: PinboardData, callbacks: { [st
     local viewMode = currentState.view_mode or "split"
     local modeGlyph = if viewMode == "image" then "photo" elseif viewMode == "note" then "notebook" else "layout-grid"
 
-    return ui.box({
+    return ui.row({
         fill = { hex = "#0f172a", alpha = 0.95 },
         radius = 8,
         border = { hex = "#334155", alpha = 0.8 },
         borderWidth = 1,
         padding = 6,
-        hitSlop = 4,
+        gap = 6,
+        align = "center",
+        justify = "space_between",
     }, {
-        ui.row({ gap = 6, align = "center", justify = "space_between" }, {
-            -- Left cluster: Navigation
-            ui.row({ gap = 4, align = "center" }, {
-                components.iconButton("chevron-left", "Previous reference", callbacks.onPrev),
-                components.iconButton("chevron-right", "Next reference", callbacks.onNext),
-            }),
+        -- Left cluster: Navigation
+        ui.row({ gap = 4, align = "center" }, {
+            components.iconButton("chevron-left", "Previous reference", callbacks.onPrev),
+            components.iconButton("chevron-right", "Next reference", callbacks.onNext),
+        }),
 
-            -- Center cluster: Mode, Scale & Opacity
-            ui.row({ gap = 4, align = "center" }, {
-                components.iconButton(modeGlyph, "Switch view mode: " .. viewMode, callbacks.onViewMode, true),
-                components.iconButton("arrows-maximize", "Size Scale: " .. scaleLabel, callbacks.onScale),
-                components.iconButton("arrow-up-right", "Move corner anchor: " .. (currentState.anchor or "top_right"), callbacks.onAnchor),
-                components.iconButton("sun", "Opacity: " .. opacityPercent .. " (Click to toggle)", callbacks.onOpacityCycle),
-            }),
+        -- Center cluster: Mode, Scale & Opacity
+        ui.row({ gap = 4, align = "center" }, {
+            components.iconButton(modeGlyph, "Switch view mode: " .. viewMode, callbacks.onViewMode, true),
+            components.iconButton("arrows-maximize", "Size Scale: " .. scaleLabel, callbacks.onScale),
+            components.iconButton("arrow-up-right", "Move corner anchor: " .. (currentState.anchor or "top_right"), callbacks.onAnchor),
+            components.iconButton("sun", "Opacity: " .. opacityPercent .. " (Click to toggle)", callbacks.onOpacityCycle),
+        }),
 
-            -- Right cluster: Lock to Ghost Button
-            ui.button({
-                tooltip = "Lock to Ghost Mode (Click-Through)",
-                onClick = callbacks.onLock,
-                fill = { hex = "#4f46e5", alpha = 0.9 },
-                radius = 6,
-                paddingH = 10,
-                paddingV = 6,
-                minHeight = 28,
-            }, {
-                ui.row({ gap = 6, align = "center" }, {
-                    ui.glyph({ name = "lock", fontSize = 13, color = { hex = "#ffffff", alpha = 1.0 } }),
-                    ui.label({ text = "Ghost", fontSize = 12, color = { hex = "#ffffff", alpha = 1.0 } }),
-                }),
-            }),
+        -- Right cluster: Lock to Ghost Button
+        ui.button({
+            text = "Ghost",
+            glyph = "lock",
+            tooltip = "Lock to Ghost Mode (Click-Through)",
+            onClick = callbacks.onLock,
+            variant = "primary",
+            controlSize = "sm",
         }),
     })
 end
@@ -127,7 +101,7 @@ function components.stashCard(item: StashItem, isActive: boolean, onSelect: any,
     local typeGlyph = if item.type == "image" then "photo" else "notebook"
     local badgeVariant = if item.type == "image" then "primary" else "accent"
 
-    return ui.box({
+    return ui.column({
         fill = fill,
         border = border,
         borderWidth = if isActive then 2 else 1,
@@ -138,7 +112,7 @@ function components.stashCard(item: StashItem, isActive: boolean, onSelect: any,
         ui.row({ gap = 8, align = "center", justify = "space_between" }, {
             -- Left info
             ui.row({ gap = 8, align = "center", flexGrow = 1 }, {
-                ui.glyph({ name = typeGlyph, fontSize = 18, color = if isActive then COLOR_PRIMARY else COLOR_TEXT_MUTED }),
+                ui.glyph({ name = typeGlyph, size = 18, color = if isActive then COLOR_PRIMARY else COLOR_TEXT_MUTED }),
                 ui.column({ gap = 2, flexGrow = 1 }, {
                     ui.label({
                         text = item.title or "Untitled Reference",
@@ -160,34 +134,22 @@ function components.stashCard(item: StashItem, isActive: boolean, onSelect: any,
             ui.row({ gap = 6, align = "center" }, {
                 if not isActive then
                     ui.button({
+                        text = "Pin",
+                        glyph = "pin",
                         tooltip = "Pin to overlay",
+                        variant = "outline",
+                        controlSize = "sm",
                         onClick = onSelect,
-                        fill = { hex = "#0284c7", alpha = 0.2 },
-                        border = COLOR_PRIMARY,
-                        borderWidth = 1,
-                        radius = 6,
-                        paddingH = 8,
-                        paddingV = 4,
-                    }, {
-                        ui.row({ gap = 4, align = "center" }, {
-                            ui.glyph({ name = "pin", fontSize = 13, color = COLOR_PRIMARY }),
-                            ui.label({ text = "Pin", fontSize = 11, color = COLOR_PRIMARY }),
-                        }),
                     })
                 else
                     components.badge("PINNED", "primary"),
 
                 ui.button({
+                    glyph = "trash",
                     tooltip = "Delete item",
+                    variant = "destructive",
+                    controlSize = "sm",
                     onClick = onDelete,
-                    fill = { hex = "#f43f5e", alpha = 0.15 },
-                    border = { hex = "#f43f5e", alpha = 0.4 },
-                    borderWidth = 1,
-                    radius = 6,
-                    paddingH = 6,
-                    paddingV = 4,
-                }, {
-                    ui.glyph({ name = "trash", fontSize = 13, color = COLOR_DANGER }),
                 }),
             }),
         }),
@@ -198,27 +160,11 @@ function components.quadrantSelector(currentAnchor: string, onSelectAnchor: (anc
     local function makeQuadrantButton(anchorId: string, label: string)
         local isSel = currentAnchor == anchorId
         return ui.button({
-            onClick = function() onSelectAnchor(anchorId) end,
-            fill = if isSel then { hex = "#0284c7", alpha = 0.35 } else { hex = "#1e293b", alpha = 0.6 },
-            border = if isSel then COLOR_PRIMARY else { hex = "#334155", alpha = 0.6 },
-            borderWidth = 1,
-            radius = 6,
-            paddingH = 12,
-            paddingV = 8,
+            text = label,
+            glyph = if isSel then "circle-check" else "circle",
+            variant = if isSel then "primary" else "secondary",
             flexGrow = 1,
-        }, {
-            ui.row({ gap = 6, align = "center", justify = "center" }, {
-                ui.glyph({
-                    name = if isSel then "circle-check" else "circle",
-                    fontSize = 13,
-                    color = if isSel then COLOR_PRIMARY else COLOR_TEXT_MUTED,
-                }),
-                ui.label({
-                    text = label,
-                    fontSize = 12,
-                    color = if isSel then COLOR_TEXT else COLOR_TEXT_MUTED,
-                }),
-            }),
+            onClick = function() onSelectAnchor(anchorId) end,
         })
     end
 
