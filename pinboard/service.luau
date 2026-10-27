@@ -21,6 +21,11 @@ local function handlePasteClipboard()
         return
     end
 
+    local saveLocal = noctalia.getConfig("save_clipboard_images")
+    if saveLocal == nil then
+        saveLocal = true
+    end
+
     local newItem: storage.StashItem = {
         id = "item_" .. tostring(noctalia.nowMs()),
         type = validated.type or "image",
