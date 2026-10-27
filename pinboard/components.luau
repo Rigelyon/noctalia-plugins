@@ -1,6 +1,6 @@
 --!nonstrict
 
-local storage = require("./storage")
+local storage = require("./storage.luau")
 
 export type StashItem = storage.StashItem
 export type PinboardData = storage.PinboardData

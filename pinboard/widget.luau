@@ -1,8 +1,12 @@
 --!nonstrict
 
-local state = require("./state")
+local state = require("./state.luau")
 
 local function updateWidget()
+    if not barWidget then
+        return
+    end
+
     local s = state.get()
     local items = s.items or {}
     local activeItem = state.getActiveItem()
@@ -11,25 +15,16 @@ local function updateWidget()
     barWidget.setGlyph("pin")
 
     -- Format Status Text
-    local statusText = ""
+    local statusText = "Pin"
     if not s.overlay_visible then
         statusText = "OFF"
     elseif s.ghost_mode then
         statusText = "GHOST"
-    else
-        statusText = if #items > 0 then tostring(#items) else ""
+    elseif #items > 0 then
+        statusText = tostring(#items)
     end
 
     barWidget.setText(statusText)
-
-    -- Set Glyph / Accent Color
-    if not s.overlay_visible then
-        barWidget.setColor("surface_variant")
-    elseif s.ghost_mode then
-        barWidget.setColor("accent")
-    else
-        barWidget.setColor("primary")
-    end
 
     -- Construct Rich Tooltip
     local modeDesc = if not s.overlay_visible
@@ -48,6 +43,10 @@ local function updateWidget()
         { key = "Right Click", value = "Toggle Ghost Mode" },
         { key = "Scroll", value = "Next / Previous Reference" },
     })
+end
+
+function update()
+    updateWidget()
 end
 
 function onClick()

@@ -1,22 +1,30 @@
 --!nonstrict
 
-local state = require("./state")
-local components = require("./components")
+local state = require("./state.luau")
+local components = require("./components.luau")
 
 local function configureLayer()
+    if not noctalia.layer then
+        return
+    end
     local s = state.get()
     local geo = state.getGeometry()
 
-    noctalia.layer.configure("ref-overlay", {
-        layer = "overlay",
-        anchors = geo.anchors,
-        margins = geo.margins,
-        width = geo.width,
-        clickThrough = s.ghost_mode,
-    })
+    pcall(function()
+        noctalia.layer.configure("ref-overlay", {
+            layer = "overlay",
+            anchors = geo.anchors,
+            margins = geo.margins,
+            width = geo.width,
+            clickThrough = s.ghost_mode,
+        })
+    end)
 end
 
 local function renderOverlay()
+    if not layer then
+        return
+    end
     local s = state.get()
     local geo = state.getGeometry()
     local activeItem = state.getActiveItem()

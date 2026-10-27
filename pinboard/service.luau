@@ -1,14 +1,17 @@
 --!nonstrict
 
-local storage = require("./storage")
-local state = require("./state")
+local storage = require("./storage.luau")
+local state = require("./state.luau")
 
 local function syncLayerVisibility()
+    if not noctalia.layer then
+        return
+    end
     local s = state.get()
     if s.overlay_visible and s.active_id then
-        noctalia.layer.show("ref-overlay")
+        pcall(function() noctalia.layer.show("ref-overlay") end)
     else
-        noctalia.layer.hide("ref-overlay")
+        pcall(function() noctalia.layer.hide("ref-overlay") end)
     end
 end
 

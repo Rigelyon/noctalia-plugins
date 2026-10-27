@@ -1,8 +1,8 @@
 --!nonstrict
 
-local storage = require("./storage")
-local state = require("./state")
-local components = require("./components")
+local storage = require("./storage.luau")
+local state = require("./state.luau")
+local components = require("./components.luau")
 
 local activeTab = "stash" -- "stash" | "editor" | "settings"
 local editingNoteTitle = ""
