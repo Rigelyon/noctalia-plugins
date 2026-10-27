@@ -33,7 +33,7 @@ class TestPinboardManifest(unittest.TestCase):
             id_lang = json.load(f)
 
         self.assertEqual(manifest.get("id"), "rigelyon/pinboard")
-        self.assertEqual(manifest.get("plugin_api"), 38)
+        self.assertEqual(manifest.get("plugin_api"), 28)
         self.assertEqual(manifest.get("author"), "rigelyon")
 
         # Verify entry declarations

@@ -108,3 +108,16 @@ description = "Aesthetic visual display manager for Hyprland with gapless canvas
 plugin_api = 28
 tags = ["hyprland", "monitor", "display", "utility", "bar", "panel", "productivity"]
 
+
+[[plugin]]
+id = "rigelyon/pinboard"
+name = "Pinboard"
+version = "1.0.0"
+updated_at = 1793094540
+added_at = 1793094540
+author = "rigelyon"
+license = "MIT"
+icon = "pin"
+description = "Minimalist reference stash and pinned screen overlay for artists and gamers."
+plugin_api = 28
+tags = ["utility", "productivity", "layer", "panel", "bar", "art", "gaming"]

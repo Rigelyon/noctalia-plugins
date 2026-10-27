@@ -1,7 +1,7 @@
 id = "rigelyon/pinboard"
 name = "Pinboard"
 version = "1.0.0"
-plugin_api = 38
+plugin_api = 28
 author = "rigelyon"
 license = "MIT"
 dependencies = []
