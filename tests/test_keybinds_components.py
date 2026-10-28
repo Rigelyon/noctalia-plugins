@@ -14,3 +14,19 @@ class TestKeybindsComponents(unittest.TestCase):
         self.assertIn("renderKeybindCard", content)
         self.assertIn("renderKbdBadges", content)
         self.assertIn("noctalia.copyToClipboard", content)
+
+    def test_components_tokens_and_spacing(self):
+        with open(COMP_FILE, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # Must support token-based rendering
+        self.assertIn("itemOrMods.tokens", content)
+        # Must support comma separator
+        self.assertIn('text = ","', content)
+        # Must use gap = 6 for proper spacing between badges and separators
+        self.assertIn("gap = 6, align = \"center\" }, kbdBadges", content)
+
+
+if __name__ == "__main__":
+    unittest.main()
+

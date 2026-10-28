@@ -18,8 +18,28 @@ function components.renderKbdBadge(text: string, isPrimary: boolean, cornerRadiu
   })
 end
 
-function components.renderKbdBadges(modifiers: { string }, key: string, cornerRadiusScale: number): { any }
+function components.renderKbdBadges(itemOrMods: any, keyOrScale: any, maybeScale: any): { any }
   local kbdBadges = {}
+  local cornerRadiusScale = 1.0
+
+  if type(itemOrMods) == "table" and itemOrMods.tokens ~= nil then
+    cornerRadiusScale = keyOrScale or 1.0
+    for _, tok in ipairs(itemOrMods.tokens) do
+      table.insert(kbdBadges, components.renderKbdBadge(tok.text, tok.isPrimary, cornerRadiusScale))
+      if tok.sepAfter == "+" then
+        table.insert(kbdBadges, ui.label({ text = "+", fontSize = 9, color = "on_surface_variant" }))
+      elseif tok.sepAfter == "," then
+        table.insert(kbdBadges, ui.label({ text = ",", fontSize = 11, fontWeight = "bold", color = "on_surface_variant" }))
+      end
+    end
+    return kbdBadges
+  end
+
+  -- Legacy signature fallback: renderKbdBadges(modifiers: { string }, key: string, cornerRadiusScale: number)
+  local modifiers = if type(itemOrMods) == "table" then itemOrMods else {}
+  local key = if type(keyOrScale) == "string" then keyOrScale else ""
+  cornerRadiusScale = maybeScale or 1.0
+
   for _, m in ipairs(modifiers) do
     table.insert(kbdBadges, components.renderKbdBadge(string.upper(m), false, cornerRadiusScale))
     table.insert(kbdBadges, ui.label({ text = "+", fontSize = 9, color = "on_surface_variant" }))
@@ -44,7 +64,9 @@ function components.renderKeybindCard(item: any, props: {
   local cornerRadiusScale = props.cornerRadiusScale or 1.0
   local tr = props.tr
 
-  local kbdBadges = components.renderKbdBadges(item.modifiers, item.key, cornerRadiusScale)
+  local kbdBadges = if item.tokens ~= nil
+    then components.renderKbdBadges(item, cornerRadiusScale)
+    else components.renderKbdBadges(item.modifiers, item.key, cornerRadiusScale)
 
   -- Prevent text overflowing under badges; calculate safe max description length
   local maxDescLen = if isEditMode
@@ -117,7 +139,7 @@ function components.renderKeybindCard(item: any, props: {
       }),
     }),
     ui.row({ gap = 4, align = "center" }, {
-      ui.row({ gap = 2, align = "center" }, kbdBadges),
+      ui.row({ gap = 6, align = "center" }, kbdBadges),
       cardActions,
     }),
   })
