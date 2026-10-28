@@ -23,8 +23,8 @@ class TestKeybindsComponents(unittest.TestCase):
         self.assertIn("itemOrMods.tokens", content)
         # Must support comma separator
         self.assertIn('text = ","', content)
-        # Must use gap = 6 for proper spacing between badges and separators
-        self.assertIn("gap = 6, align = \"center\" }, kbdBadges", content)
+        # Must use compact gap = 3 for proper spacing without taking too much horizontal space
+        self.assertIn("gap = 3, align = \"center\" }, kbdBadges", content)
 
 
 if __name__ == "__main__":

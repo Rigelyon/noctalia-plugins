@@ -25,11 +25,15 @@ function components.renderKbdBadges(itemOrMods: any, keyOrScale: any, maybeScale
   if type(itemOrMods) == "table" and itemOrMods.tokens ~= nil then
     cornerRadiusScale = keyOrScale or 1.0
     for _, tok in ipairs(itemOrMods.tokens) do
-      table.insert(kbdBadges, components.renderKbdBadge(tok.text, tok.isPrimary, cornerRadiusScale))
-      if tok.sepAfter == "+" then
-        table.insert(kbdBadges, ui.label({ text = "+", fontSize = 9, color = "on_surface_variant" }))
-      elseif tok.sepAfter == "," then
-        table.insert(kbdBadges, ui.label({ text = ",", fontSize = 11, fontWeight = "bold", color = "on_surface_variant" }))
+      if tok.sepAfter == "," then
+        local badge = components.renderKbdBadge(tok.text, tok.isPrimary, cornerRadiusScale)
+        local comma = ui.label({ text = ",", fontSize = 10, fontWeight = "bold", color = "on_surface_variant" })
+        table.insert(kbdBadges, ui.row({ gap = 1, align = "center" }, { badge, comma }))
+      else
+        table.insert(kbdBadges, components.renderKbdBadge(tok.text, tok.isPrimary, cornerRadiusScale))
+        if tok.sepAfter == "+" then
+          table.insert(kbdBadges, ui.label({ text = "+", fontSize = 9, color = "on_surface_variant" }))
+        end
       end
     end
     return kbdBadges
@@ -139,7 +143,7 @@ function components.renderKeybindCard(item: any, props: {
       }),
     }),
     ui.row({ gap = 4, align = "center" }, {
-      ui.row({ gap = 6, align = "center" }, kbdBadges),
+      ui.row({ gap = 3, align = "center" }, kbdBadges),
       cardActions,
     }),
   })
