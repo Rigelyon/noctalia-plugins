@@ -2,6 +2,12 @@
 -- Parser & Normalizer for Hyprland and Custom Keybinds
 local parser = {}
 
+export type KeyToken = {
+  text: string,
+  isPrimary: boolean,
+  sepAfter: string?,
+}
+
 export type KeybindItem = {
   id: string,
   appId: string,
@@ -12,6 +18,7 @@ export type KeybindItem = {
   subcatIcon: string,
   modifiers: { string },
   key: string,
+  tokens: { KeyToken }?,
   keyComboText: string,
   description: string,
   source: string,
@@ -178,6 +185,119 @@ function parser.buildKeyComboText(modifiers: { string }, key: string): string
   return table.concat(parts, " + ")
 end
 
+function parser.parseKeyTokens(raw: any): ({ KeyToken }, string)
+  local tokens: { KeyToken } = {}
+  local comboText = ""
+
+  if type(raw) == "table" then
+    local parts = {}
+    for _, k in ipairs(raw) do
+      if type(k) == "string" and k ~= "" then
+        table.insert(parts, k)
+      end
+    end
+    -- If array contains a single preformatted string like "CTRL + A, D"
+    if #parts == 1 and (string.find(parts[1], ",") or string.find(parts[1], "+") or string.find(parts[1], " ")) then
+      return parser.parseKeyTokens(parts[1])
+    end
+    -- Otherwise treat as standard combo array
+    for i, p in ipairs(parts) do
+      local isLast = (i == #parts)
+      table.insert(tokens, {
+        text = string.upper(p),
+        isPrimary = isLast,
+        sepAfter = if not isLast then "+" else nil,
+      })
+    end
+    comboText = table.concat(parts, " + ")
+    return tokens, comboText
+  end
+
+  if type(raw) ~= "string" or raw == "" then
+    return tokens, ""
+  end
+
+  comboText = raw
+
+  -- Split into steps by comma `,`
+  local steps = {}
+  for step in string.gmatch(raw .. ",", "([^,]+),") do
+    local trimmed = string.match(step, "^%s*(.-)%s*$") or ""
+    if trimmed ~= "" then
+      table.insert(steps, trimmed)
+    end
+  end
+
+  if #steps == 0 then
+    local trimmed = string.match(raw, "^%s*(.-)%s*$") or ""
+    if trimmed ~= "" then
+      table.insert(steps, trimmed)
+    end
+  end
+
+  for sIdx, stepStr in ipairs(steps) do
+    local isLastStep = (sIdx == #steps)
+    if string.find(stepStr, "+", 1, true) then
+      -- Simultan split by `+`
+      local subKeys = {}
+      for k in string.gmatch(stepStr .. "+", "([^+]+)%+") do
+        local tk = string.match(k, "^%s*(.-)%s*$") or ""
+        if tk ~= "" then
+          table.insert(subKeys, tk)
+        end
+      end
+      for kIdx, k in ipairs(subKeys) do
+        local isLastKeyInStep = (kIdx == #subKeys)
+        local isFinalAction = isLastStep and isLastKeyInStep
+        local sep = nil
+        if not isLastKeyInStep then
+          sep = "+"
+        elseif not isLastStep then
+          sep = ","
+        end
+        table.insert(tokens, {
+          text = string.upper(k),
+          isPrimary = isFinalAction,
+          sepAfter = sep,
+        })
+      end
+    else
+      -- Check if space-separated sequence (e.g. "Leader f f")
+      local subKeys = {}
+      for k in string.gmatch(stepStr, "%S+") do
+        table.insert(subKeys, k)
+      end
+      if #subKeys > 1 then
+        for kIdx, k in ipairs(subKeys) do
+          local isLastKeyInStep = (kIdx == #subKeys)
+          local isFinalAction = isLastStep and isLastKeyInStep
+          local sep = nil
+          if not isLastKeyInStep then
+            sep = " "
+          elseif not isLastStep then
+            sep = ","
+          end
+          table.insert(tokens, {
+            text = string.upper(k),
+            isPrimary = isFinalAction,
+            sepAfter = sep,
+          })
+        end
+      else
+        local k = subKeys[1] or stepStr
+        local isFinalAction = isLastStep
+        table.insert(tokens, {
+          text = string.upper(k),
+          isPrimary = isFinalAction,
+          sepAfter = if not isLastStep then "," else nil,
+        })
+      end
+    end
+  end
+
+  return tokens, comboText
+end
+
 function parser.parseCustomKeybinds(rawJson: string): { KeybindItem }
   local customItems: { KeybindItem } = {}
   if not rawJson or #rawJson == 0 then
@@ -206,17 +326,20 @@ function parser.parseCustomKeybinds(rawJson: string): { KeybindItem }
             local subId = string.lower(subName)
             if type(sub.binds) == "table" then
               for bIdx, b in ipairs(sub.binds) do
-                local keys = b.keys or {}
+                local tokens, combo = parser.parseKeyTokens(b.keys)
                 local mods = {}
                 local primaryKey = ""
-                if #keys > 0 then
-                  for kIdx = 1, #keys - 1 do
-                    table.insert(mods, string.upper(keys[kIdx]))
+                for _, tok in ipairs(tokens) do
+                  if tok.isPrimary then
+                    primaryKey = tok.text
+                  else
+                    table.insert(mods, tok.text)
                   end
-                  primaryKey = string.upper(keys[#keys])
+                end
+                if primaryKey == "" and #tokens > 0 then
+                  primaryKey = tokens[#tokens].text
                 end
                 local desc = b.description or ""
-                local combo = parser.buildKeyComboText(mods, primaryKey)
                 table.insert(customItems, {
                   id = "custom-" .. appId .. "-" .. tostring(subIdx) .. "-" .. tostring(bIdx),
                   appId = appId,
@@ -227,6 +350,7 @@ function parser.parseCustomKeybinds(rawJson: string): { KeybindItem }
                   subcatIcon = subIcon,
                   modifiers = mods,
                   key = primaryKey,
+                  tokens = tokens,
                   keyComboText = combo,
                   description = desc,
                   source = "custom",
@@ -239,20 +363,23 @@ function parser.parseCustomKeybinds(rawJson: string): { KeybindItem }
           end
         elseif type(app.binds) == "table" then
           for bIdx, b in ipairs(app.binds) do
-            local keys = b.keys or {}
+            local tokens, combo = parser.parseKeyTokens(b.keys)
             local mods = {}
             local primaryKey = ""
-            if #keys > 0 then
-              for kIdx = 1, #keys - 1 do
-                table.insert(mods, string.upper(keys[kIdx]))
+            for _, tok in ipairs(tokens) do
+              if tok.isPrimary then
+                primaryKey = tok.text
+              else
+                table.insert(mods, tok.text)
               end
-              primaryKey = string.upper(keys[#keys])
+            end
+            if primaryKey == "" and #tokens > 0 then
+              primaryKey = tokens[#tokens].text
             end
             local desc = b.description or ""
             local subName = b.subcategory or b.subcat or b.category or "General"
             local subIcon = b.subcategoryIcon or b.icon or "command"
             local subId = string.lower(subName)
-            local combo = parser.buildKeyComboText(mods, primaryKey)
             table.insert(customItems, {
               id = "custom-" .. appId .. "-" .. tostring(bIdx),
               appId = appId,
@@ -263,6 +390,7 @@ function parser.parseCustomKeybinds(rawJson: string): { KeybindItem }
               subcatIcon = subIcon,
               modifiers = mods,
               key = primaryKey,
+              tokens = tokens,
               keyComboText = combo,
               description = desc,
               source = "custom",

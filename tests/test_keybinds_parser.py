@@ -106,6 +106,74 @@ def categorize_bind(description: str, key: str, dispatcher: str = "", arg: str =
     return "Other"
 
 
+def parse_key_tokens(raw):
+    tokens = []
+    if isinstance(raw, list):
+        parts = [str(k) for k in raw if str(k).strip()]
+        if len(parts) == 1 and any(delim in parts[0] for delim in (",", "+", " ")):
+            return parse_key_tokens(parts[0])
+        for i, p in enumerate(parts):
+            is_last = (i == len(parts) - 1)
+            tokens.append({
+                "text": p.upper(),
+                "isPrimary": is_last,
+                "sepAfter": "+" if not is_last else None
+            })
+        return tokens, " + ".join(parts)
+
+    if not isinstance(raw, str) or not raw.strip():
+        return tokens, ""
+
+    combo_text = raw.strip()
+    # Split steps by comma
+    steps = [s.strip() for s in raw.split(",") if s.strip()]
+    if not steps:
+        steps = [raw.strip()]
+
+    for s_idx, step_str in enumerate(steps):
+        is_last_step = (s_idx == len(steps) - 1)
+        if "+" in step_str:
+            sub_keys = [k.strip() for k in step_str.split("+") if k.strip()]
+            for k_idx, k in enumerate(sub_keys):
+                is_last_key = (k_idx == len(sub_keys) - 1)
+                is_final_action = is_last_step and is_last_key
+                sep = None
+                if not is_last_key:
+                    sep = "+"
+                elif not is_last_step:
+                    sep = ","
+                tokens.append({
+                    "text": k.upper(),
+                    "isPrimary": is_final_action,
+                    "sepAfter": sep
+                })
+        else:
+            sub_keys = step_str.split()
+            if len(sub_keys) > 1:
+                for k_idx, k in enumerate(sub_keys):
+                    is_last_key = (k_idx == len(sub_keys) - 1)
+                    is_final_action = is_last_step and is_last_key
+                    sep = None
+                    if not is_last_key:
+                        sep = " "
+                    elif not is_last_step:
+                        sep = ","
+                    tokens.append({
+                        "text": k.upper(),
+                        "isPrimary": is_final_action,
+                        "sepAfter": sep
+                    })
+            else:
+                k = sub_keys[0] if sub_keys else step_str
+                tokens.append({
+                    "text": k.upper(),
+                    "isPrimary": is_last_step,
+                    "sepAfter": "," if not is_last_step else None
+                })
+
+    return tokens, combo_text
+
+
 class TestKeybindsParser(unittest.TestCase):
     def test_modmask_decoding(self):
         self.assertEqual(decode_modmask(64), ["SUPER"])
@@ -179,8 +247,55 @@ class TestKeybindsParser(unittest.TestCase):
         self.assertIn("naturalSortKey", content)
         self.assertIn("buildKeyComboText", content)
         self.assertIn("parseCustomKeybinds", content)
+        self.assertIn("parseKeyTokens", content)
+
+    def test_parse_key_tokens_tmux(self):
+        tokens, combo = parse_key_tokens("CTRL + A, D")
+        self.assertEqual(combo, "CTRL + A, D")
+        self.assertEqual(len(tokens), 3)
+        self.assertEqual(tokens[0]["text"], "CTRL")
+        self.assertEqual(tokens[0]["sepAfter"], "+")
+        self.assertEqual(tokens[1]["text"], "A")
+        self.assertEqual(tokens[1]["sepAfter"], ",")
+        self.assertEqual(tokens[2]["text"], "D")
+        self.assertTrue(tokens[2]["isPrimary"])
+        self.assertIsNone(tokens[2]["sepAfter"])
+
+    def test_parse_key_tokens_neovim(self):
+        tokens, combo = parse_key_tokens("Leader f f")
+        self.assertEqual(combo, "Leader f f")
+        self.assertEqual(len(tokens), 3)
+        self.assertEqual(tokens[0]["text"], "LEADER")
+        self.assertEqual(tokens[0]["sepAfter"], " ")
+        self.assertEqual(tokens[1]["text"], "F")
+        self.assertEqual(tokens[1]["sepAfter"], " ")
+        self.assertEqual(tokens[2]["text"], "F")
+        self.assertTrue(tokens[2]["isPrimary"])
+        self.assertIsNone(tokens[2]["sepAfter"])
+
+    def test_parse_key_tokens_simultaneous(self):
+        tokens, combo = parse_key_tokens("CTRL + SHIFT + C")
+        self.assertEqual(combo, "CTRL + SHIFT + C")
+        self.assertEqual(len(tokens), 3)
+        self.assertEqual(tokens[0]["text"], "CTRL")
+        self.assertEqual(tokens[0]["sepAfter"], "+")
+        self.assertEqual(tokens[1]["text"], "SHIFT")
+        self.assertEqual(tokens[1]["sepAfter"], "+")
+        self.assertEqual(tokens[2]["text"], "C")
+        self.assertTrue(tokens[2]["isPrimary"])
+        self.assertIsNone(tokens[2]["sepAfter"])
+
+    def test_parse_key_tokens_backward_compat_array(self):
+        tokens, combo = parse_key_tokens(["CTRL", "SHIFT", "C"])
+        self.assertEqual(combo, "CTRL + SHIFT + C")
+        self.assertEqual(len(tokens), 3)
+        self.assertEqual(tokens[0]["text"], "CTRL")
+        self.assertEqual(tokens[0]["sepAfter"], "+")
+        self.assertEqual(tokens[2]["text"], "C")
+        self.assertTrue(tokens[2]["isPrimary"])
 
 
 if __name__ == "__main__":
     unittest.main()
+
 
