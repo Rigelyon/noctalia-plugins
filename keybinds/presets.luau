@@ -188,19 +188,73 @@ presets.defaultJson = [=[{
           "name": "Navigation & Search",
           "icon": "search",
           "binds": [
-            { "keys": ["Leader", "f", "f"], "description": "Find Files (Telescope)" },
-            { "keys": ["Leader", "f", "g"], "description": "Live Grep" },
-            { "keys": ["g", "d"], "description": "Go to Definition" },
-            { "keys": ["K"], "description": "Hover Documentation" }
+            { "keys": "Leader f f", "description": "Find Files (Telescope)" },
+            { "keys": "Leader f g", "description": "Live Grep" },
+            { "keys": "g d", "description": "Go to Definition" },
+            { "keys": "K", "description": "Hover Documentation" }
           ]
         },
         {
           "name": "Buffer & File",
           "icon": "file-text",
           "binds": [
-            { "keys": ["Leader", "e"], "description": "Toggle File Explorer" },
-            { "keys": ["Leader", "w"], "description": "Save Buffer" },
-            { "keys": ["Leader", "q"], "description": "Quit Buffer" }
+            { "keys": "Leader e", "description": "Toggle File Explorer" },
+            { "keys": "Leader w", "description": "Save Buffer" },
+            { "keys": "Leader q", "description": "Quit Buffer" }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Tmux",
+      "icon": "terminal",
+      "subcategories": [
+        {
+          "name": "General & Sessions",
+          "icon": "settings",
+          "binds": [
+            { "keys": "CTRL + A", "description": "Prefix Trigger" },
+            { "keys": "CTRL + A, D", "description": "Detach Session" },
+            { "keys": "CTRL + A, S", "description": "Interactive Session List" },
+            { "keys": "CTRL + A, $", "description": "Rename Session" },
+            { "keys": "CTRL + A, (", "description": "Previous Session" },
+            { "keys": "CTRL + A, )", "description": "Next Session" },
+            { "keys": "CTRL + A, :", "description": "Command Prompt" },
+            { "keys": "CTRL + A, ?", "description": "List All Keybindings" },
+            { "keys": "CTRL + A, R", "description": "Reload Configuration" }
+          ]
+        },
+        {
+          "name": "Windows",
+          "icon": "app-window",
+          "binds": [
+            { "keys": "CTRL + A, C", "description": "New Window" },
+            { "keys": "CTRL + A, N", "description": "Next Window" },
+            { "keys": "CTRL + A, P", "description": "Previous Window" },
+            { "keys": "CTRL + A, L", "description": "Last Active Window" },
+            { "keys": "CTRL + A, W", "description": "Interactive Window Tree" },
+            { "keys": "CTRL + A, F", "description": "Find Window by Name" },
+            { "keys": "CTRL + A, ,", "description": "Rename Window" },
+            { "keys": "CTRL + A, .", "description": "Move Window Index" },
+            { "keys": "CTRL + A, &", "description": "Close Window" }
+          ]
+        },
+        {
+          "name": "Panes & Layouts",
+          "icon": "layout",
+          "binds": [
+            { "keys": "CTRL + A, |", "description": "Split Horizontal (Current Dir)" },
+            { "keys": "CTRL + A, -", "description": "Split Vertical (Current Dir)" },
+            { "keys": "CTRL + A, Space", "description": "Cycle Built-in Layouts" },
+            { "keys": "CTRL + A, Z", "description": "Toggle Zoom / Maximize" },
+            { "keys": "CTRL + A, Q", "description": "Show Pane Numbers & Jump" },
+            { "keys": "CTRL + A, {", "description": "Swap with Previous Pane" },
+            { "keys": "CTRL + A, }", "description": "Swap with Next Pane" },
+            { "keys": "CTRL + A, !", "description": "Break Pane to New Window" },
+            { "keys": "CTRL + A, O", "description": "Cycle to Next Pane" },
+            { "keys": "CTRL + A, X", "description": "Close Pane" },
+            { "keys": "CTRL + A, SHIFT + H/J/K/L", "description": "Resize Pane Left/Down/Up/Right" },
+            { "keys": "CTRL + A, T", "description": "Big Digital Clock" }
           ]
         }
       ]
