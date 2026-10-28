@@ -4,7 +4,7 @@
 local crud = {}
 
 export type BindEntry = {
-  keys: { string },
+  keys: any,
   description: string,
 }
 
@@ -67,18 +67,17 @@ function crud.addKeybind(
   appName: string,
   subcatName: string,
   description: string,
-  modifiers: { string },
-  primaryKey: string,
-  appIcon: string?,
-  subcatIcon: string?
+  modifiersOrCombo: any,
+  primaryKeyOrAppIcon: any,
+  maybeAppIcon: string?,
+  maybeSubcatIcon: string?
 ): (boolean, string?)
   local cleanApp = safeTrim(appName)
   local cleanSub = safeTrim(subcatName)
   local cleanDesc = safeTrim(description)
-  local cleanKey = string.upper(safeTrim(primaryKey))
 
-  if cleanDesc == "" or cleanKey == "" then
-    return false, "Description and primary key are required"
+  if cleanDesc == "" then
+    return false, "Description is required"
   end
   if cleanApp == "" then
     cleanApp = "Custom"
@@ -87,14 +86,37 @@ function crud.addKeybind(
     cleanSub = "General"
   end
 
-  local keys = {}
-  for _, m in ipairs(modifiers) do
-    local mu = string.upper(safeTrim(m))
-    if mu ~= "" then
-      table.insert(keys, mu)
+  local keys: any = nil
+  local appIcon: string? = nil
+  local subcatIcon: string? = nil
+
+  if type(modifiersOrCombo) == "string" then
+    local cleanCombo = safeTrim(modifiersOrCombo)
+    if cleanCombo == "" then
+      return false, "Key combination is required"
     end
+    keys = cleanCombo
+    appIcon = if type(primaryKeyOrAppIcon) == "string" then primaryKeyOrAppIcon else nil
+    subcatIcon = maybeAppIcon
+  elseif type(modifiersOrCombo) == "table" then
+    local cleanKey = string.upper(safeTrim(tostring(primaryKeyOrAppIcon or "")))
+    if cleanKey == "" then
+      return false, "Primary key is required"
+    end
+    local keyList = {}
+    for _, m in ipairs(modifiersOrCombo) do
+      local mu = string.upper(safeTrim(m))
+      if mu ~= "" then
+        table.insert(keyList, mu)
+      end
+    end
+    table.insert(keyList, cleanKey)
+    keys = keyList
+    appIcon = maybeAppIcon
+    subcatIcon = maybeSubcatIcon
+  else
+    return false, "Invalid key combination"
   end
-  table.insert(keys, cleanKey)
 
   local app = crud.findApp(store, cleanApp)
   if not app then
@@ -179,17 +201,26 @@ function crud.updateKeybind(
   newApp: string,
   newSubcat: string,
   newDesc: string,
-  newModifiers: { string },
-  newKey: string,
-  newAppIcon: string?,
-  newSubcatIcon: string?
+  newModifiersOrCombo: any,
+  newKeyOrAppIcon: any,
+  maybeAppIcon: string?,
+  maybeSubcatIcon: string?
 ): (boolean, string?)
   local deleted = crud.deleteKeybind(store, origApp, origSubcat, origBindIdx)
   if not deleted then
     return false, "Original keybind not found"
   end
 
-  return crud.addKeybind(store, newApp, newSubcat, newDesc, newModifiers, newKey, newAppIcon, newSubcatIcon)
+  return crud.addKeybind(
+    store,
+    newApp,
+    newSubcat,
+    newDesc,
+    newModifiersOrCombo,
+    newKeyOrAppIcon,
+    maybeAppIcon,
+    maybeSubcatIcon
+  )
 end
 
 function crud.renameApp(

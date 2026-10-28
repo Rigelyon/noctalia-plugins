@@ -694,12 +694,14 @@ local function renderKeybindCard(item: KeybindItem): any
       end
 
       formDesc = it.description
-      formKey = it.key
+      formKey = it.keyComboText or it.key
       formMods = { SUPER = false, CTRL = false, ALT = false, SHIFT = false }
-      for _, m in ipairs(it.modifiers) do
-        local mu = string.upper(m)
-        if formMods[mu] ~= nil then
-          formMods[mu] = true
+      if it.tokens == nil then
+        for _, m in ipairs(it.modifiers) do
+          local mu = string.upper(m)
+          if formMods[mu] ~= nil then
+            formMods[mu] = true
+          end
         end
       end
       formError = ""
@@ -1040,6 +1042,14 @@ local function renderModalOverlay(): any
       end,
       getCustomStore = getCustomStore,
       onSave = function(currentStore, payload)
+        local effectiveKey = formKey
+        if #payload.activeMods > 0 then
+          local modPrefix = table.concat(payload.activeMods, " + ")
+          if not string.find(string.upper(formKey), modPrefix, 1, true) then
+            effectiveKey = modPrefix .. " + " .. formKey
+          end
+        end
+
         local success, errMsg
         if modalMode == "create" then
           success, errMsg = crud.addKeybind(
@@ -1047,8 +1057,7 @@ local function renderModalOverlay(): any
             payload.effectiveApp,
             payload.effectiveSubcat,
             formDesc,
-            payload.activeMods,
-            formKey,
+            effectiveKey,
             formAppIcon,
             formSubcatIcon
           )
@@ -1061,8 +1070,7 @@ local function renderModalOverlay(): any
             payload.effectiveApp,
             payload.effectiveSubcat,
             formDesc,
-            payload.activeMods,
-            formKey,
+            effectiveKey,
             formAppIcon,
             formSubcatIcon
           )

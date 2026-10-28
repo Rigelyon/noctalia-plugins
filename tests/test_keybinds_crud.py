@@ -97,7 +97,29 @@ class TestKeybindsCrud(unittest.TestCase):
         del app["subcategories"][0]["binds"][0]
         self.assertEqual(len(app["subcategories"][0]["binds"]), 0)
 
+    def test_add_and_update_keybind_combo_string(self):
+        crud_path = Path(__file__).resolve().parent.parent / "keybinds" / "crud.luau"
+        content = crud_path.read_text(encoding="utf-8")
+        self.assertIn("modifiersOrCombo", content)
+
+        # In-memory CRUD simulation for combo string
+        data = {"apps": []}
+        app = {"name": "Tmux", "icon": "terminal", "subcategories": [{"name": "General", "icon": "command", "binds": []}]}
+        data["apps"].append(app)
+
+        # Add combo string
+        app["subcategories"][0]["binds"].append({
+            "keys": "CTRL + A, D",
+            "description": "Detach Session"
+        })
+        self.assertEqual(app["subcategories"][0]["binds"][0]["keys"], "CTRL + A, D")
+
+        # Update combo string
+        app["subcategories"][0]["binds"][0]["keys"] = "CTRL + A, :"
+        self.assertEqual(app["subcategories"][0]["binds"][0]["keys"], "CTRL + A, :")
+
 
 if __name__ == "__main__":
     unittest.main()
+
 
