@@ -1,6 +1,6 @@
 # Keybinds Chord & Sequence Display Support Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Support chorded (Tmux `CTRL + A, D`) and sequential (Neovim `Leader f f`) keybinding display and fix the tight spacing between highlight pills and separator symbols in the Noctalia keybinds plugin.
 
@@ -28,7 +28,7 @@
   where `KeyToken` = `{ text: string, isPrimary: boolean, sepAfter: string? }`
 - Modifies: `parser.parseCustomKeybinds(rawJson: string): { KeybindItem }` to attach `tokens = tokens` to each item.
 
-- [ ] **Step 1: Write failing tests for `parse_key_tokens` in `tests/test_keybinds_parser.py`**
+- [x] **Step 1: Write failing tests for `parse_key_tokens` in `tests/test_keybinds_parser.py`**
 
 Add unit tests in `tests/test_keybinds_parser.py` validating:
 1. Tmux chord: `"CTRL + A, D"` $\rightarrow$ tokens `[("CTRL", False, "+"), ("A", False, ","), ("D", True, None)]`, combo `"CTRL + A, D"`.
@@ -65,12 +65,12 @@ Add unit tests in `tests/test_keybinds_parser.py` validating:
         self.assertIsNone(tokens[2]["sepAfter"])
 ```
 
-- [ ] **Step 2: Run pytest to verify new tests fail**
+- [x] **Step 2: Run pytest to verify new tests fail**
 
 Run: `pytest tests/test_keybinds_parser.py -v`
 Expected: FAIL (`parse_key_tokens` not defined or not imported).
 
-- [ ] **Step 3: Implement `parser.parseKeyTokens` in `keybinds/parser.luau` and update Python test helper**
+- [x] **Step 3: Implement `parser.parseKeyTokens` in `keybinds/parser.luau` and update Python test helper**
 
 Add `parser.parseKeyTokens` in `keybinds/parser.luau`:
 ```luau
@@ -209,12 +209,12 @@ end
 ```
 and include `tokens = tokens` in the inserted item.
 
-- [ ] **Step 4: Run pytest to verify parser tests pass**
+- [x] **Step 4: Run pytest to verify parser tests pass**
 
 Run: `pytest tests/test_keybinds_parser.py -v`
 Expected: PASS.
 
-- [ ] **Step 5: Commit Task 1 changes**
+- [x] **Step 5: Commit Task 1 changes**
 
 ```bash
 git add keybinds/parser.luau tests/test_keybinds_parser.py
@@ -236,19 +236,19 @@ git commit -m "feat(keybinds): implement parseKeyTokens supporting chords and se
   - Badge with `components.renderKbdBadge(tok.text, tok.isPrimary, cornerRadiusScale)`
   - Separators: `+` label, `,` label, or no label for ` ` (handled by row gap).
 
-- [ ] **Step 1: Write test in `tests/test_keybinds_components.py` checking for token handling, comma separator, and `gap = 6`**
+- [x] **Step 1: Write test in `tests/test_keybinds_components.py` checking for token handling, comma separator, and `gap = 6`**
 
 Add assertions in `tests/test_keybinds_components.py`:
 - Checks `components.luau` renders `item.tokens` if available.
 - Checks `components.luau` uses `gap = 6` (or at least $\ge 5$) on the badges row.
 - Checks `components.luau` handles `sepAfter == ","` and `sepAfter == "+"`.
 
-- [ ] **Step 2: Run pytest to verify test fails**
+- [x] **Step 2: Run pytest to verify test fails**
 
 Run: `pytest tests/test_keybinds_components.py -v`
 Expected: FAIL (missing token handling / gap = 6).
 
-- [ ] **Step 3: Update `keybinds/components.luau`**
+- [x] **Step 3: Update `keybinds/components.luau`**
 
 Update `components.renderKbdBadges`:
 ```luau
@@ -298,12 +298,12 @@ and update row:
     }),
 ```
 
-- [ ] **Step 4: Run pytest to verify tests pass**
+- [x] **Step 4: Run pytest to verify tests pass**
 
 Run: `pytest tests/test_keybinds_components.py -v`
 Expected: PASS.
 
-- [ ] **Step 5: Commit Task 2 changes**
+- [x] **Step 5: Commit Task 2 changes**
 
 ```bash
 git add keybinds/components.luau tests/test_keybinds_components.py
@@ -325,18 +325,18 @@ git commit -m "fix(keybinds): refine badge row spacing to gap=6 and support toke
 - `crud.updateKeybind(store, origApp, origSubcat, origBindIdx, newApp, newSubcat, newDesc, newKeyCombo, newAppIcon?, newSubcatIcon?): (boolean, string?)`
 - Accepts string combo like `"CTRL + A, D"` or legacy `(modifiers, primaryKey)`.
 
-- [ ] **Step 1: Write tests in `tests/test_keybinds_crud.py` for adding and updating keybind with combo string**
+- [x] **Step 1: Write tests in `tests/test_keybinds_crud.py` for adding and updating keybind with combo string**
 
 Add test cases in `tests/test_keybinds_crud.py`:
 - `test_add_keybind_combo_string`: adds keybind with `"CTRL + A, D"`, verifies `keys` in store is `"CTRL + A, D"`.
 - `test_backward_compat_add`: verifies legacy `(modifiers, primaryKey)` arguments still work.
 
-- [ ] **Step 2: Run pytest to verify tests fail**
+- [x] **Step 2: Run pytest to verify tests fail**
 
 Run: `pytest tests/test_keybinds_crud.py -v`
 Expected: FAIL.
 
-- [ ] **Step 3: Implement combo string support in `keybinds/crud.luau` and `keybinds/modals.luau`**
+- [x] **Step 3: Implement combo string support in `keybinds/crud.luau` and `keybinds/modals.luau`**
 
 Update `crud.luau`:
 Support both `keyCombo: string` and legacy `(modifiers: {string}, primaryKey: string)`. If 5th parameter is a string, treat as `keyCombo`. Store as `"keys": cleanKeyCombo`.
@@ -345,12 +345,12 @@ Update `modals.luau`:
 - In `renderAddModal`, replace Primary Key input label with Key Combo (`tr("modal.key_combo_label") or "Key Combination"`), and placeholder: `"e.g. CTRL + SHIFT + C, CTRL + A, D, or Leader f f"`.
 - Make modifier buttons (`SUPER`, `CTRL`, `ALT`, `SHIFT`) append to the key combo field if not already present.
 
-- [ ] **Step 4: Run pytest to verify tests pass**
+- [x] **Step 4: Run pytest to verify tests pass**
 
 Run: `pytest tests/test_keybinds_crud.py tests/test_keybinds_modals.py -v`
 Expected: PASS.
 
-- [ ] **Step 5: Commit Task 3 changes**
+- [x] **Step 5: Commit Task 3 changes**
 
 ```bash
 git add keybinds/crud.luau keybinds/modals.luau tests/test_keybinds_crud.py tests/test_keybinds_modals.py
@@ -366,25 +366,25 @@ git commit -m "feat(keybinds): allow direct key combo string input in CRUD and m
 - Modify: `~/.local/state/noctalia/plugins/data/rigelyon/keybinds/custom_keybinds.json`
 - Test: `tests/test_keybinds_parser.py`, `tests/test_keybinds_panel.py`
 
-- [ ] **Step 1: Update `keybinds/presets.luau`**
+- [x] **Step 1: Update `keybinds/presets.luau`**
 
 Update Neovim and Tmux binds in `presets.luau`:
 - Neovim binds converted from arrays to strings: `"Leader f f"`, `"Leader f g"`, `"g d"`, `"K"`, `"Leader e"`, `"Leader w"`, `"Leader q"`.
 - Add official Tmux preset section with canonical `"CTRL + A, <key>"` chords (e.g. `"CTRL + A, D"`, `"CTRL + A, :"`, `"CTRL + A, CTRL + S"`, etc.).
 
-- [ ] **Step 2: Migrate active `custom_keybinds.json`**
+- [x] **Step 2: Migrate active `custom_keybinds.json`**
 
 Read `~/.local/state/noctalia/plugins/data/rigelyon/keybinds/custom_keybinds.json` and convert:
 - All Tmux binds with `["CTRL", "A", "..."]` to `"CTRL + A, ..."` (e.g. `"CTRL + A, D"`, `"CTRL + A, :"`).
 - All Neovim binds to `"Leader f f"`, `"g d"`, etc.
 - Seamless Navigation binds to `"CTRL + H"`, `"CTRL + J"`, `"CTRL + K"`, `"CTRL + L"`.
 
-- [ ] **Step 3: Run the full test suite**
+- [x] **Step 3: Run the full test suite**
 
 Run: `pytest tests/test_keybinds*.py -v`
 Expected: All 25+ tests pass with 100% success rate.
 
-- [ ] **Step 4: Commit Task 4 changes**
+- [x] **Step 4: Commit Task 4 changes**
 
 ```bash
 git add keybinds/presets.luau tests/test_keybinds_parser.py
