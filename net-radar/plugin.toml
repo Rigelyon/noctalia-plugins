@@ -1,0 +1,89 @@
+id = "rigelyon/net-radar"
+name = "NetRadar"
+version = "1.0.0"
+plugin_api = 28
+author = "rigelyon"
+license = "MIT"
+dependencies = ["iproute2", "iputils", "networkmanager"]
+tags = ["utility", "network", "gaming", "wifi", "monitor", "bar", "panel"]
+icon = "radar"
+description = "Real-time multi-target network radar & gaming latency diagnostics with Wi-Fi physical link health."
+
+[[setting]]
+key = "show_text_in_bar"
+type = "bool"
+label_key = "settings.show_text_in_bar.label"
+description_key = "settings.show_text_in_bar.description"
+default = false
+
+[[setting]]
+key = "idle_poll_interval_sec"
+type = "number"
+label_key = "settings.idle_poll_interval_sec.label"
+description_key = "settings.idle_poll_interval_sec.description"
+default = 5
+min = 2
+max = 30
+step = 1
+
+[[setting]]
+key = "active_poll_interval_sec"
+type = "number"
+label_key = "settings.active_poll_interval_sec.label"
+description_key = "settings.active_poll_interval_sec.description"
+default = 2
+min = 1
+max = 10
+step = 1
+
+[[setting]]
+key = "default_target_preset"
+type = "select"
+label_key = "settings.default_target_preset.label"
+description_key = "settings.default_target_preset.description"
+default = "sea_singapore"
+options = [
+  { value = "sea_singapore", label_key = "presets.sea_singapore" },
+  { value = "east_asia_tokyo", label_key = "presets.east_asia_tokyo" },
+  { value = "us_west", label_key = "presets.us_west" },
+  { value = "europe_west", label_key = "presets.europe_west" },
+  { value = "custom", label_key = "presets.custom" },
+]
+
+[[setting]]
+key = "custom_target_host"
+type = "string"
+label_key = "settings.custom_target_host.label"
+description_key = "settings.custom_target_host.description"
+default = "1.1.1.1"
+
+[[setting]]
+key = "enable_loss_desktop_notification"
+type = "bool"
+label_key = "settings.enable_loss_desktop_notification.label"
+description_key = "settings.enable_loss_desktop_notification.description"
+default = false
+
+[[setting]]
+key = "packet_loss_alert_threshold"
+type = "number"
+label_key = "settings.packet_loss_alert_threshold.label"
+description_key = "settings.packet_loss_alert_threshold.description"
+default = 5
+min = 1
+max = 50
+step = 1
+
+[[widget]]
+id = "widget"
+entry = "widget.luau"
+
+[[panel]]
+id = "panel"
+entry = "panel.luau"
+placement = "floating"
+position = "top_right"
+width = 460
+height = 540
+dismiss_on_outside_click = true
+persistent = false

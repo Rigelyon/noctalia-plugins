@@ -1,0 +1,76 @@
+{
+  "widget": {
+    "title": "NetRadar",
+    "tooltip_title": "NetRadar Telemetry",
+    "status_optimal": "OPTIMAL (Game-Ready)",
+    "status_fair": "FAIR (Casual / Risky)",
+    "status_poor": "POOR (Laggy / High Loss)",
+    "status_offline": "OFFLINE",
+    "row_game_latency": "Game Latency",
+    "row_jitter": "Jitter",
+    "row_packet_loss": "Packet Loss",
+    "row_gateway": "Gateway RTT",
+    "row_wifi_link": "Wi-Fi Link"
+  },
+  "panel": {
+    "title": "NETRADAR TELEMETRY",
+    "retest": "Retest",
+    "target_label": "Target",
+    "rtt_unit": "RTT",
+    "graph_title": "LATENCY & JITTER (LAST 60s)",
+    "graph_summary": "Min: %{min}ms • Avg: %{avg}ms • Max: %{max}ms • Jitter: %{jitter}ms • Loss: %{loss}%",
+    "targets_title": "MULTI-TARGET BREAKDOWN",
+    "target_gateway": "LOCAL GATEWAY",
+    "target_dns": "INTERNET DNS",
+    "target_game": "GAME SERVER",
+    "wifi_title": "WI-FI PHYSICAL HEALTH",
+    "wifi_ssid": "SSID",
+    "wifi_band": "Band",
+    "wifi_signal": "Signal",
+    "wifi_rate": "Link Rate",
+    "wired_connection": "Ethernet (Wired)",
+    "preset_label": "REGION PRESET",
+    "diag_optimal": "Wi-Fi link and game routing are pristine.",
+    "diag_wifi_issue": "High jitter/latency to local router. Possible Wi-Fi congestion (2.4 GHz) or distance.",
+    "diag_isp_issue": "Local router is fast, but ISP or external game routing has high packet loss/latency.",
+    "diag_captive_portal": "Connected to local router, but internet is blocked. Check captive login.",
+    "diag_offline": "No default gateway found. Network is disconnected."
+  },
+  "presets": {
+    "sea_singapore": "Southeast Asia / Singapore (Valve/Riot)",
+    "east_asia_tokyo": "East Asia / Tokyo (Apex/SF6)",
+    "us_west": "US West (California)",
+    "europe_west": "Europe West (Frankfurt)",
+    "custom": "Custom Host/IP"
+  },
+  "settings": {
+    "show_text_in_bar": {
+      "label": "Show Ping Text in Bar",
+      "description": "When disabled, displays only a clean dynamic icon glyph with no text cluttering the bar."
+    },
+    "idle_poll_interval_sec": {
+      "label": "Idle Polling Interval (seconds)",
+      "description": "Background probe interval when the panel is closed. Conserves battery and CPU budget."
+    },
+    "active_poll_interval_sec": {
+      "label": "Active Polling Interval (seconds)",
+      "description": "Fast probe interval while the HUD panel is actively open."
+    },
+    "default_target_preset": {
+      "label": "Default Target Region",
+      "description": "Preconfigured game server cluster endpoint for latency and jitter diagnostics."
+    },
+    "custom_target_host": {
+      "label": "Custom Target Host",
+      "description": "IP or domain name to probe when the Custom preset is active."
+    },
+    "enable_loss_desktop_notification": {
+      "label": "Desktop Alerts on Packet Loss",
+      "description": "Notify when packet loss exceeds the threshold."
+    },
+    "packet_loss_alert_threshold": {
+      "label": "Packet Loss Alert Threshold (%)",
+      "description": "Percentage of dropped packets within window that triggers a desktop notification."
+    }
+  }
+}

@@ -1,0 +1,76 @@
+{
+  "widget": {
+    "title": "NetRadar",
+    "tooltip_title": "Telemetri NetRadar",
+    "status_optimal": "OPTIMAL (Siap Main Game)",
+    "status_fair": "SEDANG (Kasual / Riskan)",
+    "status_poor": "BURUK (Lag / Loss Tinggi)",
+    "status_offline": "TERPUTUS",
+    "row_game_latency": "Ping Game",
+    "row_jitter": "Jitter",
+    "row_packet_loss": "Packet Loss",
+    "row_gateway": "Ping Router",
+    "row_wifi_link": "Koneksi Wi-Fi"
+  },
+  "panel": {
+    "title": "TELEMETRI NETRADAR",
+    "retest": "Uji Ulang",
+    "target_label": "Target",
+    "rtt_unit": "RTT",
+    "graph_title": "LATENCY & JITTER (60 DETIK TERAKHIR)",
+    "graph_summary": "Min: %{min}ms • Rata-rata: %{avg}ms • Maks: %{max}ms • Jitter: %{jitter}ms • Loss: %{loss}%",
+    "targets_title": "RINCIAN MULTI-TARGET",
+    "target_gateway": "ROUTER LOKAL",
+    "target_dns": "DNS INTERNET",
+    "target_game": "SERVER GAME",
+    "wifi_title": "KESEHATAN FISIK WI-FI",
+    "wifi_ssid": "SSID",
+    "wifi_band": "Pita",
+    "wifi_signal": "Sinyal",
+    "wifi_rate": "Kecepatan Taut",
+    "wired_connection": "Ethernet (Kabel LAN)",
+    "preset_label": "PRESET WILAYAH",
+    "diag_optimal": "Koneksi Wi-Fi dan jalur server game sangat lancar.",
+    "diag_wifi_issue": "Jitter/ping ke router lokal tinggi. Kemungkinan interferensi Wi-Fi (2.4 GHz) atau jarak terlalu jauh.",
+    "diag_isp_issue": "Koneksi ke router lancar, tapi ISP atau jalur luar mengalami lonjakan ping/packet loss.",
+    "diag_captive_portal": "Terhubung ke router lokal, tapi internet tertahan. Cek halaman login captive portal.",
+    "diag_offline": "Tidak ada gateway default. Jaringan terputus."
+  },
+  "presets": {
+    "sea_singapore": "Asia Tenggara / Singapura (Valve/Riot)",
+    "east_asia_tokyo": "Asia Timur / Tokyo (Apex/SF6)",
+    "us_west": "US West (California)",
+    "europe_west": "Eropa Barat (Frankfurt)",
+    "custom": "Host/IP Kustom"
+  },
+  "settings": {
+    "show_text_in_bar": {
+      "label": "Tampilkan Teks Ping di Bar",
+      "description": "Jika dinonaktifkan, bar hanya menampilkan 1 ikon bersih tanpa teks yang memenuhi bar."
+    },
+    "idle_poll_interval_sec": {
+      "label": "Interval Polling Latar Belakang (detik)",
+      "description": "Jeda waktu pengujian saat panel tertutup untuk menghemat CPU budget dan baterai."
+    },
+    "active_poll_interval_sec": {
+      "label": "Interval Polling Aktif (detik)",
+      "description": "Jeda waktu pengujian saat panel HUD sedang terbuka."
+    },
+    "default_target_preset": {
+      "label": "Preset Wilayah Default",
+      "description": "Titik akhir server game untuk pengujian latency dan jitter."
+    },
+    "custom_target_host": {
+      "label": "Host Target Kustom",
+      "description": "Alamat IP atau domain yang diuji saat preset Kustom dipilih."
+    },
+    "enable_loss_desktop_notification": {
+      "label": "Notifikasi Desktop saat Packet Loss",
+      "description": "Kirim notifikasi saat packet loss melebihi ambang batas."
+    },
+    "packet_loss_alert_threshold": {
+      "label": "Ambang Batas Alert Packet Loss (%)",
+      "description": "Persentase kegagalan paket yang akan memicu notifikasi desktop."
+    }
+  }
+}
