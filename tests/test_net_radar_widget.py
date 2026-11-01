@@ -9,7 +9,7 @@ class TestNetRadarWidget(unittest.TestCase):
     def test_widget_file_exists(self):
         self.assertTrue(os.path.isfile(WIDGET_FILE), "Missing widget.luau")
 
-    def test_widget_declarative_render_and_progress_bar(self):
+    def test_widget_colored_icon_only(self):
         with open(WIDGET_FILE, "r", encoding="utf-8") as f:
             content = f.read()
 
@@ -20,24 +20,16 @@ class TestNetRadarWidget(unittest.TestCase):
         # Must NOT use confusing wifi fan glyphs on the bar widget
         self.assertNotIn('"wifi-2"', content)
         self.assertNotIn('"wifi-off"', content)
-        # Must render vertical pill bar matching Noctalia system monitor (bottom-to-top fill)
-        self.assertIn("barW = 6", content)
-        self.assertIn("barH = 13", content)
-        self.assertIn("barRad = 3", content)
-        self.assertIn("filledH", content)
-        self.assertIn("emptyH", content)
+        # Icon-only: must NOT contain progress bar or vertical bar nodes
+        self.assertNotIn("barH", content)
+        self.assertNotIn("filledH", content)
+        self.assertNotIn("ui.progress", content)
         # Must register tooltip
         self.assertIn("barWidget.setTooltip", content)
 
-    def test_widget_status_colors_and_progress(self):
+    def test_widget_status_colors(self):
         with open(WIDGET_FILE, "r", encoding="utf-8") as f:
             content = f.read()
-
-        # Status progress levels
-        self.assertIn("1.0", content)  # OPTIMAL
-        self.assertIn("0.6", content)  # FAIR
-        self.assertIn("0.25", content) # POOR / CAPTIVE
-        self.assertIn("0.0", content)  # OFFLINE
 
         # Color roles (Noctalia MD3 palette)
         self.assertIn('"primary"', content)

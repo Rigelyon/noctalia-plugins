@@ -61,23 +61,17 @@ local function updateWidget()
 
   local status = state.getStatus()
   local statusColor = "primary"
-  local progressVal = 1.0
 
   if status == "OPTIMAL" then
     statusColor = "primary"
-    progressVal = 1.0
   elseif status == "FAIR" then
     statusColor = "tertiary"
-    progressVal = 0.6
   elseif status == "POOR" then
     statusColor = "error"
-    progressVal = 0.25
   elseif status == "CAPTIVE_PORTAL" then
     statusColor = "tertiary"
-    progressVal = 0.25
   else -- OFFLINE
     statusColor = "outline"
-    progressVal = 0.0
   end
 
   local showText = false
@@ -96,58 +90,12 @@ local function updateWidget()
     local isVertical = barWidget.isVertical and barWidget.isVertical()
     local items = {}
 
-    -- 1 dedicated logo only ("radar" Lucide/Tabler icon)
+    -- Dedicated colored icon
     table.insert(items, ui.glyph({
       name = "radar",
-      size = 13,
+      size = 14,
       color = statusColor,
     }))
-
-    -- System monitor style vertical pill bar (fills bottom-to-top)
-    local barW = 6
-    local barH = 13
-    local barRad = 3
-    local filledH = math.clamp(math.floor(barH * progressVal + 0.5), 0, barH)
-    local emptyH = barH - filledH
-
-    local barNode
-    if filledH >= barH then
-      barNode = ui.box({
-        width = barW,
-        height = barH,
-        radius = barRad,
-        fill = statusColor,
-      })
-    elseif filledH <= 0 then
-      barNode = ui.box({
-        width = barW,
-        height = barH,
-        radius = barRad,
-        fill = "outline/0.3",
-      })
-    else
-      barNode = ui.column({
-        width = barW,
-        height = barH,
-        radius = barRad,
-        gap = 0,
-        align = "center",
-      }, {
-        ui.box({
-          width = barW,
-          height = emptyH,
-          radius = barRad,
-          fill = "outline/0.3",
-        }),
-        ui.box({
-          width = barW,
-          height = filledH,
-          radius = barRad,
-          fill = statusColor,
-        }),
-      })
-    end
-    table.insert(items, barNode)
 
     if showText and state.gameMs then
       table.insert(items, ui.label({
@@ -163,14 +111,14 @@ local function updateWidget()
       tree = ui.column({
         align = "center",
         justify = "center",
-        gap = 3,
+        gap = 4,
         onClick = onClick,
       }, items)
     else
       tree = ui.row({
         align = "center",
         justify = "center",
-        gap = 3,
+        gap = 4,
         onClick = onClick,
       }, items)
     end

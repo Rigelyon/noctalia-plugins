@@ -71,6 +71,15 @@ end
 function state.setPreset(presetId: string)
   state.activePresetId = presetId
   state.prevGameMs = nil
+  if noctalia and noctalia.state then
+    local current = noctalia.state.get("net_radar.state")
+    if type(current) ~= "table" then
+      current = {}
+    end
+    current.activePresetId = presetId
+    current.prevGameMs = nil
+    noctalia.state.set("net_radar.state", current)
+  end
   state.notify()
 end
 
@@ -123,6 +132,25 @@ function state.processProbe(rawOutput: string)
     end
   end
   state.lossPct = total > 0 and (dropped / total) * 100.0 or 0.0
+
+  if noctalia and noctalia.state then
+    noctalia.state.set("net_radar.state", {
+      gwMs = state.gwMs,
+      dnsMs = state.dnsMs,
+      gameMs = state.gameMs,
+      prevGameMs = state.prevGameMs,
+      jitter = state.jitter,
+      lossPct = state.lossPct,
+      sampleCount = state.sampleCount,
+      ssid = state.ssid,
+      freqMhz = state.freqMhz,
+      signalPct = state.signalPct,
+      rateMbps = state.rateMbps,
+      history = state.history,
+      activePresetId = state.activePresetId,
+      customHost = state.customHost,
+    })
+  end
 
   state.notify()
 end
@@ -181,5 +209,58 @@ function state.getGraphValues(): ({ number }, number, number, number)
 end
 
 state.syncConfig()
+
+-- Cross-VM IPC Synchronization via noctalia.state
+if noctalia and noctalia.state then
+  local existing = noctalia.state.get("net_radar.state")
+  if existing and type(existing) == "table" then
+    state.gwMs = existing.gwMs
+    state.dnsMs = existing.dnsMs
+    state.gameMs = existing.gameMs
+    state.prevGameMs = existing.prevGameMs
+    state.jitter = existing.jitter or 0.0
+    state.lossPct = existing.lossPct or 0.0
+    state.sampleCount = existing.sampleCount or 0
+    state.ssid = existing.ssid or ""
+    state.freqMhz = existing.freqMhz or 0
+    state.signalPct = existing.signalPct or 0
+    state.rateMbps = existing.rateMbps or 0.0
+    if existing.history then
+      state.history = existing.history
+    end
+    if existing.activePresetId then
+      state.activePresetId = existing.activePresetId
+    end
+    if existing.customHost then
+      state.customHost = existing.customHost
+    end
+  end
+
+  noctalia.state.watch("net_radar.state", function(data)
+    if data and type(data) == "table" then
+      state.gwMs = data.gwMs
+      state.dnsMs = data.dnsMs
+      state.gameMs = data.gameMs
+      state.prevGameMs = data.prevGameMs
+      state.jitter = data.jitter or 0.0
+      state.lossPct = data.lossPct or 0.0
+      state.sampleCount = data.sampleCount or 0
+      state.ssid = data.ssid or ""
+      state.freqMhz = data.freqMhz or 0
+      state.signalPct = data.signalPct or 0
+      state.rateMbps = data.rateMbps or 0.0
+      if data.history then
+        state.history = data.history
+      end
+      if data.activePresetId then
+        state.activePresetId = data.activePresetId
+      end
+      if data.customHost then
+        state.customHost = data.customHost
+      end
+      state.notify()
+    end
+  end)
+end
 
 return state

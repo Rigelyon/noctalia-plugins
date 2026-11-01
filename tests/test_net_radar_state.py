@@ -200,6 +200,15 @@ class TestNetRadarState(unittest.TestCase):
         self.assertIn("default_target_preset", content)
         self.assertIn("custom_target_host", content)
 
+    def test_state_cross_vm_synchronization(self):
+        with open(STATE_FILE, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # Must synchronize telemetry and active preset across isolated Luau VMs via noctalia.state
+        self.assertIn("noctalia.state", content)
+        self.assertIn('noctalia.state.watch("net_radar.state"', content)
+        self.assertIn('noctalia.state.set("net_radar.state"', content)
+
 
 if __name__ == "__main__":
     unittest.main()
