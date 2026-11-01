@@ -208,6 +208,180 @@ function state.getGraphValues(): ({ number }, number, number, number)
   return values, minMs, avgMs, maxMs
 end
 
+local function tr(key: string, subst: { [string]: any }?): string
+  if noctalia and noctalia.tr then
+    return noctalia.tr(key, subst)
+  end
+  return key
+end
+
+function state.getDiagnostics(): (string, string, string)
+  -- 1. Tier 1 Critical (Takes precedence over everything)
+  if not state.gwMs and not state.dnsMs then
+    return tr("panel.diag_offline"), "alert-triangle", "outline"
+  end
+
+  if state.gwMs and not state.dnsMs and not state.gameMs then
+    return tr("panel.diag_captive_portal"), "alert-triangle", "tertiary"
+  end
+
+  if state.lossPct >= 10.0 or not state.gameMs then
+    return tr("panel.diag_isp_loss", { loss = string.format("%.0f", state.lossPct) }), "alert-triangle", "error"
+  end
+
+  -- Finding collection
+  local findings = {}
+  local isWeakWifi = (state.ssid ~= "" and (state.signalPct or 0) > 0 and (state.signalPct or 0) < 40)
+
+  -- 2. Tier 2 Acute Findings
+  if state.lossPct >= 1.0 and state.lossPct < 10.0 then
+    table.insert(findings, {
+      id = "isp_loss",
+      text = tr("panel.diag_isp_loss", { loss = string.format("%.1f", state.lossPct) }),
+      glyph = "alert-triangle",
+      color = "error",
+      tier = 2,
+      priority = 1,
+      isStable = false,
+    })
+  end
+
+  if state.gwMs and state.gwMs <= 15.0 and state.gameMs and state.gameMs > 120.0 then
+    table.insert(findings, {
+      id = "isp_lag",
+      text = tr("panel.diag_isp_lag", { ms = string.format("%.0f", state.gameMs) }),
+      glyph = "alert-circle",
+      color = "tertiary",
+      tier = 2,
+      priority = 2,
+      isStable = false,
+    })
+  end
+
+  if state.gwMs and state.gwMs > 30.0 and not isWeakWifi then
+    table.insert(findings, {
+      id = "local_bufferbloat",
+      text = tr("panel.diag_local_bufferbloat", { ms = string.format("%.0f", state.gwMs) }),
+      glyph = "alert-circle",
+      color = "tertiary",
+      tier = 2,
+      priority = 3,
+      isStable = false,
+    })
+  end
+
+  if (state.jitter or 0.0) > 15.0 then
+    table.insert(findings, {
+      id = "high_jitter",
+      text = tr("panel.diag_high_jitter", { jitter = string.format("%.1f", state.jitter) }),
+      glyph = "alert-circle",
+      color = "tertiary",
+      tier = 2,
+      priority = 4,
+      isStable = false,
+    })
+  end
+
+  -- 3. Tier 3 Environmental / Physical Findings
+  if isWeakWifi then
+    if (not state.gwMs or state.gwMs <= 20.0) and (state.jitter or 0.0) <= 10.0 and (state.lossPct or 0.0) == 0.0 then
+      table.insert(findings, {
+        id = "weak_signal_stable",
+        text = tr("panel.diag_weak_signal_stable", { signal = tostring(state.signalPct or 0) }),
+        glyph = "info-circle",
+        color = "primary",
+        tier = 3,
+        priority = 5,
+        isStable = true,
+      })
+    else
+      table.insert(findings, {
+        id = "wifi_weak_unstable",
+        text = tr("panel.diag_wifi_weak_unstable", { signal = tostring(state.signalPct or 0) }),
+        glyph = "alert-triangle",
+        color = "tertiary",
+        tier = 3,
+        priority = 6,
+        isStable = false,
+      })
+    end
+  elseif (state.ssid == "" or not state.ssid) and state.gwMs then
+    table.insert(findings, {
+      id = "wired_optimal",
+      text = tr("panel.diag_wired_optimal"),
+      glyph = "check-circle",
+      color = "primary",
+      tier = 3,
+      priority = 7,
+      isStable = true,
+    })
+  end
+
+  -- 4. Synthesis & Fallback
+  local hasIssues = false
+  for _, f in ipairs(findings) do
+    if not f.isStable then
+      hasIssues = true
+      break
+    end
+  end
+
+  local activeFindings = {}
+  for _, f in ipairs(findings) do
+    if not hasIssues or not f.isStable then
+      table.insert(activeFindings, f)
+    end
+  end
+
+  if #activeFindings == 0 then
+    return tr("panel.diag_optimal"), "info-circle", "primary"
+  end
+
+  if #activeFindings == 1 then
+    local f = activeFindings[1]
+    return f.text, f.glyph, f.color
+  end
+
+  -- Sort active findings by severity and priority
+  local function severityScore(color: string): number
+    if color == "error" then return 1 end
+    if color == "tertiary" then return 2 end
+    if color == "primary" then return 3 end
+    return 4
+  end
+
+  table.sort(activeFindings, function(a, b)
+    local sa = severityScore(a.color)
+    local sb = severityScore(b.color)
+    if sa ~= sb then
+      return sa < sb
+    end
+    if a.tier ~= b.tier then
+      return a.tier < b.tier
+    end
+    return a.priority < b.priority
+  end)
+
+  local f1 = activeFindings[1]
+  local f2 = activeFindings[2]
+
+  local clean1 = (string.gsub(f1.text, "%s*%.+$", ""))
+  local clean2 = (string.gsub(f2.text, "%s*%.+$", ""))
+
+  local diagText = tr("panel.diag_synthesis_connector", { first = clean1, second = clean2 })
+
+  local overallColor = "primary"
+  if f1.color == "error" or f2.color == "error" then
+    overallColor = "error"
+  elseif f1.color == "tertiary" or f2.color == "tertiary" then
+    overallColor = "tertiary"
+  end
+
+  local overallGlyph = f1.glyph
+
+  return diagText, overallGlyph, overallColor
+end
+
 state.syncConfig()
 
 -- Cross-VM IPC Synchronization via noctalia.state
