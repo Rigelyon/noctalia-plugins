@@ -86,7 +86,7 @@ tags = ["utility", "hyprland", "panel", "bar", "shortcut", "productivity"]
 id = "rigelyon/hypr-layout"
 name = "Hyprland Layout Switcher"
 version = "1.0.0"
-updated_at = 1792234423
+updated_at = 1792238787
 added_at = 1792234423
 author = "rigelyon"
 license = "MIT"
@@ -99,8 +99,8 @@ tags = ["hyprland", "utility", "bar", "panel", "productivity"]
 id = "rigelyon/hypr-monitors"
 name = "Hyprland Monitor Manager"
 version = "1.0.0"
-updated_at = 1792320000
-added_at = 1792320000
+updated_at = 1792348455
+added_at = 1792342471
 author = "rigelyon"
 license = "MIT"
 icon = "device-desktop"
@@ -108,16 +108,28 @@ description = "Aesthetic visual display manager for Hyprland with gapless canvas
 plugin_api = 28
 tags = ["hyprland", "monitor", "display", "utility", "bar", "panel", "productivity"]
 
-
 [[plugin]]
 id = "rigelyon/pinboard"
 name = "Pinboard"
 version = "1.0.0"
-updated_at = 1793094540
-added_at = 1793094540
+updated_at = 1793094691
+added_at = 1793093579
 author = "rigelyon"
 license = "MIT"
 icon = "pin"
 description = "Minimalist reference stash and pinned screen overlay for artists and gamers."
 plugin_api = 28
 tags = ["utility", "productivity", "layer", "panel", "bar", "art", "gaming"]
+
+[[plugin]]
+id = "rigelyon/net-radar"
+name = "NetRadar"
+version = "1.0.0"
+updated_at = 1793556797
+added_at = 1793556797
+author = "rigelyon"
+license = "MIT"
+icon = "radar"
+description = "Real-time multi-target network radar & gaming latency diagnostics with Wi-Fi physical link health."
+plugin_api = 28
+tags = ["utility", "network", "gaming", "indicator", "bar", "panel", "system"]

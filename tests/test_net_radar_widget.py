@@ -20,11 +20,12 @@ class TestNetRadarWidget(unittest.TestCase):
         # Must NOT use confusing wifi fan glyphs on the bar widget
         self.assertNotIn('"wifi-2"', content)
         self.assertNotIn('"wifi-off"', content)
-        # Must render vertical progress bar matching Noctalia system monitor
-        self.assertIn("ui.progress", content)
-        self.assertIn("width = 6", content)
-        self.assertIn("height = 14", content)
-        self.assertIn("radius = 3", content)
+        # Must render vertical pill bar matching Noctalia system monitor (bottom-to-top fill)
+        self.assertIn("barW = 6", content)
+        self.assertIn("barH = 13", content)
+        self.assertIn("barRad = 3", content)
+        self.assertIn("filledH", content)
+        self.assertIn("emptyH", content)
         # Must register tooltip
         self.assertIn("barWidget.setTooltip", content)
 

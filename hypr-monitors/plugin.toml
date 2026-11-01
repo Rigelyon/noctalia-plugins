@@ -14,7 +14,7 @@ key = "config_path"
 type = "string"
 label_key = "settings.config_path.label"
 description_key = "settings.config_path.description"
-default = "~/.config/hypr/monitors.conf"
+default = "~/.config/hypr/hypr-monitors.lua"
 
 [[setting]]
 key = "safety_timeout"

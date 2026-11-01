@@ -4,13 +4,20 @@ local state = require("./state.luau")
 local hypr = require("./hypr.luau")
 local layoutMath = require("./layout_math.luau")
 
+local function tr(key: string, subst: { [string]: any }?): string
+  if noctalia and noctalia.tr then
+    return noctalia.tr(key, subst)
+  end
+  return key
+end
+
 local function updateWidget()
   if not barWidget then return end
 
   local count = #state.monitors
   local isMirror = false
   local tooltips = {
-    { key = "Status", value = string.format("%d Connected Monitors", count) }
+    { key = tr("widget.tooltip_title"), value = tr("panel.subtitle", { count = tostring(count) }) }
   }
 
   for _, m in ipairs(state.monitors) do
@@ -19,7 +26,7 @@ local function updateWidget()
     end
     table.insert(tooltips, {
       key = m.name,
-      value = string.format("%dx%d@%.0fHz (%.2fx)", m.width, m.height, m.refreshRate, m.scale)
+      value = string.format("%dx%d @ %.0fHz • %.2fx", m.width, m.height, m.refreshRate, m.scale)
     })
   end
 

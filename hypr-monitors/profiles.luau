@@ -68,7 +68,8 @@ function profiles.saveProfile(name: string, currentMonitors: { layoutMath.Monito
   end
   table.sort(names)
 
-  local profileId = string.lower(string.gsub(name, "%s+", "-")) .. "-" .. tostring(os.time())
+  local sanitized = string.gsub(string.lower(name), "%s+", "-")
+  local profileId = sanitized .. "-" .. tostring(os.time())
   local newProf: Profile = {
     id = profileId,
     name = name,

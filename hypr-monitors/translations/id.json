@@ -1,89 +1,104 @@
 {
   "plugin": {
-    "name": "Hyprland Monitor Manager",
-    "description": "Pengatur visual monitor estetik untuk Hyprland"
+    "name": "Pengelola Layar Hyprland",
+    "description": "Pengatur visual layar untuk Hyprland"
   },
   "settings": {
     "config_path": {
-      "label": "Lokasi File Konfigurasi Monitor",
-      "description": "Path ke file konfigurasi monitor Hyprland (default: ~/.config/hypr/monitors.conf)"
+      "label": "Lokasi Berkas Konfigurasi",
+      "description": "Jalur penyimpanan berkas konfigurasi layar Hyprland"
     },
     "safety_timeout": {
-      "label": "Durasi Safety Revert",
-      "description": "Detik sebelum membatalkan otomatis perubahan yang belum dikonfirmasi"
+      "label": "Batas Waktu Pembatalan",
+      "description": "Jumlah detik sebelum perubahan yang belum dikonfirmasi dibatalkan otomatis"
     },
     "enable_safety_timer": {
-      "label": "Aktifkan Safety Timer",
-      "description": "Otomatis batalkan perubahan layar untuk mencegah layar blank hitam"
+      "label": "Pengatur Waktu Pembatalan Otomatis",
+      "description": "Batalkan perubahan layar secara otomatis untuk mencegah layar hitam"
     },
     "auto_switch_profiles": {
-      "label": "Auto-Switch Profil",
-      "description": "Otomatis mengaktifkan profil yang cocok saat monitor dicolokkan atau dicabut"
+      "label": "Peralihan Profil Otomatis",
+      "description": "Aktifkan profil yang cocok secara otomatis saat layar terhubung atau terlepas"
     },
     "show_count_in_bar": {
-      "label": "Tampilkan Jumlah di Bar",
-      "description": "Tampilkan angka jumlah layar aktif di samping ikon bar"
+      "label": "Tampilkan Jumlah Layar di Bilah Status",
+      "description": "Tampilkan angka jumlah layar aktif di samping ikon bilah status"
     },
     "enable_vrr_options": {
-      "label": "Tampilkan Opsi Gaming / VRR",
-      "description": "Tampilkan opsi Variable Refresh Rate (Adaptive Sync) dan kedalaman bit"
+      "label": "Tampilkan Pilihan Kecepatan Segar Variabel",
+      "description": "Tampilkan opsi sinkronisasi adaptif dan kedalaman warna"
     }
   },
   "panel": {
-    "title": "Hyprland Monitor Manager",
-    "subtitle": "{count} Layar Tersambung",
-    "tab_inspector": "Inspektur Monitor",
+    "title": "Pengelola Layar Hyprland",
+    "subtitle": "{count} Layar Terhubung",
+    "tab_inspector": "Pemeriksa Layar",
     "tab_profiles": "Profil Tampilan",
-    "canvas_help": "Klik monitor untuk inspeksi. Gunakan tombol snap untuk menyelaraskan posisi.",
-    "snap_left": "Snap Kiri",
-    "snap_right": "Snap Kanan",
-    "snap_above": "Di Atas",
-    "snap_below": "Di Bawah",
-    "align_tops": "Rata Atas",
-    "align_bottoms": "Rata Bawah",
-    "preset_extend": "Rentang (Extend)",
-    "preset_mirror": "Duplikat (Mirror)",
-    "preset_single": "Hanya Laptop",
-    "preset_external": "Hanya Eksternal",
-    "label_resolution": "Resolusi & Refresh Rate",
+    "canvas_help": "Klik layar untuk memeriksa atau gunakan tombol penata posisi",
+    "snap_left": "Rata Kiri",
+    "snap_right": "Rata Kanan",
+    "snap_above": "Rata Atas",
+    "snap_below": "Rata Bawah",
+    "align_tops": "Sejajar Atas",
+    "align_bottoms": "Sejajar Bawah",
+    "preset_extend": "Perluas Layar",
+    "preset_mirror": "Duplikat Layar",
+    "preset_single": "Hanya Layar Utama",
+    "preset_external": "Hanya Layar Eksternal",
+    "label_resolution": "Resolusi dan Kecepatan Segar",
+    "label_refresh_rate": "Kecepatan Segar",
     "label_scale": "Skala Tampilan",
-    "label_orientation": "Orientasi / Rotasi",
-    "label_position": "Offset Posisi",
-    "label_mirror": "Target Mirror",
-    "label_advanced": "Opsi Lanjutan",
-    "label_vrr": "Adaptive Sync (VRR)",
-    "label_ten_bit": "Kedalaman Warna 10-Bit",
-    "label_power": "Daya Monitor (DPMS)",
+    "label_orientation": "Orientasi Layar",
+    "label_position": "Koordinat Posisi",
+    "label_mirror": "Mode Tampilan",
+    "mode_extend": "Layar Terpisah",
+    "mode_clone_from": "Duplikat dari {source}",
+    "label_advanced": "Pilihan Lanjutan",
+    "label_vrr": "Sinkronisasi Adaptif",
+    "label_ten_bit": "Kedalaman Warna 10 Bit",
+    "label_power": "Daya Layar",
     "status_in_sync": "Selaras dengan Hyprland",
-    "status_pending": "{count} perubahan belum diterapkan",
+    "status_pending": "{count} perubahan belum disimpan",
     "btn_revert": "Batalkan",
-    "btn_apply": "Terapkan Live",
-    "btn_save_config": "Simpan ke Config",
-    "safety_title": "Pertahankan perubahan layar?",
-    "safety_desc": "Pengaturan diterapkan. Otomatis revert dalam {seconds}s jika tidak dikonfirmasi.",
+    "btn_apply": "Terapkan",
+    "btn_save_config": "Simpan Konfigurasi",
+    "safety_title": "Pertahankan perubahan layar ini?",
+    "safety_desc": "Pengaturan telah diterapkan. Perubahan akan dibatalkan otomatis dalam {seconds} detik jika tidak dikonfirmasi.",
     "btn_keep": "Pertahankan",
-    "btn_revert_now": "Revert Sekarang",
-    "btn_enable_display": "Aktifkan Monitor",
-    "btn_disable_display": "Nonaktifkan Monitor",
-    "tip_source": "Tip: Tambahkan 'source = ~/.config/hypr/monitors.conf' ke hyprland.conf Anda",
-    "copy_source": "Salin"
+    "btn_revert_now": "Batalkan Sekarang",
+    "btn_enable_display": "Aktifkan Layar",
+    "btn_disable_display": "Nonaktifkan Layar",
+    "btn_reset_pos": "Atur Ulang Posisi",
+    "tip_source": "Tambahkan baris require hypr-monitors ke berkas konfigurasi Hyprland Anda",
+    "copy_source": "Salin",
+    "badge_disabled": "Nonaktif",
+    "badge_main": "Layar Utama",
+    "badge_clone": "Duplikat {source}",
+    "single_display": "Satu Layar Terhubung",
+    "notify_saved_title": "Konfigurasi Disimpan",
+    "notify_saved_body": "Tersimpan di {path}",
+    "notify_confirmed_title": "Pengaturan Dikonfirmasi",
+    "notify_reverted_title": "Pengaturan Dibatalkan",
+    "notify_reverted_body": "Layar dikembalikan ke konfigurasi sebelumnya",
+    "notify_failed_title": "Gagal Menyimpan"
   },
   "profiles": {
     "title": "Profil Tersimpan",
-    "save_current": "Simpan Tata Letak Saat Ini",
-    "name_placeholder": "Nama profil (misal: Kantor Dual)",
+    "save_current": "Simpan Tata Letak Ini",
+    "name_placeholder": "Beri nama profil baru",
+    "default_name": "Profil {num}",
     "btn_save": "Simpan",
     "btn_apply": "Terapkan",
     "btn_delete": "Hapus",
     "badge_active": "Aktif",
-    "auto_switch_label": "Auto-switch saat terhubung"
+    "auto_switch_label": "Beralih otomatis saat terhubung"
   },
   "widget": {
     "tooltip_title": "Layar Hyprland",
-    "open_manager": "Pengaturan Layar...",
-    "preset_extend": "Rentang Layar (Extend)",
-    "preset_mirror": "Duplikat Layar (Mirror)",
-    "preset_laptop_only": "Hanya Layar Laptop",
+    "open_manager": "Buka Pengaturan Layar",
+    "preset_extend": "Perluas Layar",
+    "preset_mirror": "Duplikat Layar",
+    "preset_laptop_only": "Hanya Layar Utama",
     "preset_external_only": "Hanya Layar Eksternal"
   }
 }

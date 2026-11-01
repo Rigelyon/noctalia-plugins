@@ -99,30 +99,55 @@ local function updateWidget()
     -- 1 dedicated logo only ("radar" Lucide/Tabler icon)
     table.insert(items, ui.glyph({
       name = "radar",
-      size = 14,
+      size = 13,
       color = statusColor,
     }))
 
-    -- System monitor style vertical pill progress bar
-    if isVertical then
-      table.insert(items, ui.progress({
-        width = 14,
-        height = 6,
-        radius = 3,
-        progress = progressVal,
+    -- System monitor style vertical pill bar (fills bottom-to-top)
+    local barW = 6
+    local barH = 13
+    local barRad = 3
+    local filledH = math.clamp(math.floor(barH * progressVal + 0.5), 0, barH)
+    local emptyH = barH - filledH
+
+    local barNode
+    if filledH >= barH then
+      barNode = ui.box({
+        width = barW,
+        height = barH,
+        radius = barRad,
         fill = statusColor,
-        track = "surface_variant",
-      }))
+      })
+    elseif filledH <= 0 then
+      barNode = ui.box({
+        width = barW,
+        height = barH,
+        radius = barRad,
+        fill = "outline/0.3",
+      })
     else
-      table.insert(items, ui.progress({
-        width = 6,
-        height = 14,
-        radius = 3,
-        progress = progressVal,
-        fill = statusColor,
-        track = "surface_variant",
-      }))
+      barNode = ui.column({
+        width = barW,
+        height = barH,
+        radius = barRad,
+        gap = 0,
+        align = "center",
+      }, {
+        ui.box({
+          width = barW,
+          height = emptyH,
+          radius = barRad,
+          fill = "outline/0.3",
+        }),
+        ui.box({
+          width = barW,
+          height = filledH,
+          radius = barRad,
+          fill = statusColor,
+        }),
+      })
     end
+    table.insert(items, barNode)
 
     if showText and state.gameMs then
       table.insert(items, ui.label({
@@ -138,14 +163,14 @@ local function updateWidget()
       tree = ui.column({
         align = "center",
         justify = "center",
-        gap = 4,
+        gap = 3,
         onClick = onClick,
       }, items)
     else
       tree = ui.row({
         align = "center",
         justify = "center",
-        gap = 4,
+        gap = 3,
         onClick = onClick,
       }, items)
     end

@@ -6,7 +6,7 @@
   "settings": {
     "config_path": {
       "label": "Monitors Config Path",
-      "description": "Path to persistent Hyprland monitors file (default: ~/.config/hypr/monitors.conf)"
+      "description": "Path to persistent Hyprland monitors file, default: ~/.config/hypr/hypr-monitors.lua"
     },
     "safety_timeout": {
       "label": "Safety Revert Timeout",
@@ -25,8 +25,8 @@
       "description": "Display active screen count next to the status bar icon"
     },
     "enable_vrr_options": {
-      "label": "Show Gaming / VRR Controls",
-      "description": "Show Variable Refresh Rate (Adaptive Sync) and bitdepth options"
+      "label": "Show Gaming and VRR Controls",
+      "description": "Show Variable Refresh Rate options and bit depth settings"
     }
   },
   "panel": {
@@ -34,44 +34,59 @@
     "subtitle": "{count} Connected Monitors",
     "tab_inspector": "Monitor Inspector",
     "tab_profiles": "Display Profiles",
-    "canvas_help": "Click monitor to inspect. Use snap buttons to align positions.",
+    "canvas_help": "Click monitor to inspect or use alignment tools to position screens",
     "snap_left": "Snap Left",
     "snap_right": "Snap Right",
     "snap_above": "Snap Above",
     "snap_below": "Snap Below",
     "align_tops": "Align Tops",
     "align_bottoms": "Align Bottoms",
-    "preset_extend": "Extend",
-    "preset_mirror": "Mirror",
-    "preset_single": "Single Only",
-    "preset_external": "External Only",
-    "label_resolution": "Resolution & Refresh Rate",
+    "preset_extend": "Extend Displays",
+    "preset_mirror": "Duplicate Displays",
+    "preset_single": "Main Display Only",
+    "preset_external": "External Displays Only",
+    "label_resolution": "Resolution and Refresh Rate",
+    "label_refresh_rate": "Refresh Rate",
     "label_scale": "Display Scaling",
     "label_orientation": "Orientation",
-    "label_position": "Offset Position",
-    "label_mirror": "Mirror Target",
+    "label_position": "Position Coordinates",
+    "label_mirror": "Display Mode",
+    "mode_extend": "Independent Display",
+    "mode_clone_from": "Clone of {source}",
     "label_advanced": "Advanced Options",
-    "label_vrr": "Adaptive Sync (VRR)",
+    "label_vrr": "Adaptive Sync",
     "label_ten_bit": "10-Bit Color Depth",
-    "label_power": "Display Power (DPMS)",
+    "label_power": "Display Power",
     "status_in_sync": "In sync with Hyprland",
     "status_pending": "{count} pending changes",
     "btn_revert": "Revert",
-    "btn_apply": "Apply Live",
-    "btn_save_config": "Save to Config",
+    "btn_apply": "Apply",
+    "btn_save_config": "Save Configuration",
     "safety_title": "Keep display changes?",
-    "safety_desc": "Settings applied. Auto-reverting in {seconds}s if not confirmed.",
+    "safety_desc": "Settings applied. Auto-reverting in {seconds} seconds if not confirmed.",
     "btn_keep": "Keep Changes",
     "btn_revert_now": "Revert Now",
     "btn_enable_display": "Enable Display",
     "btn_disable_display": "Disable Display",
-    "tip_source": "Tip: Add 'source = ~/.config/hypr/monitors.conf' to your hyprland.conf",
-    "copy_source": "Copy"
+    "btn_reset_pos": "Reset Position",
+    "tip_source": "Add require hypr-monitors to your Hyprland configuration",
+    "copy_source": "Copy",
+    "badge_disabled": "Disabled",
+    "badge_main": "Main Display",
+    "badge_clone": "Clone {source}",
+    "single_display": "Single Display Connected",
+    "notify_saved_title": "Configuration Saved",
+    "notify_saved_body": "Saved to {path}",
+    "notify_confirmed_title": "Settings Confirmed",
+    "notify_reverted_title": "Settings Reverted",
+    "notify_reverted_body": "Restored previous display configuration",
+    "notify_failed_title": "Save Failed"
   },
   "profiles": {
     "title": "Saved Profiles",
-    "save_current": "Save Current Setup as Profile",
-    "name_placeholder": "Profile name (e.g. Office Dual)",
+    "save_current": "Save Current Layout",
+    "name_placeholder": "New profile name",
+    "default_name": "Profile {num}",
     "btn_save": "Save",
     "btn_apply": "Apply",
     "btn_delete": "Delete",
@@ -80,10 +95,10 @@
   },
   "widget": {
     "tooltip_title": "Hyprland Displays",
-    "open_manager": "Display Settings...",
-    "preset_extend": "Extend Display",
-    "preset_mirror": "Mirror Displays",
-    "preset_laptop_only": "Laptop Screen Only",
-    "preset_external_only": "External Screen Only"
+    "open_manager": "Display Settings",
+    "preset_extend": "Extend Displays",
+    "preset_mirror": "Duplicate Displays",
+    "preset_laptop_only": "Main Display Only",
+    "preset_external_only": "External Displays Only"
   }
 }

@@ -16,7 +16,8 @@ function components.renderCanvasCard(
   m: layoutMath.Monitor,
   bounds: { x: number, y: number, w: number, h: number },
   isSelected: boolean,
-  onClick: () -> ()
+  onClick: () -> (),
+  isMain: boolean?
 ): any
   local borderFill = isSelected and "primary" or "outline"
   local bgFill = isSelected and "surface" or "surface_variant"
@@ -24,11 +25,11 @@ function components.renderCanvasCard(
 
   local badgeText = ""
   if m.disabled then
-    badgeText = "⊘ Disabled"
+    badgeText = tr("panel.badge_disabled") or "Nonaktif"
   elseif m.mirrorOf and m.mirrorOf ~= "" and m.mirrorOf ~= "none" then
-    badgeText = "⎘ Mirror"
-  elseif (m.x == 0 and m.y == 0) then
-    badgeText = "● Main"
+    badgeText = tr("panel.badge_clone", { source = m.mirrorOf }) or ("Duplikat " .. m.mirrorOf)
+  elseif isMain or (isMain == nil and (m.x == 0 and m.y == 0)) then
+    badgeText = tr("panel.badge_main") or "Layar Utama"
   else
     badgeText = string.format("+%d,%d", m.x or 0, m.y or 0)
   end
@@ -79,7 +80,7 @@ function components.renderCanvasCard(
 
   local subInfo = ""
   if m.disabled then
-    subInfo = "Disabled (Off)"
+    subInfo = tr("panel.badge_disabled") or "Nonaktif"
   else
     subInfo = string.format("%.0fHz", m.refreshRate or 60)
     if isPortrait or bounds.w < 120 then
@@ -187,18 +188,19 @@ function components.renderCanvasToolbar(actions: {
   else
     return ui.row({ gap = 6, align = "center" }, {
       ui.glyph({ name = "device-desktop", size = 14, color = "secondary" }),
-      ui.label({ text = "Single Display Connected", fontSize = 11, color = "on_surface_variant" }),
+      ui.label({ text = tr("panel.single_display") or "Satu Layar Terhubung", fontSize = 11, color = "on_surface_variant" }),
     })
   end
 end
 
 -- Renders display scale steppers and quick pill buttons
-function components.renderScaleSelector(currentScale: number, onScaleChanged: (number) -> ()): any
+function components.renderScaleSelector(currentScale: number?, onScaleChanged: (number) -> ()): any
+  local scaleVal = currentScale or 1.0
   local presets = { 1.0, 1.25, 1.5, 1.75, 2.0 }
   local pillButtons = {}
 
   for _, s in ipairs(presets) do
-    local isAct = math.abs(currentScale - s) < 0.01
+    local isAct = math.abs(scaleVal - s) < 0.01
     table.insert(pillButtons, ui.button({
       text = string.format("%.2fx", s),
       variant = isAct and "primary" or "ghost",
@@ -212,7 +214,7 @@ function components.renderScaleSelector(currentScale: number, onScaleChanged: (n
       text = "-",
       variant = "outline",
       onClick = function()
-        local nextS = math.max(0.5, currentScale - 0.05)
+        local nextS = math.max(0.5, scaleVal - 0.05)
         onScaleChanged(math.floor(nextS * 100 + 0.5) / 100)
       end,
     }),
@@ -221,7 +223,7 @@ function components.renderScaleSelector(currentScale: number, onScaleChanged: (n
       text = "+",
       variant = "outline",
       onClick = function()
-        local nextS = math.min(3.0, currentScale + 0.05)
+        local nextS = math.min(3.0, scaleVal + 0.05)
         onScaleChanged(math.floor(nextS * 100 + 0.5) / 100)
       end,
     }),
@@ -229,7 +231,8 @@ function components.renderScaleSelector(currentScale: number, onScaleChanged: (n
 end
 
 -- Renders 4-way rotation selector
-function components.renderOrientationSelector(currentTransform: number, onTransformChanged: (number) -> ()): any
+function components.renderOrientationSelector(currentTransform: number?, onTransformChanged: (number) -> ()): any
+  local transVal = currentTransform or 0
   local options = {
     { val = 0, label = "0°" },
     { val = 1, label = "90°" },
@@ -239,12 +242,51 @@ function components.renderOrientationSelector(currentTransform: number, onTransf
 
   local buttons = {}
   for _, opt in ipairs(options) do
-    local isAct = (currentTransform == opt.val)
+    local isAct = (transVal == opt.val)
     table.insert(buttons, ui.button({
       text = opt.label,
       variant = isAct and "primary" or "ghost",
       onClick = function() onTransformChanged(opt.val) end,
     }))
+  end
+
+  return ui.row({ gap = 4, radius = 6, fill = "surface_variant", padding = 2 }, buttons)
+end
+
+-- Renders display mode selector (Extend vs Clone/Mirror of another display)
+function components.renderMirrorSelector(
+  selected: layoutMath.Monitor,
+  allMonitors: { layoutMath.Monitor },
+  onMirrorChanged: (string?) -> ()
+): any
+  local isExtend = (not selected.mirrorOf or selected.mirrorOf == "" or selected.mirrorOf == "none")
+  local buttons = {}
+
+  -- Option 1: Extend (Independent screen)
+  table.insert(buttons, ui.button({
+    text = tr("panel.mode_extend") or "Layar Terpisah",
+    variant = isExtend and "primary" or "ghost",
+    fontSize = 11,
+    onClick = function()
+      onMirrorChanged(nil)
+    end,
+  }))
+
+  -- Options 2+: Clone from other available connected displays
+  for _, other in ipairs(allMonitors) do
+    if other.name ~= selected.name then
+      local isCloningThis = (selected.mirrorOf == other.name)
+      local cloneLabel = tr("panel.mode_clone_from", { source = other.name })
+        or ("Duplikat dari " .. other.name)
+      table.insert(buttons, ui.button({
+        text = cloneLabel,
+        variant = isCloningThis and "primary" or "ghost",
+        fontSize = 11,
+        onClick = function()
+          onMirrorChanged(other.name)
+        end,
+      }))
+    end
   end
 
   return ui.row({ gap = 4, radius = 6, fill = "surface_variant", padding = 2 }, buttons)
@@ -295,31 +337,91 @@ end
 
 -- Renders refresh rate pills (e.g. 60Hz, 144Hz)
 function components.renderRefreshRateSelector(m: layoutMath.Monitor, onRateChanged: (number) -> ()): any
-  local rates = {}
-  local seen = {}
-  if m.availableModes then
+  local options = {} -- array of { nominal: number, exact: number }
+  local seenNominal = {}
+
+  if m.availableModes and #m.availableModes > 0 then
+    local curW = m.width or 1920
+    local curH = m.height or 1080
+    local matchedModes = {}
+
+    -- 1. Prefer modes matching the current monitor resolution
     for _, modeStr in ipairs(m.availableModes) do
-      local hz = tonumber(string.match(modeStr, "@([%d%.]+)Hz"))
-      if hz and not seen[math.floor(hz)] then
-        seen[math.floor(hz)] = true
-        table.insert(rates, math.floor(hz))
+      local w, h, hz = string.match(modeStr, "^(%d+)x(%d+)@([%d%.]+)")
+      if w and h and hz then
+        if tonumber(w) == curW and tonumber(h) == curH then
+          table.insert(matchedModes, tonumber(hz))
+        end
+      end
+    end
+
+    -- Fallback: if no modes match current resolution, extract all valid rates
+    if #matchedModes == 0 then
+      for _, modeStr in ipairs(m.availableModes) do
+        local hz = string.match(modeStr, "@([%d%.]+)")
+        if hz then
+          table.insert(matchedModes, tonumber(hz))
+        end
+      end
+    end
+
+    -- Group by rounded nominal rate (e.g. 29.97 -> 30, 59.94 -> 60, 23.98 -> 24)
+    for _, hz in ipairs(matchedModes) do
+      if hz and hz > 0 then
+        local nominal = math.floor(hz + 0.5)
+        if not seenNominal[nominal] then
+          local item = { nominal = nominal, exact = hz }
+          seenNominal[nominal] = item
+          table.insert(options, item)
+        else
+          local existing = seenNominal[nominal]
+          -- Prefer exact integer if available (e.g. 60.00 over 59.94), or closest to nominal
+          if math.abs(hz - nominal) < math.abs(existing.exact - nominal) then
+            existing.exact = hz
+          end
+        end
       end
     end
   end
-  if #rates == 0 then
-    rates = { 60, 144 }
-  end
-  table.sort(rates)
 
-  local curHz = math.floor((m.refreshRate or 60) + 0.5)
+  if #options == 0 then
+    options = {
+      { nominal = 60, exact = 60.0 },
+      { nominal = 144, exact = 144.0 },
+    }
+  end
+
+  table.sort(options, function(a, b)
+    return a.nominal < b.nominal
+  end)
+
+  -- Identify exactly one active nominal rate
+  local curRate = m.refreshRate or 60.0
+  local activeNominal = math.floor(curRate + 0.5)
+
+  local bestNominal = options[1].nominal
+  local bestDiff = math.abs(curRate - options[1].exact)
+  for _, opt in ipairs(options) do
+    local diff = math.abs(curRate - opt.exact)
+    if opt.nominal == activeNominal then
+      bestNominal = opt.nominal
+      break
+    elseif diff < bestDiff then
+      bestDiff = diff
+      bestNominal = opt.nominal
+    end
+  end
+
   local buttons = {}
-  for _, r in ipairs(rates) do
-    local isAct = (math.abs(curHz - r) <= 1)
+  for _, opt in ipairs(options) do
+    local isAct = (opt.nominal == bestNominal)
     table.insert(buttons, ui.button({
-      text = string.format("%dHz", r),
+      text = string.format("%dHz", opt.nominal),
       variant = isAct and "primary" or "ghost",
       fontSize = 11,
-      onClick = function() onRateChanged(r) end,
+      onClick = function()
+        onRateChanged(opt.exact)
+      end,
     }))
   end
 
@@ -343,7 +445,7 @@ function components.renderPositionDisplay(m: layoutMath.Monitor, onOffsetChanged
 
   if hasOffset then
     table.insert(items, ui.button({
-      text = "Reset (0,0)",
+      text = tr("panel.btn_reset_pos") or "Atur Ulang Posisi",
       variant = "ghost",
       fontSize = 10,
       onClick = function() onOffsetChanged(0, 0) end,

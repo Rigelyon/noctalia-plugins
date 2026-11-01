@@ -72,6 +72,19 @@ local function render()
   end
 
   local proj = layoutMath.computeCanvasProjection(monList, 740, 180)
+
+  -- Identify single true main monitor: first active unmirrored monitor at 0,0
+  local mainMonitorName = nil
+  for _, m in ipairs(monList) do
+    if not m.disabled and (not m.mirrorOf or m.mirrorOf == "" or m.mirrorOf == "none") and (m.x == 0 and m.y == 0) then
+      mainMonitorName = m.name
+      break
+    end
+  end
+  if not mainMonitorName and #monList > 0 then
+    mainMonitorName = monList[1].name
+  end
+
   local cardsData = {}
   for _, m in ipairs(monList) do
     local b = proj.items[m.name]
@@ -84,7 +97,8 @@ local function render()
           (m.name == state.selectedMonitorName),
           function()
             state.selectMonitor(m.name)
-          end
+          end,
+          (m.name == mainMonitorName)
         ),
       })
     end
@@ -95,10 +109,14 @@ local function render()
     if a.m.disabled ~= b.m.disabled then
       return not a.m.disabled
     end
+    local ax, ay = a.m.x or 0, a.m.y or 0
+    local bx, by = b.m.x or 0, b.m.y or 0
     if isVertical then
-      return (a.m.y or 0) < (b.m.y or 0)
+      if ay ~= by then return ay < by end
+      return ax < bx
     else
-      return (a.m.x or 0) < (b.m.x or 0)
+      if ax ~= bx then return ax < bx end
+      return ay < by
     end
   end)
 
@@ -134,67 +152,113 @@ local function render()
     }, canvasBoxes)
   end
 
+  local function getSnapAnchor(target: layoutMath.Monitor): layoutMath.Monitor?
+    for _, m in ipairs(monList) do
+      if m.name ~= target.name and not m.disabled then
+        return m
+      end
+    end
+    for _, m in ipairs(monList) do
+      if m.name ~= target.name then
+        return m
+      end
+    end
+    return nil
+  end
+
   local canvas = ui.column({ gap = 6 }, {
     components.renderCanvasToolbar({
       isMulti = (#monList > 1),
       onSnapLeft = function()
         if selected and #monList > 1 then
-          local anchor = (monList[1].name == selected.name) and monList[2] or monList[1]
-          layoutMath.snapLeft(selected, anchor)
-          layoutMath.normalizeCoordinates(monList)
-          state.hasPendingChanges = true
-          state.notify()
+          local anchor = getSnapAnchor(selected)
+          if anchor then
+            layoutMath.snapLeft(selected, anchor)
+            selected._unmirroredX = selected.x
+            selected._unmirroredY = selected.y
+            layoutMath.normalizeCoordinates(monList)
+            state.hasPendingChanges = true
+            state.notify()
+          end
         end
       end,
       onSnapRight = function()
         if selected and #monList > 1 then
-          local anchor = (monList[1].name == selected.name) and monList[2] or monList[1]
-          layoutMath.snapRight(selected, anchor)
-          layoutMath.normalizeCoordinates(monList)
-          state.hasPendingChanges = true
-          state.notify()
+          local anchor = getSnapAnchor(selected)
+          if anchor then
+            layoutMath.snapRight(selected, anchor)
+            selected._unmirroredX = selected.x
+            selected._unmirroredY = selected.y
+            layoutMath.normalizeCoordinates(monList)
+            state.hasPendingChanges = true
+            state.notify()
+          end
         end
       end,
       onSnapAbove = function()
         if selected and #monList > 1 then
-          local anchor = (monList[1].name == selected.name) and monList[2] or monList[1]
-          layoutMath.snapAbove(selected, anchor)
-          layoutMath.normalizeCoordinates(monList)
-          state.hasPendingChanges = true
-          state.notify()
+          local anchor = getSnapAnchor(selected)
+          if anchor then
+            layoutMath.snapAbove(selected, anchor)
+            selected._unmirroredX = selected.x
+            selected._unmirroredY = selected.y
+            layoutMath.normalizeCoordinates(monList)
+            state.hasPendingChanges = true
+            state.notify()
+          end
         end
       end,
       onSnapBelow = function()
         if selected and #monList > 1 then
-          local anchor = (monList[1].name == selected.name) and monList[2] or monList[1]
-          layoutMath.snapBelow(selected, anchor)
-          layoutMath.normalizeCoordinates(monList)
-          state.hasPendingChanges = true
-          state.notify()
+          local anchor = getSnapAnchor(selected)
+          if anchor then
+            layoutMath.snapBelow(selected, anchor)
+            selected._unmirroredX = selected.x
+            selected._unmirroredY = selected.y
+            layoutMath.normalizeCoordinates(monList)
+            state.hasPendingChanges = true
+            state.notify()
+          end
         end
       end,
       onAlignTops = function()
         if selected and #monList > 1 then
-          local anchor = (monList[1].name == selected.name) and monList[2] or monList[1]
-          layoutMath.alignTops(selected, anchor)
-          layoutMath.normalizeCoordinates(monList)
-          state.hasPendingChanges = true
-          state.notify()
+          local anchor = getSnapAnchor(selected)
+          if anchor then
+            layoutMath.alignTops(selected, anchor)
+            selected._unmirroredX = selected.x
+            selected._unmirroredY = selected.y
+            layoutMath.normalizeCoordinates(monList)
+            state.hasPendingChanges = true
+            state.notify()
+          end
         end
       end,
       onPresetExtend = function()
         layoutMath.presetExtend(monList)
+        for _, m in ipairs(monList) do
+          m._unmirroredX = m.x
+          m._unmirroredY = m.y
+        end
         layoutMath.normalizeCoordinates(monList)
         state.hasPendingChanges = true
         state.notify()
       end,
       onPresetMirror = function()
-        if selected then
-          layoutMath.presetMirror(monList, selected.name)
-          layoutMath.normalizeCoordinates(monList)
-          state.hasPendingChanges = true
-          state.notify()
+        local mainName = nil
+        for _, m in ipairs(monList) do
+          if not m.disabled and (not m.mirrorOf or m.mirrorOf == "" or m.mirrorOf == "none") and (m.x == 0 and m.y == 0) then
+            mainName = m.name
+            break
+          end
         end
+        if not mainName and #monList > 0 then
+          mainName = monList[1].name
+        end
+        layoutMath.presetMirror(monList, mainName)
+        layoutMath.normalizeCoordinates(monList)
+        state.hasPendingChanges = true
+        state.notify()
       end,
     }),
     canvasContainer,
@@ -222,6 +286,89 @@ local function render()
           end,
         }),
       }),
+      (#monList > 1) and ui.column({ gap = 4 }, {
+        ui.label({
+          text = tr("panel.label_mirror") or "Mode Tampilan",
+          fontSize = 11,
+          color = "on_surface_variant",
+        }),
+        components.renderMirrorSelector(selected, monList, function(targetMirrorOf)
+          if targetMirrorOf and targetMirrorOf ~= "" and targetMirrorOf ~= "none" then
+            -- Switching to clone
+            if not selected.mirrorOf or selected.mirrorOf == "" or selected.mirrorOf == "none" then
+              selected._unmirroredX = selected.x
+              selected._unmirroredY = selected.y
+            end
+            selected.mirrorOf = targetMirrorOf
+            selected.x = 0
+            selected.y = 0
+          else
+            -- Switching back to independent
+            local prevSource = selected.mirrorOf
+            selected.mirrorOf = nil
+
+            local restored = false
+            if selected._unmirroredX and (selected._unmirroredX ~= 0 or selected._unmirroredY ~= 0) then
+              selected.x = selected._unmirroredX
+              selected.y = selected._unmirroredY or 0
+              local collides = false
+              for _, other in ipairs(monList) do
+                if other.name ~= selected.name and not other.disabled and (not other.mirrorOf or other.mirrorOf == "" or other.mirrorOf == "none") then
+                  if (other.x or 0) == selected.x and (other.y or 0) == selected.y then
+                    collides = true
+                    break
+                  end
+                end
+              end
+              if not collides then
+                restored = true
+              end
+            end
+
+            if not restored then
+              local anchor = nil
+              if prevSource and prevSource ~= "" then
+                for _, other in ipairs(monList) do
+                  if other.name == prevSource and not other.disabled then
+                    anchor = other
+                    break
+                  end
+                end
+              end
+              if not anchor then
+                for _, other in ipairs(monList) do
+                  if other.name ~= selected.name and not other.disabled and (other.x == 0 and other.y == 0) then
+                    anchor = other
+                    break
+                  end
+                end
+              end
+              if not anchor then
+                for _, other in ipairs(monList) do
+                  if other.name ~= selected.name and not other.disabled then
+                    anchor = other
+                    break
+                  end
+                end
+              end
+
+              if anchor then
+                layoutMath.snapRight(selected, anchor)
+              else
+                selected.x = 0
+                selected.y = 0
+              end
+            end
+
+            layoutMath.resolveCollisions(monList)
+            layoutMath.normalizeCoordinates(monList)
+            selected._unmirroredX = selected.x
+            selected._unmirroredY = selected.y
+          end
+          state.hasPendingChanges = true
+          state.notify()
+        end),
+      }) or nil,
       ui.row({ gap = 16 }, {
         ui.column({ gap = 4, flexGrow = 1 }, {
           ui.label({ text = tr("panel.label_scale"), fontSize = 11, color = "on_surface_variant" }),
@@ -238,16 +385,19 @@ local function render()
       }),
       ui.row({ gap = 16, justify = "space_between", align = "flex_start" }, {
         ui.column({ gap = 4 }, {
-          ui.label({ text = "Refresh Rate", fontSize = 11, color = "on_surface_variant" }),
+          ui.label({ text = tr("panel.label_refresh_rate") or "Kecepatan Segar", fontSize = 11, color = "on_surface_variant" }),
           components.renderRefreshRateSelector(selected, function(newRate)
             state.setWorkingProperty(selected.name, "refreshRate", newRate)
           end),
         }),
         ui.column({ gap = 4, align = "flex_end" }, {
-          ui.label({ text = "Position Coordinates", fontSize = 11, color = "on_surface_variant" }),
+          ui.label({ text = tr("panel.label_position") or "Koordinat Posisi", fontSize = 11, color = "on_surface_variant" }),
           components.renderPositionDisplay(selected, function(newX, newY)
             selected.x = newX
             selected.y = newY
+            selected._unmirroredX = newX
+            selected._unmirroredY = newY
+            layoutMath.resolveCollisions(monList, selected.name)
             layoutMath.normalizeCoordinates(monList)
             state.hasPendingChanges = true
             state.notify()
@@ -277,10 +427,9 @@ local function render()
             text = isAct and tr("profiles.badge_active") or tr("profiles.btn_apply"),
             variant = isAct and "outline" or "primary",
             onClick = function()
-              state.workingMonitors = p.monitors
+              state.workingMonitors = state.cloneMonitors(p.monitors)
               profiles.activeProfileId = p.id
-              hypr.applyBatch(p.monitors)
-              state.notify()
+              state.applyConfig()
             end,
           }),
           ui.button({
@@ -302,7 +451,10 @@ local function render()
           text = tr("profiles.save_current"),
           variant = "outline",
           onClick = function()
-            local defName = "Profile " .. tostring(#profList + 1)
+            local defName = tr("profiles.default_name", { num = tostring(#profList + 1) })
+            if defName == "profiles.default_name" then
+              defName = "Profil " .. tostring(#profList + 1)
+            end
             profiles.saveProfile(defName, state.workingMonitors)
             state.notify()
           end,
@@ -329,24 +481,10 @@ local function render()
       }))
     end
     table.insert(footerButtons, ui.button({
-      text = tr("panel.btn_apply"),
+      text = tr("panel.btn_save_config"),
       variant = "primary",
       onClick = function()
-        hypr.applyBatch(state.workingMonitors, function(ok)
-          if ok then
-            state.startSafetyCountdown()
-          end
-        end)
-      end,
-    }))
-    table.insert(footerButtons, ui.button({
-      text = tr("panel.btn_save_config"),
-      variant = "secondary",
-      onClick = function()
-        local ok, err = config.writeConfig(state.workingMonitors)
-        if ok and noctalia and noctalia.notify then
-          noctalia.notify("Monitors Saved", "Saved to ~/.config/hypr/monitors.conf")
-        end
+        state.applyConfig()
       end,
     }))
 

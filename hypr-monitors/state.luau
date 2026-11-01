@@ -2,7 +2,15 @@
 -- Central Reactive State Store & Subscriber Hub
 local layoutMath = require("./layout_math.luau")
 local hypr = require("./hypr.luau")
+local config = require("./config.luau")
 local profiles = require("./profiles.luau")
+
+local function tr(key: string, subst: { [string]: any }?): string
+  if noctalia and noctalia.tr then
+    return noctalia.tr(key, subst)
+  end
+  return key
+end
 
 local state = {
   monitors = {} :: { layoutMath.Monitor },
@@ -14,6 +22,7 @@ local state = {
   isSafetyModalVisible = false :: boolean,
   hasPendingChanges = false :: boolean,
   listeners = {} :: { () -> () },
+  _timerId = 0 :: number,
 }
 
 local function cloneMonitors(source: { layoutMath.Monitor }): { layoutMath.Monitor }
@@ -33,6 +42,8 @@ local function cloneMonitors(source: { layoutMath.Monitor }): { layoutMath.Monit
   end
   return cloned
 end
+
+state.cloneMonitors = cloneMonitors
 
 function state.subscribe(callback: () -> ()): () -> ()
   table.insert(state.listeners, callback)
@@ -55,6 +66,14 @@ end
 function state.refresh(onDone: (() -> ())?)
   hypr.refreshMonitors(function(list, ok)
     state.monitors = list
+
+    -- While the safety modal is actively countdown, do not clobber workingMonitors or safe rollback monitors
+    if state.isSafetyModalVisible then
+      state.notify()
+      if onDone then onDone() end
+      return
+    end
+
     local topologyChanged = (#list ~= #state.workingMonitors)
     if not topologyChanged then
       for i, m in ipairs(list) do
@@ -67,7 +86,15 @@ function state.refresh(onDone: (() -> ())?)
 
     if topologyChanged or not state.hasPendingChanges then
       state.workingMonitors = cloneMonitors(list)
-      state.previousSafeMonitors = cloneMonitors(list)
+      for _, wm in ipairs(state.workingMonitors) do
+        if not wm.mirrorOf or wm.mirrorOf == "" or wm.mirrorOf == "none" then
+          wm._unmirroredX = wm.x or 0
+          wm._unmirroredY = wm.y or 0
+        end
+      end
+      layoutMath.resolveCollisions(state.workingMonitors)
+      layoutMath.normalizeCoordinates(state.workingMonitors)
+      state.previousSafeMonitors = cloneMonitors(state.workingMonitors)
       state.hasPendingChanges = false
     end
     if #list > 0 and (state.selectedMonitorName == "" or not state.getSelectedMonitor()) then
@@ -145,30 +172,55 @@ function state.setWorkingProperty(monitorName: string, key: string, value: any)
   end
 end
 
-function state.startSafetyCountdown(onExpired: (() -> ())?)
-  local enabled = true
-  if noctalia and noctalia.getConfig then
-    enabled = noctalia.getConfig("enable_safety_timer") ~= false
-  end
-  if not enabled then
-    state.keepChanges()
-    return
-  end
+-- Persists the current working monitors to ~/.config/hypr/hypr-monitors.lua with safety countdown
+function state.applyConfig(onDone: ((boolean) -> ())?)
+  state.previousSafeMonitors = cloneMonitors(state.monitors)
 
+  local ok, err = config.writeConfig(state.workingMonitors)
+  if ok then
+    local enableSafety = true
+    if noctalia and noctalia.getConfig then
+      enableSafety = noctalia.getConfig("enable_safety_timer") ~= false
+    end
+
+    if enableSafety then
+      state.startSafetyCountdown()
+    else
+      state.hasPendingChanges = false
+      state.monitors = cloneMonitors(state.workingMonitors)
+      state.notify()
+      if noctalia and noctalia.notify then
+        noctalia.notify(tr("panel.notify_saved_title"), tr("panel.notify_saved_body", { path = config.getConfigPath() }))
+      end
+    end
+  else
+    if noctalia and noctalia.notifyError then
+      noctalia.notifyError(tr("panel.notify_failed_title"), tostring(err or "Failed to write config file"))
+    end
+  end
+  if onDone then onDone(ok) end
+end
+
+function state.startSafetyCountdown(onExpired: (() -> ())?)
   local timeout = 15
   if noctalia and noctalia.getConfig then
     timeout = tonumber(noctalia.getConfig("safety_timeout")) or 15
   end
   state.safetyTimer = timeout
   state.isSafetyModalVisible = true
-  state.previousSafeMonitors = cloneMonitors(state.monitors)
+  if not state.previousSafeMonitors or #state.previousSafeMonitors == 0 then
+    state.previousSafeMonitors = cloneMonitors(state.monitors)
+  end
   state.notify()
 
+  local currentId = (state._timerId or 0) + 1
+  state._timerId = currentId
+
   local function tick()
-    if not state.isSafetyModalVisible then return end
+    if not state.isSafetyModalVisible or state._timerId ~= currentId then return end
     if noctalia and noctalia.runAsync then
       noctalia.runAsync({ "sleep", "1" }, function(_)
-        if not state.isSafetyModalVisible then return end
+        if not state.isSafetyModalVisible or state._timerId ~= currentId then return end
         state.safetyTimer = state.safetyTimer - 1
         if state.safetyTimer <= 0 then
           state.revertToSafe()
@@ -189,6 +241,9 @@ function state.keepChanges()
   state.previousSafeMonitors = cloneMonitors(state.workingMonitors)
   state.hasPendingChanges = false
   state.notify()
+  if noctalia and noctalia.notify then
+    noctalia.notify(tr("panel.notify_confirmed_title"), tr("panel.notify_saved_body", { path = config.getConfigPath() }))
+  end
 end
 
 function state.revertToSafe()
@@ -196,8 +251,11 @@ function state.revertToSafe()
   state.workingMonitors = cloneMonitors(state.previousSafeMonitors)
   state.monitors = cloneMonitors(state.previousSafeMonitors)
   state.hasPendingChanges = false
-  hypr.applyBatch(state.previousSafeMonitors)
+  config.writeConfig(state.previousSafeMonitors)
   state.notify()
+  if noctalia and noctalia.notify then
+    noctalia.notify(tr("panel.notify_reverted_title"), tr("panel.notify_reverted_body"))
+  end
 end
 
 function state.discardPendingChanges()

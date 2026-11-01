@@ -106,6 +106,61 @@ function layout_math.normalizeCoordinates(monitors: { Monitor })
   end
 end
 
+-- Resolves spatial collisions so no two active independent monitors share the exact same coordinates
+function layout_math.resolveCollisions(monitors: { Monitor }, priorityName: string?)
+  local activeMonitors = {}
+  for _, m in ipairs(monitors) do
+    if not m.disabled and (not m.mirrorOf or m.mirrorOf == "" or m.mirrorOf == "none") then
+      table.insert(activeMonitors, m)
+    end
+  end
+
+  if priorityName then
+    table.sort(activeMonitors, function(a, b)
+      if a.name == priorityName then return true end
+      if b.name == priorityName then return false end
+      return (a.x or 0) < (b.x or 0)
+    end)
+  else
+    table.sort(activeMonitors, function(a, b)
+      if (a.x == 0 and a.y == 0) and not (b.x == 0 and b.y == 0) then return true end
+      if (b.x == 0 and b.y == 0) and not (a.x == 0 and a.y == 0) then return false end
+      return (a.x or 0) < (b.x or 0)
+    end)
+  end
+
+  local placed = {} :: { Monitor }
+  for _, m in ipairs(activeMonitors) do
+    local collides = false
+    for _, p in ipairs(placed) do
+      if (p.x or 0) == (m.x or 0) and (p.y or 0) == (m.y or 0) then
+        collides = true
+        break
+      end
+    end
+
+    if collides then
+      local maxRight = -999999
+      local rightmost = nil
+      for _, p in ipairs(placed) do
+        local pvw, _ = layout_math.getVirtualSize(p)
+        local rightEdge = (p.x or 0) + pvw
+        if rightEdge > maxRight then
+          maxRight = rightEdge
+          rightmost = p
+        end
+      end
+      if rightmost then
+        layout_math.snapRight(m, rightmost)
+      else
+        m.x = (m.x or 0) + 1920
+      end
+    end
+
+    table.insert(placed, m)
+  end
+end
+
 -- Projects all monitors onto canvas dimensions (viewportW x viewportH)
 function layout_math.computeCanvasProjection(monitors: { Monitor }, viewportW: number, viewportH: number): {
   scaleFactor: number,
@@ -208,15 +263,32 @@ function layout_math.presetExtend(monitors: { Monitor })
 end
 
 -- Preset: Mirror/Duplicate secondary to primary
-function layout_math.presetMirror(monitors: { Monitor }, primaryName: string)
+function layout_math.presetMirror(monitors: { Monitor }, primaryName: string?)
+  local srcName = primaryName
+  if not srcName or srcName == "" then
+    for _, m in ipairs(monitors) do
+      if not m.disabled and (not m.mirrorOf or m.mirrorOf == "" or m.mirrorOf == "none") and (m.x == 0 and m.y == 0) then
+        srcName = m.name
+        break
+      end
+    end
+    if not srcName and #monitors > 0 then
+      srcName = monitors[1].name
+    end
+  end
+
   for _, m in ipairs(monitors) do
     m.disabled = false
-    if m.name == primaryName then
+    if m.name == srcName then
       m.mirrorOf = nil
       m.x = 0
       m.y = 0
     else
-      m.mirrorOf = primaryName
+      if not m.mirrorOf or m.mirrorOf == "" or m.mirrorOf == "none" then
+        m._unmirroredX = m.x
+        m._unmirroredY = m.y
+      end
+      m.mirrorOf = srcName
       m.x = 0
       m.y = 0
     end
