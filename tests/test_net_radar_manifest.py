@@ -61,6 +61,36 @@ class TestNetRadarManifest(unittest.TestCase):
                     self.assertTrue(has_key_path(en, olk), f"Missing option key '{olk}' in en.json")
                     self.assertTrue(has_key_path(id_lang, olk), f"Missing option key '{olk}' in id.json")
 
+    def test_diagnostic_translation_keys(self):
+        en_path = os.path.join(PLUGIN_DIR, "translations", "en.json")
+        id_path = os.path.join(PLUGIN_DIR, "translations", "id.json")
+
+        with open(en_path, "r", encoding="utf-8") as f:
+            en = json.load(f)
+        with open(id_path, "r", encoding="utf-8") as f:
+            id_data = json.load(f)
+
+        required_keys = [
+            "diag_offline",
+            "diag_captive_portal",
+            "diag_optimal",
+            "diag_wired_optimal",
+            "diag_weak_signal_stable",
+            "diag_isp_loss",
+            "diag_isp_lag",
+            "diag_local_bufferbloat",
+            "diag_high_jitter",
+            "diag_wifi_weak_unstable",
+            "diag_synthesis_connector",
+        ]
+
+        for key in required_keys:
+            self.assertIn(key, en.get("panel", {}), f"Missing '{key}' in en['panel']")
+            self.assertTrue(bool(en["panel"].get(key)), f"Key '{key}' in en['panel'] must not be empty")
+            self.assertIn(key, id_data.get("panel", {}), f"Missing '{key}' in id['panel']")
+            self.assertTrue(bool(id_data["panel"].get(key)), f"Key '{key}' in id['panel'] must not be empty")
+
+
 
 if __name__ == "__main__":
     unittest.main()

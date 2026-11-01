@@ -35,7 +35,15 @@
     "diag_wifi_issue": "Jitter/ping ke router lokal tinggi. Kemungkinan interferensi Wi-Fi (2.4 GHz) atau jarak terlalu jauh.",
     "diag_isp_issue": "Koneksi ke router lancar, tapi ISP atau jalur luar mengalami lonjakan ping/packet loss.",
     "diag_captive_portal": "Terhubung ke router lokal, tapi internet tertahan. Cek halaman login captive portal.",
-    "diag_offline": "Tidak ada gateway default. Jaringan terputus."
+    "diag_offline": "Tidak ada gateway default. Jaringan terputus.",
+    "diag_wired_optimal": "Koneksi kabel LAN sangat prima dan stabil.",
+    "diag_weak_signal_stable": "Sinyal Wi-Fi sedang ({signal}%), namun koneksi router dan game tetap stabil.",
+    "diag_isp_loss": "Jalur ISP atau server luar mengalami packet loss ({loss}%).",
+    "diag_isp_lag": "Koneksi router lokal lancar, tapi latensi server game ISP tinggi ({ms}ms).",
+    "diag_local_bufferbloat": "Latensi ke router lokal membengkak ({ms}ms). Kemungkinan bufferbloat jaringan rumah.",
+    "diag_high_jitter": "Jitter tinggi (±{jitter}ms) berpotensi memicu stutter.",
+    "diag_wifi_weak_unstable": "Sinyal Wi-Fi lemah ({signal}%) memicu paket hilang.",
+    "diag_synthesis_connector": "{first}, serta {second}."
   },
   "presets": {
     "sea_singapore": "Asia Tenggara / Singapura (Valve/Riot)",

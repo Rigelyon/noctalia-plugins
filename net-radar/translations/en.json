@@ -35,7 +35,15 @@
     "diag_wifi_issue": "High jitter/latency to local router. Possible Wi-Fi congestion (2.4 GHz) or distance.",
     "diag_isp_issue": "Local router is fast, but ISP or external game routing has high packet loss/latency.",
     "diag_captive_portal": "Connected to local router, but internet is blocked. Check captive login.",
-    "diag_offline": "No default gateway found. Network is disconnected."
+    "diag_offline": "No default gateway found. Network is disconnected.",
+    "diag_wired_optimal": "Ethernet wired connection is pristine and stable.",
+    "diag_weak_signal_stable": "Wi-Fi signal is moderate ({signal}%), but link and game routing remain stable.",
+    "diag_isp_loss": "ISP or external routing experiencing packet loss ({loss}%).",
+    "diag_isp_lag": "Local router is fast, but ISP game routing latency is high ({ms}ms).",
+    "diag_local_bufferbloat": "High latency to local gateway ({ms}ms). Potential home network congestion.",
+    "diag_high_jitter": "Elevated jitter (±{jitter}ms) causing micro-stutter.",
+    "diag_wifi_weak_unstable": "Weak Wi-Fi signal ({signal}%) causing packet drops.",
+    "diag_synthesis_connector": "{first}, alongside {second}."
   },
   "presets": {
     "sea_singapore": "Southeast Asia / Singapore (Valve/Riot)",
