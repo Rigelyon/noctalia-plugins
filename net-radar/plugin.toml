@@ -5,7 +5,7 @@ plugin_api = 28
 author = "rigelyon"
 license = "MIT"
 dependencies = ["iproute2", "iputils", "networkmanager"]
-tags = ["utility", "network", "gaming", "wifi", "monitor", "bar", "panel"]
+tags = ["utility", "network", "gaming", "indicator", "bar", "panel", "system"]
 icon = "radar"
 description = "Real-time multi-target network radar & gaming latency diagnostics with Wi-Fi physical link health."
 
@@ -18,7 +18,7 @@ default = false
 
 [[setting]]
 key = "idle_poll_interval_sec"
-type = "number"
+type = "int"
 label_key = "settings.idle_poll_interval_sec.label"
 description_key = "settings.idle_poll_interval_sec.description"
 default = 5
@@ -28,7 +28,7 @@ step = 1
 
 [[setting]]
 key = "active_poll_interval_sec"
-type = "number"
+type = "int"
 label_key = "settings.active_poll_interval_sec.label"
 description_key = "settings.active_poll_interval_sec.description"
 default = 2
@@ -66,7 +66,7 @@ default = false
 
 [[setting]]
 key = "packet_loss_alert_threshold"
-type = "number"
+type = "int"
 label_key = "settings.packet_loss_alert_threshold.label"
 description_key = "settings.packet_loss_alert_threshold.description"
 default = 5

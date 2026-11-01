@@ -1,44 +1,49 @@
-# NetRadar (`rigelyon/net-radar`)
+# NetRadar
 
-<p align="center">
-  <strong>Real-time multi-target network radar & gaming latency diagnostics with Wi-Fi physical link health for Noctalia Shell.</strong>
-</p>
+Real-time multi-target network radar & gaming latency diagnostics with Wi-Fi physical link health.
 
----
+Standard network monitors only report current throughput (KB/s), and speed tests consume valuable mobile data. NetRadar continuously sends lightweight micro-probes (~64 bytes) to test:
+- Local Wi-Fi Gateway: Detects if high latency or packet loss is caused by local router interference (especially on 2.4 GHz channels).
+- Public Internet DNS (`1.1.1.1`): Verifies general internet uptime and catches captive portals.
+- Regional Game Server Clusters: Measures real-world competitive gaming RTT, Jitter (RFC 3550), and Packet Loss %.
 
-## Why NetRadar?
+## Plugin
 
-Have you ever connected to a Wi-Fi network that shows full signal bars ("Connected"), only to find that opening a match in your favorite game causes severe stutter, rubberbanding, or packet loss? 
+| Field | Value |
+| --- | --- |
+| ID | `rigelyon/net-radar` |
+| Entries | Bar widget: `widget`; panel: `panel` |
 
-Standard network monitors only report current throughput (KB/s), and speed tests consume valuable mobile data. **NetRadar** solves this by continuously sending lightweight micro-probes (~64 bytes) to test:
-1. **Local Wi-Fi Gateway**: Detects if high latency or packet loss is caused by local router interference (especially on 2.4 GHz channels).
-2. **Public Internet DNS (`1.1.1.1`)**: Verifies general internet uptime and catches captive portals.
-3. **Regional Game Server Clusters**: Measures real-world competitive gaming RTT, Jitter (RFC 3550), and Packet Loss %.
+## Requirements
 
----
+NetRadar requires standard Linux networking utilities installed on `PATH`:
+- `iproute2` (`ip`)
+- `iputils` (`ping`)
+- `networkmanager` (`nmcli`)
 
-## Features
+## Usage
 
-- **Icon-Only by Default**: Designed to keep your Noctalia status bar clean. Displays a single dynamic icon glyph that reflects connection readiness (`primary` for Game-Ready, `warning` for casual only, `destructive` for lag/packet loss).
-- **Tactical HUD Telemetry Panel**: Sharp, minimal dashboard with segmented signal level meter, real-time streaming `ui.graph` (60s history), 3-target breakdown, and Wi-Fi PHY diagnostics (SSID, 2.4/5GHz band, signal dBm, link speed).
-- **Strict CPU Budget Compliance**:
-  - Combined single-command micro-probe (`probe.sh`).
-  - Adaptive polling (5s background, 2s active in panel, 10s backoff when offline).
-  - Pre-allocated 60-sample ring buffer to prevent GC churn.
-  - Render throttling (>= 100ms) to prevent Luau instruction budget exhaustion.
-- **Bilingual Support**: Full English and Indonesian localization out of the box.
+Add the `widget` bar entry to your Noctalia status bar via Noctalia Settings. By default, it displays a single clean dynamic icon without ping text cluttering the bar.
 
----
+Click the widget or run the IPC command below to toggle the Tactical Telemetry HUD panel:
 
-## External Dependencies
+```sh
+noctalia msg panel-toggle rigelyon/net-radar:panel
+```
 
-NetRadar uses standard Linux networking utilities:
-- `iputils` (`/usr/bin/ping`)
-- `iproute2` (`/usr/bin/ip`)
-- `networkmanager` (`/usr/bin/nmcli`)
+## Settings
 
----
+| Setting | Type | Default | Description |
+| --- | --- | --- | --- |
+| `show_text_in_bar` | `bool` | `false` | When disabled, displays only a clean dynamic icon glyph with no text cluttering the bar. |
+| `idle_poll_interval_sec` | `int` | `5` | Background probe interval (in seconds) when the panel is closed. |
+| `active_poll_interval_sec` | `int` | `2` | Fast probe interval (in seconds) while the HUD panel is open. |
+| `default_target_preset` | `select` | `sea_singapore` | Preconfigured game server cluster endpoint (`sea_singapore`, `east_asia_tokyo`, `us_west`, `europe_west`, `custom`). |
+| `custom_target_host` | `string` | `1.1.1.1` | IP or domain name to probe when the Custom preset is active. |
+| `enable_loss_desktop_notification` | `bool` | `false` | Notify via desktop notification when packet loss exceeds threshold. |
+| `packet_loss_alert_threshold` | `int` | `5` | Percentage of dropped packets within window that triggers a desktop alert. |
 
-## License
+## Notes
 
-MIT © rigelyon
+- Probing is non-blocking and executes via a single combined background subprocess (`probe.sh`).
+- All telemetry history is buffered in a fixed 60-sample in-memory ring buffer with render throttling (>= 100ms) to strictly comply with Noctalia's Luau CPU instruction budget.
