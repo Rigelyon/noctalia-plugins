@@ -5,6 +5,7 @@
     "status_optimal": "OPTIMAL (Game-Ready)",
     "status_fair": "FAIR (Casual / Risky)",
     "status_poor": "POOR (Laggy / High Loss)",
+    "status_captive_portal": "CAPTIVE PORTAL (Login Required)",
     "status_offline": "OFFLINE",
     "row_game_latency": "Game Latency",
     "row_jitter": "Jitter",

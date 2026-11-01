@@ -5,6 +5,7 @@
     "status_optimal": "OPTIMAL (Siap Main Game)",
     "status_fair": "SEDANG (Kasual / Riskan)",
     "status_poor": "BURUK (Lag / Loss Tinggi)",
+    "status_captive_portal": "PORTAL TERTUTUP (Perlu Login)",
     "status_offline": "TERPUTUS",
     "row_game_latency": "Ping Game",
     "row_jitter": "Jitter",
