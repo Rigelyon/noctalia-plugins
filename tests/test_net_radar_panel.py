@@ -109,6 +109,18 @@ class TestNetRadarPanel(unittest.TestCase):
         self.assertIn("state.setPreset(", content)
         self.assertIn("presets.LIST", content)
 
+    def test_panel_smart_diagnostic_banner(self):
+        with open(PANEL_FILE, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # Must call state.getDiagnostics() to get dynamic text, glyph, and color
+        self.assertIn("state.getDiagnostics()", content)
+        self.assertIn("diagGlyph", content)
+        self.assertIn("diagColor", content)
+        self.assertIn("name = diagGlyph", content)
+        self.assertIn("color = diagColor", content)
+
+
 
 if __name__ == "__main__":
     unittest.main()

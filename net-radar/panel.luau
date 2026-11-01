@@ -91,30 +91,25 @@ local function renderPanel(): UiNode
 
   local statusColor = "primary"
   local statusText = tr("widget.status_optimal")
-  local diagText = tr("panel.diag_optimal")
 
   if status == "OPTIMAL" then
     statusColor = "primary"
     statusText = tr("widget.status_optimal")
-    diagText = tr("panel.diag_optimal")
   elseif status == "FAIR" then
     statusColor = "tertiary"
     statusText = tr("widget.status_fair")
-    diagText = tr("panel.diag_wifi_issue")
   elseif status == "POOR" then
     statusColor = "error"
     statusText = tr("widget.status_poor")
-    diagText = tr("panel.diag_isp_issue")
   elseif status == "CAPTIVE_PORTAL" then
     statusColor = "tertiary"
     statusText = "CAPTIVE PORTAL"
-    diagText = tr("panel.diag_captive_portal")
   else
     statusColor = "outline"
     statusText = tr("widget.status_offline")
-    diagText = tr("panel.diag_offline")
   end
 
+  local diagText, diagGlyph, diagColor = state.getDiagnostics()
   local graphValues, minRtt, avgRtt, maxRtt = state.getGraphValues()
 
   -- Tactical Telemetry Header (Sharp 4px radius, 3px solid left accent border)
@@ -191,9 +186,9 @@ local function renderPanel(): UiNode
     gap = 8,
   }, {
     ui.glyph({
-      name = status == "OPTIMAL" and "info-circle" or "alert-triangle",
+      name = diagGlyph,
       size = 14,
-      color = statusColor,
+      color = diagColor,
     }),
     ui.label({
       text = diagText,
