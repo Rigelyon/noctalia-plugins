@@ -81,6 +81,28 @@ class TestNetRadarPanel(unittest.TestCase):
             self.assertNotIn("&&", trimmed, f"Line {idx} uses '&&' instead of 'and'")
             self.assertNotIn("||", trimmed, f"Line {idx} uses '||' instead of 'or'")
 
+    def test_panel_probe_timeout_accounting(self):
+        with open(PANEL_FILE, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        self.assertIn('state.processProbe("none|none|none|none|0|0|0")', content)
+
+    def test_panel_second_ticks_lifecycle(self):
+        with open(PANEL_FILE, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        self.assertIn("panel.setWantsSecondTicks(true)", content)
+        self.assertIn("panel.setWantsSecondTicks(false)", content)
+        self.assertIn("function onOpen()", content)
+        self.assertIn("function onClose()", content)
+
+    def test_panel_preset_dynamic_cycle(self):
+        with open(PANEL_FILE, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        self.assertIn("state.setPreset(", content)
+        self.assertIn("presets.LIST", content)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -5,6 +5,7 @@ local presets = require("./presets.luau")
 local lastRenderedStatus = ""
 local lastRenderedGlyph = ""
 local lastPollTime = 0
+local lastNotificationTime = 0
 
 local function tr(key: string, subst: { [string]: any }?): string
   if noctalia and noctalia.tr then
@@ -26,8 +27,10 @@ local function executeProbe()
   if noctalia and noctalia.runAsync then
     noctalia.runAsync({ probeScript, targetHost }, function(result)
       state.isProbing = false
-      if result and result.exitCode == 0 and result.stdout then
+      if result and result.exitCode == 0 and result.stdout and result.stdout ~= "" then
         state.processProbe(result.stdout)
+      else
+        state.processProbe("none|none|none|none|0|0|0")
       end
     end, 2500)
   else
@@ -104,6 +107,26 @@ local function updateWidget()
     { key = tr("widget.row_wifi_link"), value = wifiStr },
   }
   barWidget.setTooltip(tooltips)
+
+  -- Loss threshold notification check
+  if noctalia and noctalia.getConfig and noctalia.notify then
+    if noctalia.getConfig("enable_loss_desktop_notification") == true then
+      local threshold = noctalia.getConfig("packet_loss_alert_threshold")
+      if type(threshold) ~= "number" or threshold <= 0 then
+        threshold = 5
+      end
+      local now = (noctalia and noctalia.nowMs) and noctalia.nowMs() or (os.clock() * 1000)
+      if state.lossPct >= threshold and (now - lastNotificationTime >= 60000) then
+        lastNotificationTime = now
+        noctalia.notify(tr("widget.title"), string.format(tr("panel.diag_isp_issue") .. " (Loss: %.0f%%)", state.lossPct))
+      end
+    end
+  end
+end
+
+function onConfigChanged()
+  state.syncConfig()
+  updateWidget()
 end
 
 function onClick()
@@ -140,6 +163,7 @@ function update(deltaMs: number)
   end
 end
 
--- Initial probe on startup
+-- Initial load
+state.syncConfig()
 executeProbe()
 updateWidget()

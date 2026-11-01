@@ -55,6 +55,25 @@ function state.getActiveTargetHost(): string
   return p.host
 end
 
+function state.syncConfig()
+  if noctalia and noctalia.getConfig then
+    local defaultPreset = noctalia.getConfig("default_target_preset")
+    if type(defaultPreset) == "string" and defaultPreset ~= "" then
+      state.activePresetId = defaultPreset
+    end
+    local customHost = noctalia.getConfig("custom_target_host")
+    if type(customHost) == "string" and customHost ~= "" then
+      state.customHost = customHost
+    end
+  end
+end
+
+function state.setPreset(presetId: string)
+  state.activePresetId = presetId
+  state.prevGameMs = nil
+  state.notify()
+end
+
 function state.processProbe(rawOutput: string)
   if not rawOutput or rawOutput == "" then
     return
@@ -160,5 +179,7 @@ function state.getGraphValues(): ({ number }, number, number, number)
 
   return values, minMs, avgMs, maxMs
 end
+
+state.syncConfig()
 
 return state

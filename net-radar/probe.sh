@@ -9,6 +9,7 @@ GW=$(ip route show default 2>/dev/null | awk '{print $3; exit}')
 GW_TMP=$(mktemp)
 DNS_TMP=$(mktemp)
 GAME_TMP=$(mktemp)
+trap 'rm -f "$GW_TMP" "$DNS_TMP" "$GAME_TMP"' EXIT INT TERM
 
 if [ -n "$GW" ]; then
   (ping -c 1 -W 1 "$GW" 2>/dev/null | sed -nE 's/.*time=([0-9.]+) ms/\1/p' > "$GW_TMP") &
@@ -52,5 +53,7 @@ if [ -n "$WIFI_RAW" ]; then
   _rate_clean=$(echo "$_rate" | sed -E 's/([0-9.]+).*/\1/')
   [ -n "$_rate_clean" ] && RATE="$_rate_clean"
 fi
+
+SSID="${SSID//|/-}"
 
 echo "${GW_MS}|${DNS_MS}|${GAME_MS}|${SSID}|${FREQ}|${SIGNAL}|${RATE}"

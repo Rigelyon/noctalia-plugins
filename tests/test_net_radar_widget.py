@@ -67,6 +67,23 @@ class TestNetRadarWidget(unittest.TestCase):
         self.assertIn("function onClick()", content)
         self.assertIn("rigelyon/net-radar:panel", content)
 
+    def test_widget_probe_timeout_accounting(self):
+        with open(WIDGET_FILE, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # Must record timed-out probes as dropped samples
+        self.assertIn('state.processProbe("none|none|none|none|0|0|0")', content)
+
+    def test_widget_config_sync_and_notifications(self):
+        with open(WIDGET_FILE, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        self.assertIn("state.syncConfig()", content)
+        self.assertIn("function onConfigChanged()", content)
+        self.assertIn("enable_loss_desktop_notification", content)
+        self.assertIn("noctalia.notify", content)
+        self.assertIn("packet_loss_alert_threshold", content)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -25,8 +25,10 @@ local function executeProbe()
   if noctalia and noctalia.runAsync then
     noctalia.runAsync({ probeScript, targetHost }, function(result)
       state.isProbing = false
-      if result and result.exitCode == 0 and result.stdout then
+      if result and result.exitCode == 0 and result.stdout and result.stdout ~= "" then
         state.processProbe(result.stdout)
+      else
+        state.processProbe("none|none|none|none|0|0|0")
       end
     end, 2000)
   else
@@ -336,16 +338,16 @@ local function renderPanel(): UiNode
       text = tr("presets." .. state.activePresetId),
       controlSize = "sm",
       onClick = function()
-        -- Cycle preset
-        if state.activePresetId == "sea_singapore" then
-          state.activePresetId = "east_asia_tokyo"
-        elseif state.activePresetId == "east_asia_tokyo" then
-          state.activePresetId = "us_west"
-        elseif state.activePresetId == "us_west" then
-          state.activePresetId = "europe_west"
-        else
-          state.activePresetId = "sea_singapore"
+        -- Dynamic preset cycle across presets.LIST (including custom)
+        local nextPresetId = presets.LIST[1].id
+        for i, p in ipairs(presets.LIST) do
+          if p.id == state.activePresetId then
+            local nextIdx = (i % #presets.LIST) + 1
+            nextPresetId = presets.LIST[nextIdx].id
+            break
+          end
         end
+        state.setPreset(nextPresetId)
         executeProbe()
       end,
     }),
@@ -418,8 +420,17 @@ function update(deltaMs: number)
 end
 
 function onOpen()
+  if panel and panel.setWantsSecondTicks then
+    panel.setWantsSecondTicks(true)
+  end
   executeProbe()
   throttledRender()
+end
+
+function onClose()
+  if panel and panel.setWantsSecondTicks then
+    panel.setWantsSecondTicks(false)
+  end
 end
 
 -- Initial render

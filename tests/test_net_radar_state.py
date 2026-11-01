@@ -190,6 +190,16 @@ class TestNetRadarState(unittest.TestCase):
         # Unpopulated slots are 0.0
         self.assertEqual(values[0], 0.0)
 
+    def test_state_config_sync_and_preset_switching(self):
+        with open(STATE_FILE, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        self.assertIn("function state.syncConfig()", content)
+        self.assertIn("function state.setPreset(", content)
+        self.assertIn("state.prevGameMs = nil", content)
+        self.assertIn("default_target_preset", content)
+        self.assertIn("custom_target_host", content)
+
 
 if __name__ == "__main__":
     unittest.main()

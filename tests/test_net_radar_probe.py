@@ -66,6 +66,21 @@ class TestNetRadarProbe(unittest.TestCase):
         self.assertIsNone(parse_probe_output(""))
         self.assertIsNone(parse_probe_output("short|output"))
 
+    def test_probe_script_trap_and_cleanup(self):
+        with open(PROBE_SCRIPT, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        self.assertIn("trap ", content)
+        self.assertIn("EXIT", content)
+        self.assertIn("TERM", content)
+        self.assertIn("INT", content)
+
+    def test_probe_script_sanitizes_ssid_pipes(self):
+        with open(PROBE_SCRIPT, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        self.assertIn('SSID="${SSID//|/-}"', content)
+
 
 if __name__ == "__main__":
     unittest.main()
