@@ -56,10 +56,10 @@ function renderSegmentedMeter(status: string): UiNode
     color = "primary"
   elseif status == "FAIR" then
     activeBars = 3
-    color = "warning"
+    color = "tertiary"
   elseif status == "POOR" then
     activeBars = 1
-    color = "destructive"
+    color = "error"
   else
     activeBars = 0
     color = "outline"
@@ -98,15 +98,15 @@ local function renderPanel(): UiNode
     statusText = tr("widget.status_optimal")
     diagText = tr("panel.diag_optimal")
   elseif status == "FAIR" then
-    statusColor = "warning"
+    statusColor = "tertiary"
     statusText = tr("widget.status_fair")
     diagText = tr("panel.diag_wifi_issue")
   elseif status == "POOR" then
-    statusColor = "destructive"
+    statusColor = "error"
     statusText = tr("widget.status_poor")
     diagText = tr("panel.diag_isp_issue")
   elseif status == "CAPTIVE_PORTAL" then
-    statusColor = "warning"
+    statusColor = "tertiary"
     statusText = "CAPTIVE PORTAL"
     diagText = tr("panel.diag_captive_portal")
   else
@@ -227,7 +227,7 @@ local function renderPanel(): UiNode
         text = string.format("Jitter: ±%.1fms • Loss: %.1f%%", state.jitter, state.lossPct),
         fontSize = 10,
         fontWeight = "bold",
-        color = state.lossPct > 0 and "destructive" or "on_surface",
+        color = state.lossPct > 0 and "error" or "on_surface",
       }),
     }),
     ui.graph({
@@ -265,7 +265,7 @@ local function renderPanel(): UiNode
     }, {
       ui.label({ text = tr("panel.target_gateway"), fontSize = 9, opacity = 0.6 }),
       ui.label({ text = state.gwMs and string.format("%.1f ms", state.gwMs) or "--", fontSize = 13, fontWeight = "bold" }),
-      ui.label({ text = state.gwMs and "0% loss" or "Unreachable", fontSize = 9, color = state.gwMs and "primary" or "destructive" }),
+      ui.label({ text = state.gwMs and "0% loss" or "Unreachable", fontSize = 9, color = state.gwMs and "primary" or "error" }),
     }),
     ui.column({
       flexGrow = 1,
@@ -278,7 +278,7 @@ local function renderPanel(): UiNode
     }, {
       ui.label({ text = tr("panel.target_dns"), fontSize = 9, opacity = 0.6 }),
       ui.label({ text = state.dnsMs and string.format("%.1f ms", state.dnsMs) or "--", fontSize = 13, fontWeight = "bold" }),
-      ui.label({ text = state.dnsMs and "Connected" or "Blocked", fontSize = 9, color = state.dnsMs and "primary" or "destructive" }),
+      ui.label({ text = state.dnsMs and "Connected" or "Blocked", fontSize = 9, color = state.dnsMs and "primary" or "error" }),
     }),
     ui.column({
       flexGrow = 1,
@@ -291,7 +291,7 @@ local function renderPanel(): UiNode
     }, {
       ui.label({ text = tr("panel.target_game"), fontSize = 9, opacity = 0.6 }),
       ui.label({ text = state.gameMs and string.format("%.1f ms", state.gameMs) or "--", fontSize = 13, fontWeight = "bold", color = statusColor }),
-      ui.label({ text = string.format("%.1f%% loss", state.lossPct), fontSize = 9, color = state.lossPct > 0 and "destructive" or "primary" }),
+      ui.label({ text = string.format("%.1f%% loss", state.lossPct), fontSize = 9, color = state.lossPct > 0 and "error" or "primary" }),
     }),
   })
 
@@ -324,6 +324,30 @@ local function renderPanel(): UiNode
     }),
   })
 
+  -- Region / Preset Select Dropdown
+  local presetOptions = {}
+  local selectedIndex = 0
+  for i, p in ipairs(presets.LIST) do
+    table.insert(presetOptions, p.regionName)
+    if p.id == state.activePresetId then
+      selectedIndex = i - 1 -- 0-based for ui.select
+    end
+  end
+
+  local regionDropdown = ui.select({
+    controlSize = "sm",
+    options = presetOptions,
+    selectedIndex = selectedIndex,
+    onChange = function(indexStr, text)
+      local idx = tonumber(indexStr) or 0
+      local chosen = presets.LIST[idx + 1]
+      if chosen and chosen.id ~= state.activePresetId then
+        state.setPreset(chosen.id)
+        executeProbe()
+      end
+    end,
+  })
+
   -- Bottom Actions Bar
   local actionsBar = ui.row({
     justify = "space_between",
@@ -336,23 +360,7 @@ local function renderPanel(): UiNode
         executeProbe()
       end,
     }),
-    ui.button({
-      text = currentPreset.regionName .. " ▾",
-      controlSize = "sm",
-      onClick = function()
-        -- Dynamic preset cycle across presets.LIST (including custom)
-        local nextPresetId = presets.LIST[1].id
-        for i, p in ipairs(presets.LIST) do
-          if p.id == state.activePresetId then
-            local nextIdx = (i % #presets.LIST) + 1
-            nextPresetId = presets.LIST[nextIdx].id
-            break
-          end
-        end
-        state.setPreset(nextPresetId)
-        executeProbe()
-      end,
-    }),
+    regionDropdown,
   })
 
   return ui.column({

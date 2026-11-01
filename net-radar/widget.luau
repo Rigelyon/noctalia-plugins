@@ -3,7 +3,8 @@ local state = require("./state.luau")
 local presets = require("./presets.luau")
 
 local lastRenderedStatus = ""
-local lastRenderedGlyph = ""
+local lastRenderedMs = -1
+local lastRenderedTextInBar = false
 local lastPollTime = 0
 local lastNotificationTime = 0
 
@@ -47,50 +48,109 @@ local function executeProbe()
   end
 end
 
+function onClick()
+  if noctalia and noctalia.togglePanel then
+    noctalia.togglePanel("rigelyon/net-radar:panel")
+  end
+end
+
 local function updateWidget()
   if not barWidget then
     return
   end
 
   local status = state.getStatus()
-  local glyph = "wifi"
-  local colorRole = "primary"
+  local statusColor = "primary"
+  local progressVal = 1.0
 
   if status == "OPTIMAL" then
-    glyph = "device-gamepad"
-    colorRole = "primary"
+    statusColor = "primary"
+    progressVal = 1.0
   elseif status == "FAIR" then
-    glyph = "wifi-2"
-    colorRole = "warning"
+    statusColor = "tertiary"
+    progressVal = 0.6
   elseif status == "POOR" then
-    glyph = "alert-triangle"
-    colorRole = "destructive"
+    statusColor = "error"
+    progressVal = 0.25
   elseif status == "CAPTIVE_PORTAL" then
-    glyph = "login"
-    colorRole = "warning"
+    statusColor = "tertiary"
+    progressVal = 0.25
   else -- OFFLINE
-    glyph = "wifi-off"
-    colorRole = "outline"
+    statusColor = "outline"
+    progressVal = 0.0
   end
 
-  -- Dirty check to minimize barWidget calls and compositor redraws
-  if glyph ~= lastRenderedGlyph or status ~= lastRenderedStatus then
-    barWidget.setGlyph(glyph)
-    barWidget.setGlyphColor(colorRole)
-    lastRenderedGlyph = glyph
-    lastRenderedStatus = status
-  end
-
-  -- Respect user constraint: icon-only by default
   local showText = false
   if noctalia and noctalia.getConfig then
     showText = noctalia.getConfig("show_text_in_bar") == true
   end
 
-  if showText and state.gameMs then
-    barWidget.setText(string.format("%.0fms", state.gameMs))
-  else
-    barWidget.setText("")
+  local currentMsFloor = state.gameMs and math.floor(state.gameMs) or -1
+
+  -- Dirty check to minimize redraws
+  if status ~= lastRenderedStatus or (showText and currentMsFloor ~= lastRenderedMs) or showText ~= lastRenderedTextInBar then
+    lastRenderedStatus = status
+    lastRenderedMs = currentMsFloor
+    lastRenderedTextInBar = showText
+
+    local isVertical = barWidget.isVertical and barWidget.isVertical()
+    local items = {}
+
+    -- 1 dedicated logo only ("radar" Lucide/Tabler icon)
+    table.insert(items, ui.glyph({
+      name = "radar",
+      size = 14,
+      color = statusColor,
+    }))
+
+    -- System monitor style vertical pill progress bar
+    if isVertical then
+      table.insert(items, ui.progress({
+        width = 14,
+        height = 6,
+        radius = 3,
+        progress = progressVal,
+        fill = statusColor,
+        track = "surface_variant",
+      }))
+    else
+      table.insert(items, ui.progress({
+        width = 6,
+        height = 14,
+        radius = 3,
+        progress = progressVal,
+        fill = statusColor,
+        track = "surface_variant",
+      }))
+    end
+
+    if showText and state.gameMs then
+      table.insert(items, ui.label({
+        text = string.format("%.0fms", state.gameMs),
+        fontSize = 11,
+        fontWeight = "bold",
+        color = statusColor,
+      }))
+    end
+
+    local tree
+    if isVertical then
+      tree = ui.column({
+        align = "center",
+        justify = "center",
+        gap = 4,
+        onClick = onClick,
+      }, items)
+    else
+      tree = ui.row({
+        align = "center",
+        justify = "center",
+        gap = 4,
+        onClick = onClick,
+      }, items)
+    end
+
+    barWidget.render(tree)
   end
 
   -- Rich Hover Tooltip
@@ -136,12 +196,6 @@ end
 function onConfigChanged()
   state.syncConfig()
   updateWidget()
-end
-
-function onClick()
-  if noctalia and noctalia.togglePanel then
-    noctalia.togglePanel("rigelyon/net-radar:panel")
-  end
 end
 
 -- Subscribe to state updates

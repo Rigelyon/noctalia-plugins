@@ -33,11 +33,11 @@ class TestNetRadarPanel(unittest.TestCase):
         self.assertNotIn("radius = 999", content)
         self.assertNotIn('radius = "full"', content)
 
-        # Segmented meter bars count and color states
+        # Segmented meter bars count and color states (Noctalia MD3 palette)
         self.assertIn("bars = 5", content)
         self.assertIn('"primary"', content)
-        self.assertIn('"warning"', content)
-        self.assertIn('"destructive"', content)
+        self.assertIn('"tertiary"', content)
+        self.assertIn('"error"', content)
         self.assertIn('"outline"', content)
 
     def test_panel_multi_target_and_wifi_diagnostics(self):
@@ -100,6 +100,12 @@ class TestNetRadarPanel(unittest.TestCase):
         with open(PANEL_FILE, "r", encoding="utf-8") as f:
             content = f.read()
 
+        # Must use native ui.select for region/preset dropdown
+        self.assertIn("ui.select", content)
+        # Must NOT use fake dropdown button with unicode arrow
+        self.assertNotIn("▾", content)
+        self.assertIn("selectedIndex", content)
+        self.assertIn("options", content)
         self.assertIn("state.setPreset(", content)
         self.assertIn("presets.LIST", content)
 
