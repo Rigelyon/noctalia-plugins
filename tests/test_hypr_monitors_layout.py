@@ -22,6 +22,7 @@ class TestHyprMonitorsLayout(unittest.TestCase):
         self.assertIn("function layout_math.presetExtend", content)
         self.assertIn("function layout_math.presetMirror", content)
         self.assertIn("function layout_math.presetSingle", content)
+        self.assertIn("function layout_math.resolveCollisions", content)
 
     def test_mathematical_gapless_alignment(self):
         # Anchor monitor: 1920x1080 at scale 1.0, located at (0, 0)
@@ -47,6 +48,34 @@ class TestHyprMonitorsLayout(unittest.TestCase):
 
         # Snap below: target.y must be anchor.y + anchor_vh (1080)
         self.assertEqual(0 + anchor_vh, 1080)
+
+    def test_unmirroring_preserves_main_display(self):
+        # Scenario: Monitor 1 (eDP-1) is main at (0, 0), Monitor 2 (HDMI-A-1) is extended at (1920, 0)
+        monitors = [
+            {"name": "eDP-1", "x": 0, "y": 0, "width": 1920, "height": 1080, "scale": 1.0, "mirrorOf": None},
+            {"name": "HDMI-A-1", "x": 1920, "y": 0, "width": 3840, "height": 2160, "scale": 1.0, "mirrorOf": None},
+        ]
+        # Step 1: Monitor 2 clones Monitor 1 -> saves unmirrored pos (1920, 0)
+        monitors[1]["_unmirroredX"] = monitors[1]["x"]
+        monitors[1]["_unmirroredY"] = monitors[1]["y"]
+        monitors[1]["mirrorOf"] = "eDP-1"
+        monitors[1]["x"] = 0
+        monitors[1]["y"] = 0
+
+        self.assertEqual(monitors[1]["mirrorOf"], "eDP-1")
+        self.assertEqual(monitors[1]["_unmirroredX"], 1920)
+
+        # Step 2: Monitor 2 is switched back to independent
+        prev_source = monitors[1]["mirrorOf"]
+        monitors[1]["mirrorOf"] = None
+        monitors[1]["x"] = monitors[1]["_unmirroredX"]
+        monitors[1]["y"] = monitors[1]["_unmirroredY"]
+
+        # Verify eDP-1 is still at (0, 0) and HDMI-A-1 returned to (1920, 0)
+        self.assertEqual(monitors[0]["x"], 0)
+        self.assertEqual(monitors[0]["y"], 0)
+        self.assertEqual(monitors[1]["x"], 1920)
+        self.assertEqual(monitors[1]["y"], 0)
 
 
 if __name__ == "__main__":

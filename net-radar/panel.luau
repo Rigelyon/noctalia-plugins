@@ -13,17 +13,23 @@ local function tr(key: string, subst: { [string]: any }?): string
 end
 
 local function executeProbe()
+  local now = (noctalia and noctalia.nowMs) and noctalia.nowMs() or (os.clock() * 1000)
   if state.isProbing then
-    return
+    -- Watchdog: if probe has been pending for more than 4000ms, force reset
+    if now - state.lastProbeTime < 4000 then
+      return
+    end
+    state.isProbing = false
   end
   state.isProbing = true
+  state.lastProbeTime = now
 
   local pluginDir = (noctalia and noctalia.pluginDir) and noctalia.pluginDir() or "."
   local probeScript = pluginDir .. "/probe.sh"
   local targetHost = state.getActiveTargetHost()
 
   if noctalia and noctalia.runAsync then
-    noctalia.runAsync({ probeScript, targetHost }, function(result)
+    local started = noctalia.runAsync({ probeScript, targetHost }, function(result)
       state.isProbing = false
       if result and result.exitCode == 0 and result.stdout and result.stdout ~= "" then
         state.processProbe(result.stdout)
@@ -31,6 +37,9 @@ local function executeProbe()
         state.processProbe("none|none|none|none|0|0|0")
       end
     end, 2000)
+    if not started then
+      state.isProbing = false
+    end
   else
     state.isProbing = false
   end
@@ -110,7 +119,6 @@ local function renderPanel(): UiNode
 
   -- Tactical Telemetry Header (Sharp 4px radius, 3px solid left accent border)
   local telemetryCard = ui.row({
-    width = 428,
     fill = "surface",
     border = "outline",
     borderWidth = 1,
@@ -173,7 +181,6 @@ local function renderPanel(): UiNode
 
   -- Diagnostic Callout Banner
   local diagBanner = ui.row({
-    width = 428,
     fill = "surface",
     border = "outline",
     borderWidth = 1,
@@ -199,7 +206,6 @@ local function renderPanel(): UiNode
 
   -- Latency & Jitter Graph
   local graphCard = ui.column({
-    width = 428,
     fill = "surface",
     border = "outline",
     borderWidth = 1,
@@ -225,7 +231,6 @@ local function renderPanel(): UiNode
       }),
     }),
     ui.graph({
-      width = 408,
       height = 70,
       values = graphValues,
       color = statusColor,
@@ -247,7 +252,6 @@ local function renderPanel(): UiNode
 
   -- Multi-Target Breakdown Cards (Gateway, DNS, Game)
   local targetCards = ui.row({
-    width = 428,
     gap = 8,
   }, {
     ui.column({
@@ -303,7 +307,6 @@ local function renderPanel(): UiNode
   end
 
   local wifiCard = ui.row({
-    width = 428,
     fill = "surface",
     border = "outline",
     borderWidth = 1,
@@ -323,7 +326,6 @@ local function renderPanel(): UiNode
 
   -- Bottom Actions Bar
   local actionsBar = ui.row({
-    width = 428,
     justify = "space_between",
     align = "center",
   }, {
@@ -335,7 +337,7 @@ local function renderPanel(): UiNode
       end,
     }),
     ui.button({
-      text = tr("presets." .. state.activePresetId),
+      text = currentPreset.regionName .. " ▾",
       controlSize = "sm",
       onClick = function()
         -- Dynamic preset cycle across presets.LIST (including custom)
@@ -359,7 +361,6 @@ local function renderPanel(): UiNode
   }, {
     -- Panel Header
     ui.row({
-      width = 428,
       justify = "space_between",
       align = "center",
     }, {

@@ -19,7 +19,7 @@
     "target_label": "Target",
     "rtt_unit": "RTT",
     "graph_title": "LATENCY & JITTER (60 DETIK TERAKHIR)",
-    "graph_summary": "Min: %{min}ms • Rata-rata: %{avg}ms • Maks: %{max}ms • Jitter: %{jitter}ms • Loss: %{loss}%",
+    "graph_summary": "Min: {min}ms • Rata-rata: {avg}ms • Maks: {max}ms • Jitter: {jitter}ms • Loss: {loss}%",
     "targets_title": "RINCIAN MULTI-TARGET",
     "target_gateway": "ROUTER LOKAL",
     "target_dns": "DNS INTERNET",

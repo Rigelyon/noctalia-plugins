@@ -19,7 +19,7 @@
     "target_label": "Target",
     "rtt_unit": "RTT",
     "graph_title": "LATENCY & JITTER (LAST 60s)",
-    "graph_summary": "Min: %{min}ms • Avg: %{avg}ms • Max: %{max}ms • Jitter: %{jitter}ms • Loss: %{loss}%",
+    "graph_summary": "Min: {min}ms • Avg: {avg}ms • Max: {max}ms • Jitter: {jitter}ms • Loss: {loss}%",
     "targets_title": "MULTI-TARGET BREAKDOWN",
     "target_gateway": "LOCAL GATEWAY",
     "target_dns": "INTERNET DNS",

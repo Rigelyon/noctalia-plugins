@@ -16,22 +16,41 @@ class TestHyprMonitorsConfig(unittest.TestCase):
         self.assertIn("function config.generateConfigContent", content)
         self.assertIn("function config.writeConfig", content)
         self.assertIn("function config.isSourcedInHyprlandConf", content)
+        self.assertIn("hypr-monitors.lua", content)
         self.assertIn(".bak", content)
-        self.assertIn("source =", content)
+        self.assertIn("hl.monitor", content)
 
-    def test_hyprland_rule_formatting_regex(self):
-        # Verify sample formatted Hyprland rules match the expected compositor parser
-        normal_rule = "monitor = DP-1, 2560x1440@165.00Hz, 1920x0, 1.25, vrr, 1"
-        disabled_rule = "monitor = eDP-1, disable"
-        mirror_rule = "monitor = HDMI-A-1, preferred, auto, 1, mirror, DP-1"
+    def test_hyprland_lua_rule_formatting_regex(self):
+        # Sample Lua rule outputs for Hyprland 0.56+
+        normal_lua = (
+            'hl.monitor({\n'
+            '    output   = "DP-1",\n'
+            '    mode     = "2560x1440@165.00",\n'
+            '    position = "1920x0",\n'
+            '    scale    = 1.25,\n'
+            '    vrr      = 1,\n'
+            '})'
+        )
+        disabled_lua = (
+            'hl.monitor({\n'
+            '    output   = "eDP-1",\n'
+            '    disabled = true,\n'
+            '})'
+        )
+        mirror_lua = (
+            'hl.monitor({\n'
+            '    output   = "HDMI-A-1",\n'
+            '    mode     = "1920x1080@60.00",\n'
+            '    position = "0x0",\n'
+            '    scale    = 1,\n'
+            '    mirror   = "DP-1",\n'
+            '})'
+        )
 
-        normal_pattern = r"^monitor\s*=\s*[\w\-]+,\s*\d+x\d+@[\d\.]+Hz,\s*-?\d+x-?\d+,\s*[\d\.]+(?:,\s*transform,\s*\d+)?(?:,\s*vrr,\s*\d+)?$"
-        disabled_pattern = r"^monitor\s*=\s*[\w\-]+,\s*disable$"
-        mirror_pattern = r"^monitor\s*=\s*[\w\-]+,\s*preferred,\s*auto,\s*1,\s*mirror,\s*[\w\-]+$"
-
-        self.assertRegex(normal_rule, normal_pattern)
-        self.assertRegex(disabled_rule, disabled_pattern)
-        self.assertRegex(mirror_rule, mirror_pattern)
+        self.assertIn('output   = "DP-1"', normal_lua)
+        self.assertIn('mode     = "2560x1440@165.00"', normal_lua)
+        self.assertIn('disabled = true', disabled_lua)
+        self.assertIn('mirror   = "DP-1"', mirror_lua)
 
 
 if __name__ == "__main__":

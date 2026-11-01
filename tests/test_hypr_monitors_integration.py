@@ -21,8 +21,8 @@ class TestHyprMonitorsIntegration(unittest.TestCase):
         self.assertIn("function render()", panel_content)
         self.assertIn("state.subscribe", panel_content)
         self.assertIn("computeCanvasProjection", panel_content)
+        self.assertIn("state.applyConfig", panel_content)
         self.assertIn("renderSafetyModal", panel_content)
-        self.assertIn("writeConfig", panel_content)
 
         # Widget tests
         self.assertIn("barWidget.setText", widget_content)

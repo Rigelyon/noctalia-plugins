@@ -141,7 +141,7 @@ function state.getStatus(): string
   if state.gameMs < 60.0 and state.jitter < 10.0 and state.lossPct == 0.0 then
     return "OPTIMAL"
   end
-  if state.gameMs <= 120.0 and state.jitter <= 25.0 and state.lossPct <= 3.0 then
+  if state.gameMs <= 120.0 and state.jitter <= 25.0 and state.lossPct <= 5.0 then
     return "FAIR"
   end
   return "POOR"

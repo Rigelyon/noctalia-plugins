@@ -69,7 +69,7 @@ class NetRadarMetricsSimulator:
 
         if self.game_ms < 60.0 and self.jitter < 10.0 and self.loss_pct == 0.0:
             return "OPTIMAL"
-        if self.game_ms <= 120.0 and self.jitter <= 25.0 and self.loss_pct <= 3.0:
+        if self.game_ms <= 120.0 and self.jitter <= 25.0 and self.loss_pct <= 5.0:
             return "FAIR"
         return "POOR"
 

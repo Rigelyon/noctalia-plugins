@@ -20,8 +20,8 @@ fi
 (ping -c 1 -W 1 "1.1.1.1" 2>/dev/null | sed -nE 's/.*time=([0-9.]+) ms/\1/p' > "$DNS_TMP") &
 (ping -c 1 -W 1 "$TARGET" 2>/dev/null | sed -nE 's/.*time=([0-9.]+) ms/\1/p' > "$GAME_TMP") &
 
-# Wi-Fi link information via nmcli
-WIFI_RAW=$(nmcli -t -f active,ssid,freq,signal,rate dev wifi 2>/dev/null | grep '^yes:' | head -n 1)
+# Wi-Fi link information via nmcli (use --rescan no to avoid channel hops and latency spikes)
+WIFI_RAW=$(nmcli -t -f active,ssid,freq,signal,rate dev wifi list --rescan no 2>/dev/null | grep '^yes:' | head -n 1)
 
 wait
 

@@ -13,11 +13,13 @@ class TestHyprMonitorsIPC(unittest.TestCase):
 
         self.assertIn("function hypr.init", content)
         self.assertIn("function hypr.refreshMonitors", content)
-        self.assertIn("function hypr.applyLive", content)
-        self.assertIn("function hypr.applyBatch", content)
+        self.assertIn("function hypr.reload", content)
         self.assertIn("hyprctl monitors all -j", content)
-        self.assertIn("keyword monitor", content)
         self.assertIn("socket2.sock", content)
+
+        # Verify live apply is completely removed in config-only approach
+        self.assertNotIn("function hypr.applyLive", content)
+        self.assertNotIn("function hypr.applyBatch", content)
 
 
 if __name__ == "__main__":

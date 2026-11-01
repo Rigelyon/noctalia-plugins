@@ -25,6 +25,12 @@ class TestHyprMonitorsProfiles(unittest.TestCase):
         unmatched = sorted(["eDP-1", "HDMI-A-1"])
         self.assertNotEqual(saved_fingerprint, unmatched)
 
+    def test_no_string_gsub_inside_single_arg_call(self):
+        prof_path = os.path.join(PLUGIN_DIR, "profiles.luau")
+        with open(prof_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertNotIn("string.lower(string.gsub(", content)
+
 
 if __name__ == "__main__":
     unittest.main()

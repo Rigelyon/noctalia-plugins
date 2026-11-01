@@ -15,17 +15,23 @@ local function tr(key: string, subst: { [string]: any }?): string
 end
 
 local function executeProbe()
+  local now = (noctalia and noctalia.nowMs) and noctalia.nowMs() or (os.clock() * 1000)
   if state.isProbing then
-    return
+    -- Watchdog: if probe has been pending for more than 4000ms, force reset
+    if now - state.lastProbeTime < 4000 then
+      return
+    end
+    state.isProbing = false
   end
   state.isProbing = true
+  state.lastProbeTime = now
 
   local pluginDir = (noctalia and noctalia.pluginDir) and noctalia.pluginDir() or "."
   local probeScript = pluginDir .. "/probe.sh"
   local targetHost = state.getActiveTargetHost()
 
   if noctalia and noctalia.runAsync then
-    noctalia.runAsync({ probeScript, targetHost }, function(result)
+    local started = noctalia.runAsync({ probeScript, targetHost }, function(result)
       state.isProbing = false
       if result and result.exitCode == 0 and result.stdout and result.stdout ~= "" then
         state.processProbe(result.stdout)
@@ -33,6 +39,9 @@ local function executeProbe()
         state.processProbe("none|none|none|none|0|0|0")
       end
     end, 2500)
+    if not started then
+      state.isProbing = false
+    end
   else
     state.isProbing = false
   end
