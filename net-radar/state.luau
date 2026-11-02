@@ -226,12 +226,13 @@ function state.getDiagnostics(): (string, string, string)
   end
 
   if state.lossPct >= 10.0 or not state.gameMs then
-    return tr("panel.diag_isp_loss", { loss = string.format("%.0f", state.lossPct) }), "alert-triangle", "error"
+    local lossVal = (not state.gameMs and state.lossPct == 0.0) and 100.0 or state.lossPct
+    return tr("panel.diag_isp_loss", { loss = string.format("%.0f", lossVal) }), "alert-triangle", "error"
   end
 
   -- Finding collection
   local findings = {}
-  local isWeakWifi = (state.ssid ~= "" and (state.signalPct or 0) > 0 and (state.signalPct or 0) < 40)
+  local isWeakWifi = (state.ssid and state.ssid ~= "" and (state.signalPct or 0) > 0 and (state.signalPct or 0) < 40)
 
   -- 2. Tier 2 Acute Findings
   if state.lossPct >= 1.0 and state.lossPct < 10.0 then
