@@ -50,8 +50,11 @@ class NetRadarDiagnosticsEvaluator:
             return self.tr("panel.diag_captive_portal", lang=lang), "alert-triangle", "tertiary"
 
         if loss_pct >= 10.0 or game_ms is None:
-            loss_str = f"{loss_pct:.0f}"
-            return self.tr("panel.diag_isp_loss", {"loss": loss_str}, lang=lang), "alert-triangle", "error"
+            loss_val = 100.0 if (game_ms is None and loss_pct == 0.0) else loss_pct
+            loss_str = f"{loss_val:.0f}"
+            is_server_only = (dns_ms is not None and dns_ms <= 60.0)
+            key = "panel.diag_server_loss" if is_server_only else "panel.diag_isp_loss"
+            return self.tr(key, {"loss": loss_str}, lang=lang), "alert-triangle", "error"
 
         # 2. Findings collection
         findings = []
@@ -59,9 +62,12 @@ class NetRadarDiagnosticsEvaluator:
 
         # Tier 2 Acute Findings
         if 1.0 <= loss_pct < 10.0:
+            is_server_only = (dns_ms is not None and dns_ms <= 60.0)
+            key = "panel.diag_server_loss" if is_server_only else "panel.diag_isp_loss"
+            id_name = "server_loss" if is_server_only else "isp_loss"
             findings.append({
-                "id": "isp_loss",
-                "text": self.tr("panel.diag_isp_loss", {"loss": f"{loss_pct:.1f}"}, lang=lang),
+                "id": id_name,
+                "text": self.tr(key, {"loss": f"{loss_pct:.1f}"}, lang=lang),
                 "glyph": "alert-triangle",
                 "color": "error",
                 "tier": 2,
@@ -70,9 +76,12 @@ class NetRadarDiagnosticsEvaluator:
             })
 
         if gw_ms is not None and gw_ms <= 15.0 and game_ms is not None and game_ms > 120.0:
+            is_server_only = (dns_ms is not None and dns_ms <= 60.0)
+            key = "panel.diag_server_lag" if is_server_only else "panel.diag_isp_lag"
+            id_name = "server_lag" if is_server_only else "isp_lag"
             findings.append({
-                "id": "isp_lag",
-                "text": self.tr("panel.diag_isp_lag", {"ms": f"{game_ms:.0f}"}, lang=lang),
+                "id": id_name,
+                "text": self.tr(key, {"ms": f"{game_ms:.0f}"}, lang=lang),
                 "glyph": "alert-circle",
                 "color": "tertiary",
                 "tier": 2,
@@ -217,16 +226,27 @@ class TestNetRadarDiagnostics(unittest.TestCase):
         self.assertEqual(color, "tertiary")
 
     def test_evaluator_critical_loss(self):
-        # Critical loss: lossPct >= 10.0
+        # Critical loss on target server (DNS is healthy at 15ms)
         text, glyph, color = self.evaluator.evaluate({
             "gw_ms": 2.0,
             "dns_ms": 15.0,
             "game_ms": 40.0,
             "loss_pct": 15.0,
         })
-        self.assertEqual(text, "ISP or external routing experiencing packet loss (15%).")
+        self.assertEqual(text, "Internet is healthy, but target game server is experiencing packet loss (15%).")
         self.assertEqual(glyph, "alert-triangle")
         self.assertEqual(color, "error")
+
+        # Critical loss on ISP (DNS is slow at 75ms)
+        text_isp, glyph_isp, color_isp = self.evaluator.evaluate({
+            "gw_ms": 2.0,
+            "dns_ms": 75.0,
+            "game_ms": 40.0,
+            "loss_pct": 15.0,
+        })
+        self.assertEqual(text_isp, "ISP or external internet connection experiencing packet loss (15%).")
+        self.assertEqual(glyph_isp, "alert-triangle")
+        self.assertEqual(color_isp, "error")
 
         # Critical loss: game server completely dead (game_ms is None)
         text2, glyph2, color2 = self.evaluator.evaluate({
@@ -235,7 +255,7 @@ class TestNetRadarDiagnostics(unittest.TestCase):
             "game_ms": None,
             "loss_pct": 0.0,
         })
-        self.assertEqual(text2, "ISP or external routing experiencing packet loss (0%).")
+        self.assertEqual(text2, "Internet is healthy, but target game server is experiencing packet loss (100%).")
         self.assertEqual(glyph2, "alert-triangle")
         self.assertEqual(color2, "error")
 
@@ -269,9 +289,9 @@ class TestNetRadarDiagnostics(unittest.TestCase):
         self.assertEqual(glyph, "alert-triangle")
         self.assertEqual(color, "tertiary")
 
-    def test_evaluator_isp_packet_loss_moderate(self):
-        # Moderate ISP packet loss (6%) on strong Wi-Fi (80%)
-        text, glyph, color = self.evaluator.evaluate({
+    def test_evaluator_server_loss_vs_isp_loss(self):
+        # Moderate loss on game server when DNS is healthy (15ms)
+        text_srv, glyph_srv, color_srv = self.evaluator.evaluate({
             "gw_ms": 2.0,
             "dns_ms": 15.0,
             "game_ms": 35.0,
@@ -280,12 +300,26 @@ class TestNetRadarDiagnostics(unittest.TestCase):
             "ssid": "Home_WiFi",
             "signal_pct": 80,
         })
-        self.assertEqual(text, "ISP or external routing experiencing packet loss (6.0%).")
-        self.assertEqual(glyph, "alert-triangle")
-        self.assertEqual(color, "error")
+        self.assertEqual(text_srv, "Internet is healthy, but target game server is experiencing packet loss (6.0%).")
+        self.assertEqual(glyph_srv, "alert-triangle")
+        self.assertEqual(color_srv, "error")
+
+        # Moderate loss on ISP when DNS is slow/struggling (85ms)
+        text_isp, glyph_isp, color_isp = self.evaluator.evaluate({
+            "gw_ms": 2.0,
+            "dns_ms": 85.0,
+            "game_ms": 35.0,
+            "jitter": 3.0,
+            "loss_pct": 6.0,
+            "ssid": "Home_WiFi",
+            "signal_pct": 80,
+        })
+        self.assertEqual(text_isp, "ISP or external internet connection experiencing packet loss (6.0%).")
+        self.assertEqual(glyph_isp, "alert-triangle")
+        self.assertEqual(color_isp, "error")
 
     def test_evaluator_dual_issue_synthesis_en_and_id(self):
-        # Dual issue: ISP loss (6%) + weak Wi-Fi signal (35%)
+        # Dual issue: Server loss (6%) + weak Wi-Fi signal (35%)
         state_data = {
             "gw_ms": 5.0,
             "dns_ms": 15.0,
@@ -299,7 +333,7 @@ class TestNetRadarDiagnostics(unittest.TestCase):
         # English synthesis
         text_en, glyph_en, color_en = self.evaluator.evaluate(state_data, lang="en")
         expected_en = (
-            "ISP or external routing experiencing packet loss (6.0%), "
+            "Internet is healthy, but target game server is experiencing packet loss (6.0%), "
             "alongside Weak Wi-Fi signal (35%) causing packet drops."
         )
         self.assertEqual(text_en, expected_en)
@@ -309,7 +343,7 @@ class TestNetRadarDiagnostics(unittest.TestCase):
         # Indonesian synthesis
         text_id, glyph_id, color_id = self.evaluator.evaluate(state_data, lang="id")
         expected_id = (
-            "Jalur ISP atau server luar mengalami packet loss (6.0%), "
+            "Koneksi internet lancar, tetapi server game target mengalami packet loss (6.0%), "
             "serta Sinyal Wi-Fi lemah (35%) memicu paket hilang."
         )
         self.assertEqual(text_id, expected_id)
@@ -361,9 +395,9 @@ class TestNetRadarDiagnostics(unittest.TestCase):
         self.assertEqual(glyph, "alert-circle")
         self.assertEqual(color, "tertiary")
 
-    def test_evaluator_isp_routing_lag(self):
-        # Local gateway is fast (8ms), but ISP game server latency is high (145ms)
-        text, glyph, color = self.evaluator.evaluate({
+    def test_evaluator_server_lag_vs_isp_lag(self):
+        # Local gateway is fast (8ms), DNS is fast (20ms), but game server is 145ms -> Server lag
+        text_srv, glyph_srv, color_srv = self.evaluator.evaluate({
             "gw_ms": 8.0,
             "dns_ms": 20.0,
             "game_ms": 145.0,
@@ -372,9 +406,23 @@ class TestNetRadarDiagnostics(unittest.TestCase):
             "ssid": "Home_5G",
             "signal_pct": 85,
         })
-        self.assertEqual(text, "Local router is fast, but ISP game routing latency is high (145ms).")
-        self.assertEqual(glyph, "alert-circle")
-        self.assertEqual(color, "tertiary")
+        self.assertEqual(text_srv, "Internet is fast, but target game server latency is high (145ms).")
+        self.assertEqual(glyph_srv, "alert-circle")
+        self.assertEqual(color_srv, "tertiary")
+
+        # Local gateway is fast (8ms), but DNS is also slow (90ms) and game is 145ms -> ISP lag
+        text_isp, glyph_isp, color_isp = self.evaluator.evaluate({
+            "gw_ms": 8.0,
+            "dns_ms": 90.0,
+            "game_ms": 145.0,
+            "jitter": 4.0,
+            "loss_pct": 0.0,
+            "ssid": "Home_5G",
+            "signal_pct": 85,
+        })
+        self.assertEqual(text_isp, "Local router is fast, but ISP internet routing latency is high (145ms).")
+        self.assertEqual(glyph_isp, "alert-circle")
+        self.assertEqual(color_isp, "tertiary")
 
     def test_evaluator_high_jitter(self):
         # Elevated jitter (> 15ms) causing micro-stutter

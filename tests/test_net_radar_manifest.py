@@ -78,6 +78,8 @@ class TestNetRadarManifest(unittest.TestCase):
             "diag_weak_signal_stable",
             "diag_isp_loss",
             "diag_isp_lag",
+            "diag_server_loss",
+            "diag_server_lag",
             "diag_local_bufferbloat",
             "diag_high_jitter",
             "diag_wifi_weak_unstable",

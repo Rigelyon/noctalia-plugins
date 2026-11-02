@@ -227,7 +227,9 @@ function state.getDiagnostics(): (string, string, string)
 
   if state.lossPct >= 10.0 or not state.gameMs then
     local lossVal = (not state.gameMs and state.lossPct == 0.0) and 100.0 or state.lossPct
-    return tr("panel.diag_isp_loss", { loss = string.format("%.0f", lossVal) }), "alert-triangle", "error"
+    local isServerOnly = (state.dnsMs and state.dnsMs <= 60.0)
+    local key = isServerOnly and "panel.diag_server_loss" or "panel.diag_isp_loss"
+    return tr(key, { loss = string.format("%.0f", lossVal) }), "alert-triangle", "error"
   end
 
   -- Finding collection
@@ -236,9 +238,11 @@ function state.getDiagnostics(): (string, string, string)
 
   -- 2. Tier 2 Acute Findings
   if state.lossPct >= 1.0 and state.lossPct < 10.0 then
+    local isServerOnly = (state.dnsMs and state.dnsMs <= 60.0)
+    local key = isServerOnly and "panel.diag_server_loss" or "panel.diag_isp_loss"
     table.insert(findings, {
-      id = "isp_loss",
-      text = tr("panel.diag_isp_loss", { loss = string.format("%.1f", state.lossPct) }),
+      id = isServerOnly and "server_loss" or "isp_loss",
+      text = tr(key, { loss = string.format("%.1f", state.lossPct) }),
       glyph = "alert-triangle",
       color = "error",
       tier = 2,
@@ -248,9 +252,11 @@ function state.getDiagnostics(): (string, string, string)
   end
 
   if state.gwMs and state.gwMs <= 15.0 and state.gameMs and state.gameMs > 120.0 then
+    local isServerOnly = (state.dnsMs and state.dnsMs <= 60.0)
+    local key = isServerOnly and "panel.diag_server_lag" or "panel.diag_isp_lag"
     table.insert(findings, {
-      id = "isp_lag",
-      text = tr("panel.diag_isp_lag", { ms = string.format("%.0f", state.gameMs) }),
+      id = isServerOnly and "server_lag" or "isp_lag",
+      text = tr(key, { ms = string.format("%.0f", state.gameMs) }),
       glyph = "alert-circle",
       color = "tertiary",
       tier = 2,
