@@ -84,6 +84,6 @@ entry = "panel.luau"
 placement = "floating"
 position = "top_right"
 width = 460
-height = 540
+height = 620
 dismiss_on_outside_click = true
 persistent = false
