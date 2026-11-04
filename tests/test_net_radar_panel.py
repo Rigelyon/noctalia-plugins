@@ -120,19 +120,22 @@ class TestNetRadarPanel(unittest.TestCase):
         self.assertIn("name = diagGlyph", content)
         self.assertIn("color = diagColor", content)
 
-    def test_panel_dual_line_graph_and_interactive_badges(self):
+    def test_panel_combined_telemetry_graph_and_legend(self):
         with open(PANEL_FILE, "r", encoding="utf-8") as f:
             content = f.read()
 
-        # Must use dual-line graph with values2 and color2
+        # Must use dual-line graph with values2 and color2 for Latency + Jitter
         self.assertIn("values2 =", content)
         self.assertIn("color2 =", content)
-        self.assertIn("state.secondaryGraphMode", content)
+        self.assertIn('"#38bdf8"', content)  # Cyan Jitter
+        self.assertIn('"#ef4444"', content)  # Red Loss
         self.assertIn('"#f59e0b"', content)
         self.assertIn("NO_INTERNET", content)
         self.assertIn("CAPTIVE_PORTAL", content)
-        self.assertIn("graph_badge_jitter", content)
-        self.assertIn("graph_badge_loss", content)
+        # Legend indicators present without toggle buttons
+        self.assertIn('"RTT"', content)
+        self.assertIn('"Jitter"', content)
+        self.assertIn('"Loss"', content)
 
 
 

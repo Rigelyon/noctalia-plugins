@@ -117,7 +117,7 @@ local function renderPanel(): UiNode
   end
 
   local diagText, diagGlyph, diagColor = state.getDiagnostics()
-  local primaryValues, secondaryValues, minRtt, avgRtt, maxRtt, secMin, secAvg, secMax = state.getGraphValues()
+  local primaryValues, jitterValues, lossValues, minRtt, avgRtt, maxRtt, avgJitter, maxLoss = state.getGraphValues()
 
   -- Tactical Telemetry Header (Sharp 4px radius, 3px solid left accent border)
   local telemetryCard = ui.row({
@@ -206,55 +206,13 @@ local function renderPanel(): UiNode
     }),
   })
 
-  -- Interactive Badges & Dual-Line Graph
-  local isJitter = (state.secondaryGraphMode == "jitter")
-  local jitterBadgeText = tr("panel.graph_badge_jitter", { jitter = string.format("%.1f", state.jitter) })
-  local lossBadgeText = tr("panel.graph_badge_loss", { loss = string.format("%.1f", state.lossPct) })
-
-  local graphTitle = isJitter and tr("panel.graph_title_jitter") or tr("panel.graph_title_loss")
-  if graphTitle == "panel.graph_title_jitter" or graphTitle == "panel.graph_title_loss" then
-    graphTitle = tr("panel.graph_title")
-  end
-
-  local badgeJitter = ui.button({
-    text = jitterBadgeText,
-    fontSize = 10,
-    controlSize = "sm",
-    height = 24,
-    variant = isJitter and "secondary" or "ghost",
-    onClick = function()
-      state.setSecondaryGraphMode("jitter")
-      if renderNow then renderNow() end
-    end,
-  })
-
-  local badgeLoss = ui.button({
-    text = lossBadgeText,
-    fontSize = 10,
-    controlSize = "sm",
-    height = 24,
-    variant = not isJitter and (state.lossPct > 0 and "destructive" or "secondary") or "ghost",
-    onClick = function()
-      state.setSecondaryGraphMode("loss")
-      if renderNow then renderNow() end
-    end,
-  })
-
-  local secColor = isJitter and "#38bdf8" or "#ef4444"
-
-  local summaryText = isJitter and tr("panel.graph_summary_jitter", {
+  -- Unified Telemetry Graph (Latency + Jitter dual-line, and Loss sparkline)
+  local summaryText = tr("panel.graph_summary", {
     min = string.format("%.0f", minRtt),
     max = string.format("%.0f", maxRtt),
     avg = string.format("%.0f", avgRtt),
-    secMin = string.format("%.1f", secMin),
-    secMax = string.format("%.1f", secMax),
-    secAvg = string.format("%.1f", secAvg),
-  }) or tr("panel.graph_summary_loss", {
-    min = string.format("%.0f", minRtt),
-    max = string.format("%.0f", maxRtt),
-    avg = string.format("%.0f", avgRtt),
-    secAvg = string.format("%.1f", secAvg),
-    secMax = string.format("%.1f", secMax),
+    jitter = string.format("%.1f", avgJitter),
+    loss = string.format("%.1f", state.lossPct),
   })
 
   local graphCard = ui.column({
@@ -265,33 +223,73 @@ local function renderPanel(): UiNode
     padding = 10,
     gap = 6,
   }, {
+    -- Header: Title on left, Legend indicators on right (No buttons)
     ui.row({
       justify = "space_between",
       align = "center",
     }, {
       ui.label({
-        text = graphTitle,
+        text = tr("panel.graph_title"),
         fontSize = 10,
         fontWeight = "semibold",
         opacity = 0.7,
       }),
       ui.row({
-        gap = 4,
+        gap = 8,
         align = "center",
       }, {
-        badgeJitter,
-        badgeLoss,
+        ui.row({ gap = 4, align = "center" }, {
+          ui.box({ width = 6, height = 6, radius = 1, fill = statusColor }),
+          ui.label({ text = "RTT", fontSize = 9, opacity = 0.7 }),
+        }),
+        ui.row({ gap = 4, align = "center" }, {
+          ui.box({ width = 6, height = 6, radius = 1, fill = "#38bdf8" }),
+          ui.label({ text = "Jitter", fontSize = 9, opacity = 0.7 }),
+        }),
+        ui.row({ gap = 4, align = "center" }, {
+          ui.box({ width = 6, height = 6, radius = 1, fill = "#ef4444" }),
+          ui.label({ text = "Loss", fontSize = 9, opacity = 0.7 }),
+        }),
       }),
     }),
+    -- Primary Graph: Dual-line Latency (RTT) + Jitter
     ui.graph({
-      height = 70,
+      height = 52,
       values = primaryValues,
-      values2 = secondaryValues,
+      values2 = jitterValues,
       color = statusColor,
-      color2 = secColor,
+      color2 = "#38bdf8",
       lineWidth = 2,
       fillOpacity = 0.15,
     }),
+    -- Packet Loss Timeline Strip
+    ui.row({
+      align = "center",
+      gap = 6,
+    }, {
+      ui.label({
+        text = "LOSS",
+        fontSize = 8,
+        fontWeight = "bold",
+        opacity = 0.5,
+      }),
+      ui.graph({
+        height = 14,
+        values = lossValues,
+        color = "#ef4444",
+        lineWidth = 1.5,
+        fillOpacity = 0.3,
+        flexGrow = 1,
+      }),
+      ui.label({
+        text = string.format("%.1f%%", state.lossPct),
+        fontSize = 9,
+        fontWeight = "semibold",
+        color = state.lossPct > 0 and "error" or "on_surface",
+        opacity = state.lossPct > 0 and 1.0 or 0.6,
+      }),
+    }),
+    -- Footer Summary
     ui.label({
       text = summaryText,
       fontSize = 9,

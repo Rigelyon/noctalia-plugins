@@ -213,9 +213,10 @@ function state.getStatus(): string
   return "POOR"
 end
 
-function state.getGraphValues(): ({ number }, { number }, number, number, number, number, number, number)
+function state.getGraphValues(): ({ number }, { number }, { number }, number, number, number, number, number)
   local primaryValues = {}
-  local secondaryValues = {}
+  local jitterValues = {}
+  local lossValues = {}
   local minMs = 999999.0
   local maxMs = 0.0
   local sumMs = 0.0
@@ -244,42 +245,32 @@ function state.getGraphValues(): ({ number }, { number }, number, number, number
   local avgMs = count > 0 and (sumMs / count) or 0.0
   if minMs > 999990.0 then minMs = 0.0 end
 
-  local secMin = 999999.0
-  local secMax = 0.0
-  local secSum = 0.0
-  local secCount = 0
+  -- Jitter calculation
+  local jMax = 0.0
+  local jSum = 0.0
+  local jCount = 0
+  for i = 1, state.BUFFER_SIZE do
+    local j = state.jitterHistory[i] or 0.0
+    if j > jMax then jMax = j end
+    jSum = jSum + j
+    jCount = jCount + 1
+  end
+  local jCeiling = math.max(15.0, jMax * 1.3)
+  for i = 1, state.BUFFER_SIZE do
+    local j = state.jitterHistory[i] or 0.0
+    table.insert(jitterValues, math.min(1.0, math.max(0.0, j / jCeiling)))
+  end
+  local avgJitter = jCount > 0 and (jSum / jCount) or 0.0
 
-  if state.secondaryGraphMode == "jitter" then
-    for i = 1, state.BUFFER_SIZE do
-      local j = state.jitterHistory[i] or 0.0
-      if j < secMin then secMin = j end
-      if j > secMax then secMax = j end
-      secSum = secSum + j
-      secCount = secCount + 1
-    end
-    local jCeiling = math.max(15.0, secMax * 1.3)
-    for i = 1, state.BUFFER_SIZE do
-      local j = state.jitterHistory[i] or 0.0
-      table.insert(secondaryValues, math.min(1.0, math.max(0.0, j / jCeiling)))
-    end
-  else -- "loss"
-    for i = 1, state.BUFFER_SIZE do
-      local l = state.lossHistory[i] or 0.0
-      if l < secMin then secMin = l end
-      if l > secMax then secMax = l end
-      secSum = secSum + l
-      secCount = secCount + 1
-    end
-    for i = 1, state.BUFFER_SIZE do
-      local l = state.lossHistory[i] or 0.0
-      table.insert(secondaryValues, math.min(1.0, math.max(0.0, l / 100.0)))
-    end
+  -- Loss calculation
+  local lMax = 0.0
+  for i = 1, state.BUFFER_SIZE do
+    local l = state.lossHistory[i] or 0.0
+    if l > lMax then lMax = l end
+    table.insert(lossValues, math.min(1.0, math.max(0.0, l / 100.0)))
   end
 
-  local secAvg = secCount > 0 and (secSum / secCount) or 0.0
-  if secMin > 999990.0 then secMin = 0.0 end
-
-  return primaryValues, secondaryValues, minMs, avgMs, maxMs, secMin, secAvg, secMax
+  return primaryValues, jitterValues, lossValues, minMs, avgMs, maxMs, avgJitter, lMax
 end
 
 local function tr(key: string, subst: { [string]: any }?): string
