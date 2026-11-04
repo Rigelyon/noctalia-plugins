@@ -128,14 +128,18 @@ class TestNetRadarPanel(unittest.TestCase):
         self.assertIn("values2 =", content)
         self.assertIn("color2 =", content)
         self.assertIn('"#38bdf8"', content)  # Cyan Jitter
-        self.assertIn('"#ef4444"', content)  # Red Loss
         self.assertIn('"#f59e0b"', content)
         self.assertIn("NO_INTERNET", content)
         self.assertIn("CAPTIVE_PORTAL", content)
-        # Legend indicators present without toggle buttons
+        # Legend indicators present in graph header
         self.assertIn('"RTT"', content)
         self.assertIn('"Jitter"', content)
-        self.assertIn('"Loss"', content)
+        # Dedicated telemetry statistics card
+        self.assertIn("statsCard", content)
+        self.assertIn("stat_latency", content)
+        self.assertIn("stat_jitter", content)
+        self.assertIn("stat_loss", content)
+        self.assertIn("droppedCount", content)
 
 
 

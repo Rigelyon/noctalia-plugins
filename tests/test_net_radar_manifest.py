@@ -107,6 +107,11 @@ class TestNetRadarManifest(unittest.TestCase):
             "panel.graph_badge_loss",
             "panel.graph_summary_jitter",
             "panel.graph_summary_loss",
+            "panel.stats_title",
+            "panel.stats_window",
+            "panel.stat_latency",
+            "panel.stat_jitter",
+            "panel.stat_loss",
         ]
         for key in required_keys:
             self.assertTrue(has_key_path(en, key), f"Missing key '{key}' in en.json")

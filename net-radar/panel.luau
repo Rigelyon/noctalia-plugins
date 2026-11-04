@@ -117,7 +117,7 @@ local function renderPanel(): UiNode
   end
 
   local diagText, diagGlyph, diagColor = state.getDiagnostics()
-  local primaryValues, jitterValues, lossValues, minRtt, avgRtt, maxRtt, avgJitter, maxLoss = state.getGraphValues()
+  local primaryValues, jitterValues, minRtt, avgRtt, maxRtt, avgJitter, maxJitter, maxLoss, droppedCount = state.getGraphValues()
 
   -- Tactical Telemetry Header (Sharp 4px radius, 3px solid left accent border)
   local telemetryCard = ui.row({
@@ -206,24 +206,16 @@ local function renderPanel(): UiNode
     }),
   })
 
-  -- Unified Telemetry Graph (Latency + Jitter dual-line, and Loss sparkline)
-  local summaryText = tr("panel.graph_summary", {
-    min = string.format("%.0f", minRtt),
-    max = string.format("%.0f", maxRtt),
-    avg = string.format("%.0f", avgRtt),
-    jitter = string.format("%.1f", avgJitter),
-    loss = string.format("%.1f", state.lossPct),
-  })
-
+  -- Graph Card: Clean Dual-Line Graph (Latency & Jitter)
   local graphCard = ui.column({
     fill = "surface",
     border = "outline",
     borderWidth = 1,
     radius = 4,
     padding = 10,
-    gap = 6,
+    gap = 8,
   }, {
-    -- Header: Title on left, Legend indicators on right (No buttons)
+    -- Header: Title on left, Legend indicators on right
     ui.row({
       justify = "space_between",
       align = "center",
@@ -235,7 +227,7 @@ local function renderPanel(): UiNode
         opacity = 0.7,
       }),
       ui.row({
-        gap = 8,
+        gap = 10,
         align = "center",
       }, {
         ui.row({ gap = 4, align = "center" }, {
@@ -246,15 +238,11 @@ local function renderPanel(): UiNode
           ui.box({ width = 6, height = 6, radius = 1, fill = "#38bdf8" }),
           ui.label({ text = "Jitter", fontSize = 9, opacity = 0.7 }),
         }),
-        ui.row({ gap = 4, align = "center" }, {
-          ui.box({ width = 6, height = 6, radius = 1, fill = "#ef4444" }),
-          ui.label({ text = "Loss", fontSize = 9, opacity = 0.7 }),
-        }),
       }),
     }),
-    -- Primary Graph: Dual-line Latency (RTT) + Jitter
+    -- Unified Dual-line Graph: Latency (RTT) + Jitter
     ui.graph({
-      height = 52,
+      height = 68,
       values = primaryValues,
       values2 = jitterValues,
       color = statusColor,
@@ -262,38 +250,112 @@ local function renderPanel(): UiNode
       lineWidth = 2,
       fillOpacity = 0.15,
     }),
-    -- Packet Loss Timeline Strip
+  })
+
+  -- Dedicated Telemetry Statistics Card
+  local statsCard = ui.column({
+    fill = "surface",
+    border = "outline",
+    borderWidth = 1,
+    radius = 4,
+    padding = 10,
+    gap = 8,
+  }, {
+    -- Header
     ui.row({
+      justify = "space_between",
       align = "center",
-      gap = 6,
     }, {
       ui.label({
-        text = "LOSS",
-        fontSize = 8,
-        fontWeight = "bold",
-        opacity = 0.5,
-      }),
-      ui.graph({
-        height = 14,
-        values = lossValues,
-        color = "#ef4444",
-        lineWidth = 1.5,
-        fillOpacity = 0.3,
-        flexGrow = 1,
+        text = tr("panel.stats_title"),
+        fontSize = 10,
+        fontWeight = "semibold",
+        opacity = 0.7,
       }),
       ui.label({
-        text = string.format("%.1f%%", state.lossPct),
+        text = tr("panel.stats_window"),
         fontSize = 9,
-        fontWeight = "semibold",
-        color = state.lossPct > 0 and "error" or "on_surface",
-        opacity = state.lossPct > 0 and 1.0 or 0.6,
+        opacity = 0.5,
       }),
     }),
-    -- Footer Summary
-    ui.label({
-      text = summaryText,
-      fontSize = 9,
-      opacity = 0.65,
+    -- 3 Columns for Latency, Jitter, Loss
+    ui.row({
+      justify = "space_between",
+      align = "center",
+    }, {
+      -- Column 1: Latency (RTT)
+      ui.column({
+        flexGrow = 1,
+        gap = 2,
+      }, {
+        ui.label({ text = tr("panel.stat_latency"), fontSize = 9, opacity = 0.6 }),
+        ui.row({ gap = 3, align = "baseline" }, {
+          ui.label({
+            text = avgRtt > 0 and string.format("%.0f", avgRtt) or "--",
+            fontSize = 15,
+            fontWeight = "bold",
+            color = statusColor,
+          }),
+          ui.label({ text = "ms avg", fontSize = 9, opacity = 0.6 }),
+        }),
+        ui.label({
+          text = string.format("Min %.0f • Max %.0f ms", minRtt, maxRtt),
+          fontSize = 9,
+          opacity = 0.7,
+        }),
+      }),
+
+      -- Divider 1
+      ui.box({ width = 1, height = 32, fill = "outline", opacity = 0.4 }),
+
+      -- Column 2: Jitter
+      ui.column({
+        flexGrow = 1,
+        paddingH = 10,
+        gap = 2,
+      }, {
+        ui.label({ text = tr("panel.stat_jitter"), fontSize = 9, opacity = 0.6 }),
+        ui.row({ gap = 3, align = "baseline" }, {
+          ui.label({
+            text = string.format("±%.1f", state.jitter),
+            fontSize = 15,
+            fontWeight = "bold",
+            color = "#38bdf8",
+          }),
+          ui.label({ text = "ms", fontSize = 9, opacity = 0.6 }),
+        }),
+        ui.label({
+          text = string.format("Avg ±%.1f • Max ±%.1f", avgJitter, maxJitter),
+          fontSize = 9,
+          opacity = 0.7,
+        }),
+      }),
+
+      -- Divider 2
+      ui.box({ width = 1, height = 32, fill = "outline", opacity = 0.4 }),
+
+      -- Column 3: Packet Loss
+      ui.column({
+        flexGrow = 1,
+        align = "end",
+        gap = 2,
+      }, {
+        ui.label({ text = tr("panel.stat_loss"), fontSize = 9, opacity = 0.6 }),
+        ui.row({ gap = 3, align = "baseline" }, {
+          ui.label({
+            text = string.format("%.1f%%", state.lossPct),
+            fontSize = 15,
+            fontWeight = "bold",
+            color = state.lossPct > 0 and "error" or "primary",
+          }),
+          ui.label({ text = "loss", fontSize = 9, opacity = 0.6 }),
+        }),
+        ui.label({
+          text = string.format("%d dropped • Peak %.1f%%", droppedCount, maxLoss),
+          fontSize = 9,
+          opacity = 0.7,
+        }),
+      }),
     }),
   })
 
@@ -435,6 +497,7 @@ local function renderPanel(): UiNode
     telemetryCard,
     diagBanner,
     graphCard,
+    statsCard,
     targetCards,
     wifiCard,
     actionsBar,

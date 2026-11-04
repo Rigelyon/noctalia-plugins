@@ -92,7 +92,8 @@ class NetRadarMetricsSimulator:
         full_buffer = [-1.0] * (self.buffer_size - len(self.history)) + [
             x if x is not None else -1.0 for x in self.history
         ]
-        valid_points = [x for x in full_buffer if x >= 0]
+        valid_points = [x for x in self.history if x is not None]
+        dropped_count = sum(1 for x in self.history if x is None)
         max_ms = max(valid_points) if valid_points else 0.0
         min_ms = min(valid_points) if valid_points else 0.0
         avg_ms = sum(valid_points) / len(valid_points) if valid_points else 0.0
@@ -103,17 +104,16 @@ class NetRadarMetricsSimulator:
         ]
 
         full_j = [0.0] * (self.buffer_size - len(self.jitter_history)) + self.jitter_history
-        j_max = max(full_j) if full_j else 0.0
-        j_sum = sum(full_j) if full_j else 0.0
-        avg_jitter = j_sum / len(full_j) if full_j else 0.0
+        j_max = max(self.jitter_history) if self.jitter_history else 0.0
+        j_sum = sum(self.jitter_history) if self.jitter_history else 0.0
+        avg_jitter = j_sum / len(self.jitter_history) if self.jitter_history else 0.0
+        max_jitter = j_max
         j_ceiling = max(15.0, j_max * 1.3)
         jitter_values = [min(1.0, max(0.0, j / j_ceiling)) for j in full_j]
 
-        full_l = [0.0] * (self.buffer_size - len(self.loss_history)) + self.loss_history
-        max_loss = max(full_l) if full_l else 0.0
-        loss_values = [min(1.0, max(0.0, l / 100.0)) for l in full_l]
+        max_loss = max(self.loss_history) if self.loss_history else 0.0
 
-        return primary_values, jitter_values, loss_values, min_ms, avg_ms, max_ms, avg_jitter, max_loss
+        return primary_values, jitter_values, min_ms, avg_ms, max_ms, avg_jitter, max_jitter, max_loss, dropped_count
 
 
 class TestNetRadarState(unittest.TestCase):
@@ -214,20 +214,18 @@ class TestNetRadarState(unittest.TestCase):
         for i in range(30):
             sim.process_probe("1.0|15.0|40.0|Home|5180|80|866|full")
 
-        p_vals, j_vals, l_vals, min_ms, avg_ms, max_ms, avg_jitter, max_loss = sim.get_graph_values()
+        p_vals, j_vals, min_ms, avg_ms, max_ms, avg_jitter, max_jitter, max_loss, dropped_count = sim.get_graph_values()
         self.assertEqual(len(p_vals), 60)
         self.assertEqual(len(j_vals), 60)
-        self.assertEqual(len(l_vals), 60)
         self.assertEqual(min_ms, 40.0)
         self.assertEqual(avg_ms, 40.0)
         self.assertEqual(max_ms, 40.0)
+        self.assertEqual(dropped_count, 0)
         # Ceiling is max(100.0, 40 * 1.25) = 100.0 -> normalized = 40.0 / 100.0 = 0.4
         self.assertAlmostEqual(p_vals[-1], 0.4, places=2)
         # Unpopulated slots are 0.0
         self.assertEqual(p_vals[0], 0.0)
         self.assertEqual(j_vals[0], 0.0)
-        self.assertEqual(l_vals[0], 0.0)
-        self.assertEqual(l_vals[-1], 0.0)
 
     def test_state_config_sync_and_preset_switching(self):
         with open(STATE_FILE, "r", encoding="utf-8") as f:

@@ -213,22 +213,36 @@ function state.getStatus(): string
   return "POOR"
 end
 
-function state.getGraphValues(): ({ number }, { number }, { number }, number, number, number, number, number)
+function state.getGraphValues(): ({ number }, { number }, number, number, number, number, number, number, number)
   local primaryValues = {}
   local jitterValues = {}
-  local lossValues = {}
   local minMs = 999999.0
   local maxMs = 0.0
   local sumMs = 0.0
   local count = 0
+  local droppedCount = 0
 
-  for i = 1, state.BUFFER_SIZE do
+  local populated = math.min(state.sampleCount, state.BUFFER_SIZE)
+  local startIndex = (populated > 0) and (state.BUFFER_SIZE - populated + 1) or 1
+
+  for i = startIndex, state.BUFFER_SIZE do
     local v = state.history[i]
     if v >= 0 then
       if v < minMs then minMs = v end
       if v > maxMs then maxMs = v end
       sumMs = sumMs + v
       count = count + 1
+    else
+      if populated > 0 then
+        droppedCount = droppedCount + 1
+      end
+    end
+  end
+
+  for i = 1, state.BUFFER_SIZE do
+    local v = state.history[i]
+    if v >= 0 and maxMs == 0.0 then
+      maxMs = v
     end
   end
 
@@ -249,7 +263,7 @@ function state.getGraphValues(): ({ number }, { number }, { number }, number, nu
   local jMax = 0.0
   local jSum = 0.0
   local jCount = 0
-  for i = 1, state.BUFFER_SIZE do
+  for i = startIndex, state.BUFFER_SIZE do
     local j = state.jitterHistory[i] or 0.0
     if j > jMax then jMax = j end
     jSum = jSum + j
@@ -261,16 +275,17 @@ function state.getGraphValues(): ({ number }, { number }, { number }, number, nu
     table.insert(jitterValues, math.min(1.0, math.max(0.0, j / jCeiling)))
   end
   local avgJitter = jCount > 0 and (jSum / jCount) or 0.0
+  local maxJitter = jMax
 
   -- Loss calculation
   local lMax = 0.0
-  for i = 1, state.BUFFER_SIZE do
+  for i = startIndex, state.BUFFER_SIZE do
     local l = state.lossHistory[i] or 0.0
     if l > lMax then lMax = l end
-    table.insert(lossValues, math.min(1.0, math.max(0.0, l / 100.0)))
   end
+  local maxLoss = lMax
 
-  return primaryValues, jitterValues, lossValues, minMs, avgMs, maxMs, avgJitter, lMax
+  return primaryValues, jitterValues, minMs, avgMs, maxMs, avgJitter, maxJitter, maxLoss, droppedCount
 end
 
 local function tr(key: string, subst: { [string]: any }?): string
