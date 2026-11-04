@@ -89,6 +89,19 @@ function state.setPreset(presetId: string)
   state.notify()
 end
 
+function state.setSecondaryGraphMode(mode: "jitter" | "loss")
+  state.secondaryGraphMode = mode
+  if noctalia and noctalia.state then
+    local current = noctalia.state.get("net_radar.state")
+    if type(current) ~= "table" then
+      current = {}
+    end
+    current.secondaryGraphMode = mode
+    noctalia.state.set("net_radar.state", current)
+  end
+  state.notify()
+end
+
 function state.processProbe(rawOutput: string)
   if not rawOutput or rawOutput == "" then
     return

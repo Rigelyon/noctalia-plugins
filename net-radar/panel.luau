@@ -4,6 +4,7 @@ local presets = require("./presets.luau")
 
 local lastRenderTime = 0
 local activePollTimer = 0
+local renderNow: () -> ()
 
 local function tr(key: string, subst: { [string]: any }?): string
   if noctalia and noctalia.tr then
@@ -210,46 +211,33 @@ local function renderPanel(): UiNode
   local jitterBadgeText = tr("panel.graph_badge_jitter", { jitter = string.format("%.1f", state.jitter) })
   local lossBadgeText = tr("panel.graph_badge_loss", { loss = string.format("%.1f", state.lossPct) })
 
-  local badgeJitter = ui.box({
-    fill = isJitter and "surface_variant" or "surface",
-    border = isJitter and "#38bdf8" or "outline",
-    borderWidth = 1,
-    radius = 4,
-    paddingH = 6,
-    paddingV = 2,
+  local graphTitle = isJitter and tr("panel.graph_title_jitter") or tr("panel.graph_title_loss")
+  if graphTitle == "panel.graph_title_jitter" or graphTitle == "panel.graph_title_loss" then
+    graphTitle = tr("panel.graph_title")
+  end
+
+  local badgeJitter = ui.button({
+    text = jitterBadgeText,
+    fontSize = 10,
+    controlSize = "sm",
+    height = 24,
+    variant = isJitter and "secondary" or "ghost",
     onClick = function()
-      state.secondaryGraphMode = "jitter"
-      throttledRender()
+      state.setSecondaryGraphMode("jitter")
+      if renderNow then renderNow() end
     end,
-  }, {
-    ui.label({
-      text = jitterBadgeText,
-      fontSize = 9,
-      fontWeight = isJitter and "bold" or "normal",
-      color = isJitter and "#38bdf8" or "on_surface",
-      opacity = isJitter and 1.0 or 0.6,
-    }),
   })
 
-  local badgeLoss = ui.box({
-    fill = not isJitter and "surface_variant" or "surface",
-    border = not isJitter and "#ef4444" or "outline",
-    borderWidth = 1,
-    radius = 4,
-    paddingH = 6,
-    paddingV = 2,
+  local badgeLoss = ui.button({
+    text = lossBadgeText,
+    fontSize = 10,
+    controlSize = "sm",
+    height = 24,
+    variant = not isJitter and (state.lossPct > 0 and "destructive" or "secondary") or "ghost",
     onClick = function()
-      state.secondaryGraphMode = "loss"
-      throttledRender()
+      state.setSecondaryGraphMode("loss")
+      if renderNow then renderNow() end
     end,
-  }, {
-    ui.label({
-      text = lossBadgeText,
-      fontSize = 9,
-      fontWeight = not isJitter and "bold" or "normal",
-      color = (not isJitter and state.lossPct > 0) and "#ef4444" or "on_surface",
-      opacity = not isJitter and 1.0 or 0.6,
-    }),
   })
 
   local secColor = isJitter and "#38bdf8" or "#ef4444"
@@ -282,7 +270,7 @@ local function renderPanel(): UiNode
       align = "center",
     }, {
       ui.label({
-        text = tr("panel.graph_title"),
+        text = graphTitle,
         fontSize = 10,
         fontWeight = "semibold",
         opacity = 0.7,
@@ -453,6 +441,15 @@ local function renderPanel(): UiNode
     wifiCard,
     actionsBar,
   })
+end
+
+function renderNow()
+  lastRenderTime = (noctalia and noctalia.nowMs) and noctalia.nowMs() or (os.clock() * 1000)
+  if panel and panel.render then
+    panel.render(renderPanel())
+  elseif render then
+    render(renderPanel())
+  end
 end
 
 -- Render throttler to respect Luau CPU budget (>= 100ms)
