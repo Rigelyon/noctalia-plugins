@@ -85,7 +85,7 @@ class TestNetRadarPanel(unittest.TestCase):
         with open(PANEL_FILE, "r", encoding="utf-8") as f:
             content = f.read()
 
-        self.assertIn('state.processProbe("none|none|none|none|0|0|0")', content)
+        self.assertIn('state.processProbe("none|none|none|none|0|0|0|none")', content)
 
     def test_panel_second_ticks_lifecycle(self):
         with open(PANEL_FILE, "r", encoding="utf-8") as f:
@@ -119,6 +119,20 @@ class TestNetRadarPanel(unittest.TestCase):
         self.assertIn("diagColor", content)
         self.assertIn("name = diagGlyph", content)
         self.assertIn("color = diagColor", content)
+
+    def test_panel_dual_line_graph_and_interactive_badges(self):
+        with open(PANEL_FILE, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # Must use dual-line graph with values2 and color2
+        self.assertIn("values2 =", content)
+        self.assertIn("color2 =", content)
+        self.assertIn("state.secondaryGraphMode", content)
+        self.assertIn('"#f59e0b"', content)
+        self.assertIn("NO_INTERNET", content)
+        self.assertIn("CAPTIVE_PORTAL", content)
+        self.assertIn("graph_badge_jitter", content)
+        self.assertIn("graph_badge_loss", content)
 
 
 

@@ -34,7 +34,7 @@ local function executeProbe()
       if result and result.exitCode == 0 and result.stdout and result.stdout ~= "" then
         state.processProbe(result.stdout)
       else
-        state.processProbe("none|none|none|none|0|0|0")
+        state.processProbe("none|none|none|none|0|0|0|none")
       end
     end, 2000)
     if not started then
@@ -60,6 +60,9 @@ function renderSegmentedMeter(status: string): UiNode
   elseif status == "POOR" then
     activeBars = 1
     color = "error"
+  elseif status == "NO_INTERNET" or status == "CAPTIVE_PORTAL" then
+    activeBars = 2
+    color = "#f59e0b"
   else
     activeBars = 0
     color = "outline"
@@ -101,16 +104,19 @@ local function renderPanel(): UiNode
   elseif status == "POOR" then
     statusColor = "error"
     statusText = tr("widget.status_poor")
+  elseif status == "NO_INTERNET" then
+    statusColor = "#f59e0b"
+    statusText = tr("widget.status_no_internet")
   elseif status == "CAPTIVE_PORTAL" then
-    statusColor = "tertiary"
-    statusText = "CAPTIVE PORTAL"
+    statusColor = "#f59e0b"
+    statusText = tr("widget.status_captive_portal")
   else
     statusColor = "outline"
     statusText = tr("widget.status_offline")
   end
 
   local diagText, diagGlyph, diagColor = state.getDiagnostics()
-  local graphValues, minRtt, avgRtt, maxRtt = state.getGraphValues()
+  local primaryValues, secondaryValues, minRtt, avgRtt, maxRtt, secMin, secAvg, secMax = state.getGraphValues()
 
   -- Tactical Telemetry Header (Sharp 4px radius, 3px solid left accent border)
   local telemetryCard = ui.row({
@@ -199,7 +205,70 @@ local function renderPanel(): UiNode
     }),
   })
 
-  -- Latency & Jitter Graph
+  -- Interactive Badges & Dual-Line Graph
+  local isJitter = (state.secondaryGraphMode == "jitter")
+  local jitterBadgeText = tr("panel.graph_badge_jitter", { jitter = string.format("%.1f", state.jitter) })
+  local lossBadgeText = tr("panel.graph_badge_loss", { loss = string.format("%.1f", state.lossPct) })
+
+  local badgeJitter = ui.box({
+    fill = isJitter and "surface_variant" or "surface",
+    border = isJitter and "#38bdf8" or "outline",
+    borderWidth = 1,
+    radius = 4,
+    paddingH = 6,
+    paddingV = 2,
+    onClick = function()
+      state.secondaryGraphMode = "jitter"
+      throttledRender()
+    end,
+  }, {
+    ui.label({
+      text = jitterBadgeText,
+      fontSize = 9,
+      fontWeight = isJitter and "bold" or "normal",
+      color = isJitter and "#38bdf8" or "on_surface",
+      opacity = isJitter and 1.0 or 0.6,
+    }),
+  })
+
+  local badgeLoss = ui.box({
+    fill = not isJitter and "surface_variant" or "surface",
+    border = not isJitter and "#ef4444" or "outline",
+    borderWidth = 1,
+    radius = 4,
+    paddingH = 6,
+    paddingV = 2,
+    onClick = function()
+      state.secondaryGraphMode = "loss"
+      throttledRender()
+    end,
+  }, {
+    ui.label({
+      text = lossBadgeText,
+      fontSize = 9,
+      fontWeight = not isJitter and "bold" or "normal",
+      color = (not isJitter and state.lossPct > 0) and "#ef4444" or "on_surface",
+      opacity = not isJitter and 1.0 or 0.6,
+    }),
+  })
+
+  local secColor = isJitter and "#38bdf8" or "#ef4444"
+
+  local summaryText = isJitter and tr("panel.graph_summary_jitter", {
+    min = string.format("%.0f", minRtt),
+    max = string.format("%.0f", maxRtt),
+    avg = string.format("%.0f", avgRtt),
+    secMin = string.format("%.1f", secMin),
+    secMax = string.format("%.1f", secMax),
+    secAvg = string.format("%.1f", secAvg),
+  }) or tr("panel.graph_summary_loss", {
+    min = string.format("%.0f", minRtt),
+    max = string.format("%.0f", maxRtt),
+    avg = string.format("%.0f", avgRtt),
+    secAvg = string.format("%.1f", secAvg),
+    secMax = string.format("%.1f", secMax),
+  })
+
   local graphCard = ui.column({
     fill = "surface",
     border = "outline",
@@ -218,29 +287,26 @@ local function renderPanel(): UiNode
         fontWeight = "semibold",
         opacity = 0.7,
       }),
-      ui.label({
-        text = string.format("Jitter: ±%.1fms • Loss: %.1f%%", state.jitter, state.lossPct),
-        fontSize = 10,
-        fontWeight = "bold",
-        color = state.lossPct > 0 and "error" or "on_surface",
+      ui.row({
+        gap = 4,
+        align = "center",
+      }, {
+        badgeJitter,
+        badgeLoss,
       }),
     }),
     ui.graph({
       height = 70,
-      values = graphValues,
+      values = primaryValues,
+      values2 = secondaryValues,
       color = statusColor,
+      color2 = secColor,
       lineWidth = 2,
-      fillOpacity = 0.2,
+      fillOpacity = 0.15,
     }),
     ui.label({
-      text = tr("panel.graph_summary", {
-        min = string.format("%.0f", minRtt),
-        avg = string.format("%.0f", avgRtt),
-        max = string.format("%.0f", maxRtt),
-        jitter = string.format("%.1f", state.jitter),
-        loss = string.format("%.1f", state.lossPct),
-      }),
-      fontSize = 10,
+      text = summaryText,
+      fontSize = 9,
       opacity = 0.65,
     }),
   })
