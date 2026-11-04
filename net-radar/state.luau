@@ -24,8 +24,12 @@ local state = {
   activePresetId = "sea_singapore",
   customHost = "1.1.1.1",
 
-  -- Ring buffer for ui.graph (60 samples, nil stored as -1)
+  -- Ring buffers for ui.graph (60 samples)
   history = {} :: { number },
+  jitterHistory = {} :: { number },
+  lossHistory = {} :: { number },
+  secondaryGraphMode = "jitter" :: "jitter" | "loss",
+  nmConn = "unknown",
 
   -- Subscribers
   listeners = {} :: { () -> () },
@@ -35,6 +39,8 @@ local state = {
 
 for i = 1, state.BUFFER_SIZE do
   table.insert(state.history, -1)
+  table.insert(state.jitterHistory, 0.0)
+  table.insert(state.lossHistory, 0.0)
 end
 
 function state.subscribe(fn: () -> ())
@@ -90,8 +96,15 @@ function state.processProbe(rawOutput: string)
 
   local clean = string.gsub(rawOutput, "[\r\n]", "")
   local parts = {}
-  for part in string.gmatch(clean, "([^|]+)") do
-    table.insert(parts, part)
+  local start = 1
+  while true do
+    local p = string.find(clean, "|", start, true)
+    if not p then
+      table.insert(parts, string.sub(clean, start))
+      break
+    end
+    table.insert(parts, string.sub(clean, start, p - 1))
+    start = p + 1
   end
 
   if #parts < 7 then
@@ -105,8 +118,9 @@ function state.processProbe(rawOutput: string)
   state.freqMhz = tonumber(parts[5]) or 0
   state.signalPct = tonumber(parts[6]) or 0
   state.rateMbps = tonumber(parts[7]) or 0.0
+  state.nmConn = parts[8] or "unknown"
 
-  -- Push into fixed ring buffer
+  -- Push into fixed ring buffer for latency
   table.remove(state.history, 1)
   table.insert(state.history, state.gameMs or -1)
   state.sampleCount = state.sampleCount + 1
@@ -119,6 +133,8 @@ function state.processProbe(rawOutput: string)
     end
     state.prevGameMs = state.gameMs
   end
+  table.remove(state.jitterHistory, 1)
+  table.insert(state.jitterHistory, state.jitter)
 
   -- Packet loss over rolling window
   local windowSize = math.min(state.sampleCount, state.LOSS_WINDOW)
@@ -132,6 +148,8 @@ function state.processProbe(rawOutput: string)
     end
   end
   state.lossPct = total > 0 and (dropped / total) * 100.0 or 0.0
+  table.remove(state.lossHistory, 1)
+  table.insert(state.lossHistory, state.lossPct)
 
   if noctalia and noctalia.state then
     noctalia.state.set("net_radar.state", {
@@ -147,6 +165,10 @@ function state.processProbe(rawOutput: string)
       signalPct = state.signalPct,
       rateMbps = state.rateMbps,
       history = state.history,
+      jitterHistory = state.jitterHistory,
+      lossHistory = state.lossHistory,
+      secondaryGraphMode = state.secondaryGraphMode,
+      nmConn = state.nmConn,
       activePresetId = state.activePresetId,
       customHost = state.customHost,
     })
@@ -159,8 +181,11 @@ function state.getStatus(): string
   if not state.gwMs and not state.dnsMs then
     return "OFFLINE"
   end
-  if state.gwMs and not state.dnsMs and not state.gameMs then
+  if state.nmConn == "portal" then
     return "CAPTIVE_PORTAL"
+  end
+  if state.gwMs and not state.dnsMs and not state.gameMs then
+    return "NO_INTERNET"
   end
   if not state.gameMs then
     return "POOR"
@@ -175,8 +200,9 @@ function state.getStatus(): string
   return "POOR"
 end
 
-function state.getGraphValues(): ({ number }, number, number, number)
-  local values = {}
+function state.getGraphValues(): ({ number }, { number }, number, number, number, number, number, number)
+  local primaryValues = {}
+  local secondaryValues = {}
   local minMs = 999999.0
   local maxMs = 0.0
   local sumMs = 0.0
@@ -196,16 +222,51 @@ function state.getGraphValues(): ({ number }, number, number, number)
   for i = 1, state.BUFFER_SIZE do
     local v = state.history[i]
     if v < 0 then
-      table.insert(values, 0.0)
+      table.insert(primaryValues, 0.0)
     else
-      table.insert(values, math.min(1.0, math.max(0.0, v / ceiling)))
+      table.insert(primaryValues, math.min(1.0, math.max(0.0, v / ceiling)))
     end
   end
 
   local avgMs = count > 0 and (sumMs / count) or 0.0
   if minMs > 999990.0 then minMs = 0.0 end
 
-  return values, minMs, avgMs, maxMs
+  local secMin = 999999.0
+  local secMax = 0.0
+  local secSum = 0.0
+  local secCount = 0
+
+  if state.secondaryGraphMode == "jitter" then
+    for i = 1, state.BUFFER_SIZE do
+      local j = state.jitterHistory[i] or 0.0
+      if j < secMin then secMin = j end
+      if j > secMax then secMax = j end
+      secSum = secSum + j
+      secCount = secCount + 1
+    end
+    local jCeiling = math.max(15.0, secMax * 1.3)
+    for i = 1, state.BUFFER_SIZE do
+      local j = state.jitterHistory[i] or 0.0
+      table.insert(secondaryValues, math.min(1.0, math.max(0.0, j / jCeiling)))
+    end
+  else -- "loss"
+    for i = 1, state.BUFFER_SIZE do
+      local l = state.lossHistory[i] or 0.0
+      if l < secMin then secMin = l end
+      if l > secMax then secMax = l end
+      secSum = secSum + l
+      secCount = secCount + 1
+    end
+    for i = 1, state.BUFFER_SIZE do
+      local l = state.lossHistory[i] or 0.0
+      table.insert(secondaryValues, math.min(1.0, math.max(0.0, l / 100.0)))
+    end
+  end
+
+  local secAvg = secCount > 0 and (secSum / secCount) or 0.0
+  if secMin > 999990.0 then secMin = 0.0 end
+
+  return primaryValues, secondaryValues, minMs, avgMs, maxMs, secMin, secAvg, secMax
 end
 
 local function tr(key: string, subst: { [string]: any }?): string
@@ -221,8 +282,12 @@ function state.getDiagnostics(): (string, string, string)
     return tr("panel.diag_offline"), "alert-triangle", "outline"
   end
 
+  if state.nmConn == "portal" then
+    return tr("panel.diag_captive_portal"), "alert-triangle", "#f59e0b"
+  end
+
   if state.gwMs and not state.dnsMs and not state.gameMs then
-    return tr("panel.diag_captive_portal"), "alert-triangle", "tertiary"
+    return tr("panel.diag_no_internet"), "alert-triangle", "#f59e0b"
   end
 
   if state.lossPct >= 10.0 or not state.gameMs then
@@ -409,6 +474,18 @@ if noctalia and noctalia.state then
     if existing.history then
       state.history = existing.history
     end
+    if existing.jitterHistory then
+      state.jitterHistory = existing.jitterHistory
+    end
+    if existing.lossHistory then
+      state.lossHistory = existing.lossHistory
+    end
+    if existing.secondaryGraphMode then
+      state.secondaryGraphMode = existing.secondaryGraphMode
+    end
+    if existing.nmConn then
+      state.nmConn = existing.nmConn
+    end
     if existing.activePresetId then
       state.activePresetId = existing.activePresetId
     end
@@ -432,6 +509,18 @@ if noctalia and noctalia.state then
       state.rateMbps = data.rateMbps or 0.0
       if data.history then
         state.history = data.history
+      end
+      if data.jitterHistory then
+        state.jitterHistory = data.jitterHistory
+      end
+      if data.lossHistory then
+        state.lossHistory = data.lossHistory
+      end
+      if data.secondaryGraphMode then
+        state.secondaryGraphMode = data.secondaryGraphMode
+      end
+      if data.nmConn then
+        state.nmConn = data.nmConn
       end
       if data.activePresetId then
         state.activePresetId = data.activePresetId

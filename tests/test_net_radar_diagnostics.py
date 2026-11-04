@@ -41,13 +41,17 @@ class NetRadarDiagnosticsEvaluator:
         loss_pct = float(getattr(state, "loss_pct", 0.0) if not isinstance(state, dict) else state.get("loss_pct", 0.0))
         ssid = str(getattr(state, "ssid", "") if not isinstance(state, dict) else state.get("ssid", ""))
         signal_pct = int(getattr(state, "signal_pct", 0) if not isinstance(state, dict) else state.get("signal_pct", 0))
+        nm_conn = getattr(state, "nm_conn", None) if not isinstance(state, dict) else state.get("nm_conn")
 
         # 1. Tier 1 Critical (Takes precedence over everything)
         if gw_ms is None and dns_ms is None:
             return self.tr("panel.diag_offline", lang=lang), "alert-triangle", "outline"
 
+        if nm_conn == "portal":
+            return self.tr("panel.diag_captive_portal", lang=lang), "alert-triangle", "#f59e0b"
+
         if gw_ms is not None and dns_ms is None and game_ms is None:
-            return self.tr("panel.diag_captive_portal", lang=lang), "alert-triangle", "tertiary"
+            return self.tr("panel.diag_no_internet", lang=lang), "alert-triangle", "#f59e0b"
 
         if loss_pct >= 10.0 or game_ms is None:
             loss_val = 100.0 if (game_ms is None and loss_pct == 0.0) else loss_pct
@@ -197,6 +201,8 @@ class TestNetRadarDiagnostics(unittest.TestCase):
         self.assertIn("function state.getDiagnostics()", content)
         self.assertIn("panel.diag_offline", content)
         self.assertIn("panel.diag_captive_portal", content)
+        self.assertIn("panel.diag_no_internet", content)
+        self.assertIn('"#f59e0b"', content)
         self.assertIn("panel.diag_isp_loss", content)
         self.assertIn("panel.diag_isp_lag", content)
         self.assertIn("panel.diag_local_bufferbloat", content)
@@ -207,7 +213,7 @@ class TestNetRadarDiagnostics(unittest.TestCase):
         self.assertIn("panel.diag_optimal", content)
         self.assertIn("panel.diag_synthesis_connector", content)
 
-        # Assert only valid Material Design 3 roles are used
+        # Assert only valid Material Design 3 roles or verified hex colors are used
         self.assertNotIn('"warning"', content)
         self.assertNotIn('"destructive"', content)
 
@@ -219,11 +225,17 @@ class TestNetRadarDiagnostics(unittest.TestCase):
         self.assertEqual(color, "outline")
 
     def test_evaluator_captive_portal(self):
-        # Captive portal: gateway ok, but DNS and game server unreachable
-        text, glyph, color = self.evaluator.evaluate({"gw_ms": 1.5, "dns_ms": None, "game_ms": None})
+        # Captive portal: gateway ok, NM reports portal
+        text, glyph, color = self.evaluator.evaluate({"gw_ms": 1.5, "dns_ms": None, "game_ms": None, "nm_conn": "portal"})
         self.assertEqual(text, "Connected to local router, but internet is blocked. Check captive login.")
         self.assertEqual(glyph, "alert-triangle")
-        self.assertEqual(color, "tertiary")
+        self.assertEqual(color, "#f59e0b")
+
+        # No internet: gateway ok, but WAN down and not portal
+        text_no_net, glyph_no_net, color_no_net = self.evaluator.evaluate({"gw_ms": 1.5, "dns_ms": None, "game_ms": None, "nm_conn": "limited"})
+        self.assertEqual(text_no_net, "Connected to local router, but no internet access.")
+        self.assertEqual(glyph_no_net, "alert-triangle")
+        self.assertEqual(color_no_net, "#f59e0b")
 
     def test_evaluator_critical_loss(self):
         # Critical loss on target server (DNS is healthy at 15ms)

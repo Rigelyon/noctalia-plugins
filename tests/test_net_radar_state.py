@@ -12,6 +12,9 @@ class NetRadarMetricsSimulator:
         self.buffer_size = buffer_size
         self.loss_window = loss_window
         self.history = []  # Ring buffer of float or None
+        self.jitter_history = []
+        self.loss_history = []
+        self.secondary_graph_mode = "jitter"
         self.prev_rtt = None
         self.jitter = 0.0
         self.gw_ms = None
@@ -22,6 +25,7 @@ class NetRadarMetricsSimulator:
         self.freq_mhz = 0
         self.signal_pct = 0
         self.rate_mbps = 0.0
+        self.nm_conn = "unknown"
 
     def process_probe(self, raw_str: str):
         clean = raw_str.strip()
@@ -38,6 +42,7 @@ class NetRadarMetricsSimulator:
         self.freq_mhz = int(parts[4]) if parts[4] and parts[4].isdigit() else 0
         self.signal_pct = int(parts[5]) if parts[5] and parts[5].isdigit() else 0
         self.rate_mbps = float(parts[6]) if parts[6] and parts[6] != "none" else 0.0
+        self.nm_conn = parts[7] if len(parts) >= 8 and parts[7] else "unknown"
 
         # Update history buffer
         self.history.append(self.game_ms)
@@ -51,6 +56,10 @@ class NetRadarMetricsSimulator:
                 self.jitter += (diff - self.jitter) / 16.0
             self.prev_rtt = self.game_ms
 
+        self.jitter_history.append(self.jitter)
+        if len(self.jitter_history) > self.buffer_size:
+            self.jitter_history.pop(0)
+
         # Packet loss over last loss_window samples
         window = self.history[-self.loss_window :]
         if window:
@@ -59,11 +68,17 @@ class NetRadarMetricsSimulator:
         else:
             self.loss_pct = 0.0
 
+        self.loss_history.append(self.loss_pct)
+        if len(self.loss_history) > self.buffer_size:
+            self.loss_history.pop(0)
+
     def get_status(self):
         if self.gw_ms is None and self.dns_ms is None:
             return "OFFLINE"
-        if self.gw_ms is not None and self.dns_ms is None and self.game_ms is None:
+        if self.nm_conn == "portal":
             return "CAPTIVE_PORTAL"
+        if self.gw_ms is not None and self.dns_ms is None and self.game_ms is None:
+            return "NO_INTERNET"
         if self.game_ms is None:
             return "POOR"
 
@@ -74,7 +89,6 @@ class NetRadarMetricsSimulator:
         return "POOR"
 
     def get_graph_values(self):
-        # Emulate 60 points normalized between 0.0 and 1.0
         full_buffer = [-1.0] * (self.buffer_size - len(self.history)) + [
             x if x is not None else -1.0 for x in self.history
         ]
@@ -84,10 +98,25 @@ class NetRadarMetricsSimulator:
         avg_ms = sum(valid_points) / len(valid_points) if valid_points else 0.0
 
         ceiling = max(100.0, max_ms * 1.25)
-        normalized = [
+        primary_values = [
             0.0 if v < 0 else min(1.0, max(0.0, v / ceiling)) for v in full_buffer
         ]
-        return normalized, min_ms, avg_ms, max_ms
+
+        if self.secondary_graph_mode == "jitter":
+            full_j = [0.0] * (self.buffer_size - len(self.jitter_history)) + self.jitter_history
+            sec_max = max(full_j) if full_j else 0.0
+            sec_min = min(full_j) if full_j else 0.0
+            sec_avg = sum(full_j) / len(full_j) if full_j else 0.0
+            j_ceiling = max(15.0, sec_max * 1.3)
+            secondary_values = [min(1.0, max(0.0, j / j_ceiling)) for j in full_j]
+        else:
+            full_l = [0.0] * (self.buffer_size - len(self.loss_history)) + self.loss_history
+            sec_max = max(full_l) if full_l else 0.0
+            sec_min = min(full_l) if full_l else 0.0
+            sec_avg = sum(full_l) / len(full_l) if full_l else 0.0
+            secondary_values = [min(1.0, max(0.0, l / 100.0)) for l in full_l]
+
+        return primary_values, secondary_values, min_ms, avg_ms, max_ms, sec_min, sec_avg, sec_max
 
 
 class TestNetRadarState(unittest.TestCase):
@@ -116,6 +145,10 @@ class TestNetRadarState(unittest.TestCase):
         self.assertIn("state.processProbe", content)
         self.assertIn("state.getStatus", content)
         self.assertIn("state.getGraphValues", content)
+        self.assertIn("jitterHistory", content)
+        self.assertIn("lossHistory", content)
+        self.assertIn("secondaryGraphMode", content)
+        self.assertIn("NO_INTERNET", content)
 
     def test_rfc3550_jitter_convergence(self):
         sim = NetRadarMetricsSimulator()
@@ -142,27 +175,31 @@ class TestNetRadarState(unittest.TestCase):
     def test_status_classification(self):
         sim = NetRadarMetricsSimulator()
         # Optimal
-        sim.process_probe("1.0|15.0|35.0|Home|5180|80|866")
+        sim.process_probe("1.0|15.0|35.0|Home|5180|80|866|full")
         self.assertEqual(sim.get_status(), "OPTIMAL")
 
         # Fair (high jitter or latency between 60-120)
-        sim.process_probe("1.0|15.0|85.0|Home|5180|80|866")
+        sim.process_probe("1.0|15.0|85.0|Home|5180|80|866|full")
         self.assertEqual(sim.get_status(), "FAIR")
 
-        # Captive portal (router ok, internet dead)
-        sim.process_probe("1.2|none|none|Hotel_WiFi|2412|50|54")
+        # Captive portal (router ok, NM reports portal)
+        sim.process_probe("1.2|none|none|Hotel_WiFi|2412|50|54|portal")
         self.assertEqual(sim.get_status(), "CAPTIVE_PORTAL")
 
+        # No internet (router ok, but WAN down and not a portal)
+        sim.process_probe("1.2|none|none|Home_WiFi|5180|70|300|limited")
+        self.assertEqual(sim.get_status(), "NO_INTERNET")
+
         # Offline (gateway dead)
-        sim.process_probe("none|none|none|none|0|0|0")
+        sim.process_probe("none|none|none|none|0|0|0|none")
         self.assertEqual(sim.get_status(), "OFFLINE")
 
         # Poor (game server dead but dns ok)
-        sim.process_probe("1.0|15.0|none|Home|5180|80|866")
+        sim.process_probe("1.0|15.0|none|Home|5180|80|866|full")
         self.assertEqual(sim.get_status(), "POOR")
 
         # Poor (high latency > 120ms)
-        sim.process_probe("1.0|15.0|150.0|Home|5180|80|866")
+        sim.process_probe("1.0|15.0|150.0|Home|5180|80|866|full")
         self.assertEqual(sim.get_status(), "POOR")
 
     def test_malformed_or_empty_probe(self):
@@ -178,17 +215,27 @@ class TestNetRadarState(unittest.TestCase):
     def test_graph_values_normalization(self):
         sim = NetRadarMetricsSimulator(buffer_size=60)
         for i in range(30):
-            sim.process_probe("1.0|15.0|40.0|Home|5180|80|866")
+            sim.process_probe("1.0|15.0|40.0|Home|5180|80|866|full")
 
-        values, min_ms, avg_ms, max_ms = sim.get_graph_values()
-        self.assertEqual(len(values), 60)
+        # Jitter mode
+        sim.secondary_graph_mode = "jitter"
+        p_vals, s_vals, min_ms, avg_ms, max_ms, s_min, s_avg, s_max = sim.get_graph_values()
+        self.assertEqual(len(p_vals), 60)
+        self.assertEqual(len(s_vals), 60)
         self.assertEqual(min_ms, 40.0)
         self.assertEqual(avg_ms, 40.0)
         self.assertEqual(max_ms, 40.0)
         # Ceiling is max(100.0, 40 * 1.25) = 100.0 -> normalized = 40.0 / 100.0 = 0.4
-        self.assertAlmostEqual(values[-1], 0.4, places=2)
+        self.assertAlmostEqual(p_vals[-1], 0.4, places=2)
         # Unpopulated slots are 0.0
-        self.assertEqual(values[0], 0.0)
+        self.assertEqual(p_vals[0], 0.0)
+        self.assertEqual(s_vals[0], 0.0)
+
+        # Loss mode
+        sim.secondary_graph_mode = "loss"
+        p_vals, s_vals, _, _, _, _, _, _ = sim.get_graph_values()
+        self.assertEqual(len(s_vals), 60)
+        self.assertEqual(s_vals[-1], 0.0)
 
     def test_state_config_sync_and_preset_switching(self):
         with open(STATE_FILE, "r", encoding="utf-8") as f:
