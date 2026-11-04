@@ -8,7 +8,7 @@ PROBE_SCRIPT = os.path.join(PLUGIN_DIR, "probe.sh")
 
 def parse_probe_output(line: str):
     parts = line.strip().split("|")
-    if len(parts) < 7:
+    if len(parts) < 8:
         return None
     gw_ms = float(parts[0]) if parts[0] and parts[0] != "none" else None
     dns_ms = float(parts[1]) if parts[1] and parts[1] != "none" else None
@@ -17,6 +17,7 @@ def parse_probe_output(line: str):
     freq_mhz = int(parts[4]) if parts[4] and parts[4].isdigit() else 0
     signal_pct = int(parts[5]) if parts[5] and parts[5].isdigit() else 0
     rate_mbps = float(parts[6]) if parts[6] and parts[6] != "none" else 0.0
+    nm_conn = parts[7] if len(parts) >= 8 and parts[7] else "unknown"
 
     return {
         "gw_ms": gw_ms,
@@ -26,6 +27,7 @@ def parse_probe_output(line: str):
         "freq_mhz": freq_mhz,
         "signal_pct": signal_pct,
         "rate_mbps": rate_mbps,
+        "nm_conn": nm_conn,
     }
 
 
@@ -35,7 +37,7 @@ class TestNetRadarProbe(unittest.TestCase):
         self.assertTrue(os.access(PROBE_SCRIPT, os.X_OK), "probe.sh is not executable")
 
     def test_parse_probe_output_normal(self):
-        sample = "1.23|14.5|32.1|Home_5G|5180|84|866.7"
+        sample = "1.23|14.5|32.1|Home_5G|5180|84|866.7|full"
         res = parse_probe_output(sample)
         self.assertIsNotNone(res)
         self.assertEqual(res["gw_ms"], 1.23)
@@ -45,26 +47,45 @@ class TestNetRadarProbe(unittest.TestCase):
         self.assertEqual(res["freq_mhz"], 5180)
         self.assertEqual(res["signal_pct"], 84)
         self.assertEqual(res["rate_mbps"], 866.7)
+        self.assertEqual(res["nm_conn"], "full")
 
     def test_parse_probe_output_packet_loss(self):
-        sample = "1.10|none|none|Cafe_WiFi|2412|60|54"
+        sample = "1.10|none|none|Cafe_WiFi|2412|60|54|portal"
         res = parse_probe_output(sample)
         self.assertIsNotNone(res)
         self.assertEqual(res["gw_ms"], 1.10)
         self.assertIsNone(res["dns_ms"])
         self.assertIsNone(res["game_ms"])
         self.assertEqual(res["freq_mhz"], 2412)
+        self.assertEqual(res["nm_conn"], "portal")
 
     def test_parse_probe_output_offline(self):
-        sample = "none|none|none|none|0|0|0"
+        sample = "none|none|none|none|0|0|0|none"
         res = parse_probe_output(sample)
         self.assertIsNotNone(res)
         self.assertIsNone(res["gw_ms"])
         self.assertIsNone(res["dns_ms"])
         self.assertIsNone(res["game_ms"])
         self.assertEqual(res["ssid"], "")
+        self.assertEqual(res["nm_conn"], "none")
         self.assertIsNone(parse_probe_output(""))
         self.assertIsNone(parse_probe_output("short|output"))
+
+    def test_parse_probe_output_with_nm_conn(self):
+        sample = "1.23|14.5|32.1|Home_5G|5180|84|866.7|full"
+        res = parse_probe_output(sample)
+        self.assertIsNotNone(res)
+        self.assertEqual(res["nm_conn"], "full")
+
+        portal_sample = "1.10|none|none|Hotel_WiFi|2412|60|54|portal"
+        res_portal = parse_probe_output(portal_sample)
+        self.assertIsNotNone(res_portal)
+        self.assertEqual(res_portal["nm_conn"], "portal")
+
+        limited_sample = "1.10|none|none|Home_WiFi|5180|70|300|limited"
+        res_limited = parse_probe_output(limited_sample)
+        self.assertIsNotNone(res_limited)
+        self.assertEqual(res_limited["nm_conn"], "limited")
 
     def test_probe_script_trap_and_cleanup(self):
         with open(PROBE_SCRIPT, "r", encoding="utf-8") as f:
@@ -80,6 +101,14 @@ class TestNetRadarProbe(unittest.TestCase):
             content = f.read()
 
         self.assertIn('SSID="${SSID//|/-}"', content)
+
+    def test_probe_script_queries_nm_connectivity(self):
+        with open(PROBE_SCRIPT, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        self.assertIn("networking connectivity", content)
+        self.assertIn("NM_CONN", content)
+        self.assertTrue(content.strip().endswith('echo "${GW_MS}|${DNS_MS}|${GAME_MS}|${SSID}|${FREQ}|${SIGNAL}|${RATE}|${NM_CONN}"'))
 
 
 if __name__ == "__main__":

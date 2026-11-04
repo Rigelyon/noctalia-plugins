@@ -23,6 +23,10 @@ fi
 # Wi-Fi link information via nmcli (use --rescan no to avoid channel hops and latency spikes)
 WIFI_RAW=$(nmcli -t -f active,ssid,freq,signal,rate dev wifi list --rescan no 2>/dev/null | grep '^yes:' | head -n 1)
 
+# Query NetworkManager connectivity state (fast cached query, no active rescan)
+NM_CONN=$(nmcli -t networking connectivity 2>/dev/null || echo "unknown")
+[ -z "$NM_CONN" ] && NM_CONN="unknown"
+
 wait
 
 GW_MS=$(cat "$GW_TMP" 2>/dev/null)
@@ -56,4 +60,4 @@ fi
 
 SSID="${SSID//|/-}"
 
-echo "${GW_MS}|${DNS_MS}|${GAME_MS}|${SSID}|${FREQ}|${SIGNAL}|${RATE}"
+echo "${GW_MS}|${DNS_MS}|${GAME_MS}|${SSID}|${FREQ}|${SIGNAL}|${RATE}|${NM_CONN}"
