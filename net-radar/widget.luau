@@ -37,7 +37,7 @@ local function executeProbe()
       if result and result.exitCode == 0 and result.stdout and result.stdout ~= "" then
         state.processProbe(result.stdout)
       else
-        state.processProbe("none|none|none|none|0|0|0")
+        state.processProbe("none|none|none|none|0|0|0|none")
       end
     end, 2500)
     if not started then
@@ -68,8 +68,8 @@ local function updateWidget()
     statusColor = "tertiary"
   elseif status == "POOR" then
     statusColor = "error"
-  elseif status == "CAPTIVE_PORTAL" then
-    statusColor = "tertiary"
+  elseif status == "NO_INTERNET" or status == "CAPTIVE_PORTAL" then
+    statusColor = "#f59e0b"
   else -- OFFLINE
     statusColor = "outline"
   end

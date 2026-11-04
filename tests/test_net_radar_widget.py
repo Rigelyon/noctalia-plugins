@@ -31,11 +31,14 @@ class TestNetRadarWidget(unittest.TestCase):
         with open(WIDGET_FILE, "r", encoding="utf-8") as f:
             content = f.read()
 
-        # Color roles (Noctalia MD3 palette)
+        # Color roles (Noctalia MD3 palette and explicit Amber for warnings)
         self.assertIn('"primary"', content)
         self.assertIn('"tertiary"', content)
         self.assertIn('"error"', content)
         self.assertIn('"outline"', content)
+        self.assertIn('"#f59e0b"', content)
+        self.assertIn("NO_INTERNET", content)
+        self.assertIn("CAPTIVE_PORTAL", content)
 
     def test_widget_dirty_checking(self):
         with open(WIDGET_FILE, "r", encoding="utf-8") as f:
@@ -69,7 +72,7 @@ class TestNetRadarWidget(unittest.TestCase):
             content = f.read()
 
         # Must record timed-out probes as dropped samples
-        self.assertIn('state.processProbe("none|none|none|none|0|0|0")', content)
+        self.assertIn('state.processProbe("none|none|none|none|0|0|0|none")', content)
 
     def test_widget_config_sync_and_notifications(self):
         with open(WIDGET_FILE, "r", encoding="utf-8") as f:
