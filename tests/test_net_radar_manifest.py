@@ -92,6 +92,26 @@ class TestNetRadarManifest(unittest.TestCase):
             self.assertIn(key, id_data.get("panel", {}), f"Missing '{key}' in id['panel']")
             self.assertTrue(bool(id_data["panel"].get(key)), f"Key '{key}' in id['panel'] must not be empty")
 
+    def test_required_translation_keys_for_no_internet_and_dual_graph(self):
+        en_path = os.path.join(PLUGIN_DIR, "translations", "en.json")
+        id_path = os.path.join(PLUGIN_DIR, "translations", "id.json")
+        with open(en_path, "r", encoding="utf-8") as f:
+            en = json.load(f)
+        with open(id_path, "r", encoding="utf-8") as f:
+            id_lang = json.load(f)
+
+        required_keys = [
+            "widget.status_no_internet",
+            "panel.diag_no_internet",
+            "panel.graph_badge_jitter",
+            "panel.graph_badge_loss",
+            "panel.graph_summary_jitter",
+            "panel.graph_summary_loss",
+        ]
+        for key in required_keys:
+            self.assertTrue(has_key_path(en, key), f"Missing key '{key}' in en.json")
+            self.assertTrue(has_key_path(id_lang, key), f"Missing key '{key}' in id.json")
+
 
 
 if __name__ == "__main__":
